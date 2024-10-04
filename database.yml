@@ -1,0 +1,8 @@
+---
+development:
+  dialect: postgres
+  database: calculator
+  user: 
+  password: 
+  host: 
+  pool: 
