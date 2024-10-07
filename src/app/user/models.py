@@ -1,12 +1,15 @@
 import time
 
-from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy import Column, Integer, String, SmallInteger
-from typing import Any
+from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from typing import Any, Type
 
-from src.extensions import db
+from src.extensions import db_service
 
-class UserModel(db.Model):
+Model: Type[DeclarativeMeta] = db_service.client.Model
+
+class UserModel(Model):
   __tablename__ = "users"
 
   id = Column(Integer, primary_key=True)
@@ -33,7 +36,13 @@ class UserModel(db.Model):
   @staticmethod
   def from_dict(data: dict[str, Any]) -> "UserModel":
     """
-    Create a new instance from a dictionary
+    Create a new instance from a dictionary.
+
+    Parameters:
+    - data: A dictionary with user data.
+
+    Returns:
+    - UserModel: A new UserModel instance populated with the dictionary's data.
     """
 
     return UserModel(
@@ -46,7 +55,7 @@ class UserModel(db.Model):
     )
   
 
-class SessionModel(db.Model):
+class SessionModel(Model):
   __tablename__ = "sessions"
 
   user_id = Column(Integer, primary_key=True)

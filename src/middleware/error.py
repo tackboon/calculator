@@ -1,32 +1,48 @@
 from flask import Flask, g, jsonify
-from marshmallow import ValidationError
 
-from src.common.response.custom_error import CustomAPIException
+from src.common.error import CustomAPIException
 
 
 class ErrorMiddleware:
-  def __init__(self, app: Flask = None):
+  def __init__(self, app: Flask):
     """
-    If an app is provided, initialize the error middleware with it. 
-    Otherwise, the app can be initialized later via `init_app`.
-    """
-    if app is not None:
-      self.init_app(app)
+    Initializes and registers error handlers with the given Flask app.
 
-  def init_app(self, app: Flask):
-    """
-    Register error middleware with the given Flask app.
+    Parameters:
+    - app: Flask application instance to attach the error handlers.
     """
 
-    # Handle unknown exception
+    # Handle all uncaught exceptions
     @app.errorhandler(Exception)
     def handle_unknown_exception(e: Exception):
-      g.error = e
+      """
+      Catch and handle any unknown or uncaught exceptions.
+      Logs the exception in Flask's global context (`g.error`) and returns a generic 500 response.
+
+      Parameters:
+      - e: The raised exception.
+
+      Returns:
+      - JSON response with code 500 and a status message "Internal Server Error".
+      """
+
+      g.error = e # Store the error in the Flask global object for logging purposes
       return jsonify(code=500, status="Internal Server Error"), 500
     
-    # Handle custom api exception
+    # Handle custom API exceptions defined by the application
     @app.errorhandler(CustomAPIException)
     def handle_custom_api_exception(e: CustomAPIException):
-      g.error = e.message
+      """
+      Catch and handle custom API exceptions.
+      Logs the exception message in Flask's global context (`g.error`) and returns a custom response.
+
+      Parameters:
+      - e: The raised CustomAPIException instance.
+
+      Returns:
+      - JSON response with the custom exception's code, status, and additional data.
+      """
+
+      g.error = e.message # Store the error in the Flask global object for logging purposes
       return jsonify(code=e.code, status=e.status, data=e.data), e.status_code
     

@@ -2,12 +2,15 @@ import os
 
 from flask import Flask
 from flask_smorest import Api
+from request_id import RequestId
 
-from src.extensions import (
-  app_middleware, config, db, err_middleware, jwt_middleware, redis_client, request_id_middleware 
-)
-from src.record import record_bp
-from src.user import user_bp
+from src.app.user import init_user_app
+from src.app.record import init_record_app
+from src.app.user.repository import UserRepo
+from src.config import config
+from src.extensions import auth_service, db_service, ip_service, redis_service
+from src.middleware.access_log import AccessLogMiddleware
+from src.middleware.error import ErrorMiddleware
 
 
 def create_app():
@@ -43,28 +46,40 @@ def create_app():
   # Disable strict slash
   app.url_map.strict_slashes = False
 
-  # Initialize the database
-  db.init_app(app)
-
-  # Initialize the redis
-  redis_client.init_app(app)
+  # Initialize services
+  db_service.init_app(
+    app, 
+    os.path.join(config.log_base_dir, os.path.basename("sql.log")) if config.log_base_dir != "" else "",
+    config.db_slow_threshold
+  )
+  redis_service.init_app(
+    app,
+    os.path.join(config.log_base_dir, os.path.basename("redis.log")) if config.log_base_dir != "" else "",
+    config.db_slow_threshold
+  )
+  auth_service.init_app(app, UserRepo(config, db_service.client, redis_service)) 
 
   # Initialize middlewares
-  request_id_middleware.init_app(app)
-  err_middleware.init_app(app)
-  jwt_middleware.init_app(app)
-  app_middleware.init_app(
+  access_log_middleware = AccessLogMiddleware(
     app, 
     config.debug_mode, 
     os.path.join(config.log_base_dir, os.path.basename("access.log")) if config.log_base_dir != "" else "",
     config.log_level
   )
+  error_middleware = ErrorMiddleware(app)
+  request_id_middleware = RequestId(app)
 
   # Initialize the API with flask_smorest
   api = Api(app)
 
   # Register blueprints
-  api.register_blueprint(user_bp, url_prefix="/app/api/v1/user")
-  api.register_blueprint(record_bp, url_prefix="/app/api/v1/record")
+  api.register_blueprint(
+    init_user_app(config, db_service.client, redis_service, ip_service), 
+    url_prefix="/app/api/v1/user"
+  )
+  api.register_blueprint(
+    init_record_app(config, db_service.client, redis_service), 
+    url_prefix="/app/api/v1/record"
+  )
 
   return app

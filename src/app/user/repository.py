@@ -1,23 +1,23 @@
 import json
-import src.common.response.custom_error as custom_error
+import src.common.error as error
 
 from dataclasses import asdict
 from datetime import datetime
+from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
-from redis import Redis
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Callable, Optional, Tuple
 
-from src.common.auth.auth import JWTStorage, SessionData, UserInfo
-from src.common.config.config import Config
-from src.common.redis.redis import hset_with_expiry, hset_if_exist
+from src.app.user.models import UserModel, SessionModel
+from src.config import Config
 from src.extensions import app_logger
-from src.user.models import UserModel, SessionModel
+from src.service.auth import JWTRepo, SessionData, UserInfo
+from src.service.redis import RedisServicer
 
 
-class UserStorage(JWTStorage):
-  def __init__(self, config: Config, db: SQLAlchemy, rdb: Redis):
+class UserRepo(JWTRepo):
+  def __init__(self, config: Config, db: SQLAlchemy, rdb: RedisServicer):
     self.db = db
     self.rdb = rdb
     self.config = config
@@ -25,7 +25,7 @@ class UserStorage(JWTStorage):
   def get_user_by_username(self, username: str) -> Optional[UserModel]:
     """
     Search user by username.
-    Return user data.
+    Return user data if found, else None.
     """
 
     return UserModel.query.filter(UserModel.username == username).first()
@@ -33,7 +33,7 @@ class UserStorage(JWTStorage):
   def get_user_by_id(self, user_id: int) -> Optional[UserModel]:
     """
     Get user data by id.
-    Return user data.
+    Return user data if found, else None.
     """
 
     key, duration = self._get_user_cache_info(user_id)
@@ -41,22 +41,19 @@ class UserStorage(JWTStorage):
     # Retrieve user data from cache
     user_cache_byte: Optional[bytes] = self.rdb.get(key)
     if user_cache_byte is not None:
-      # If user not found
+      # If user not found in cache
       if user_cache_byte == b"":
         return None
       
-      # Return cache data
+      # Return user data from cache
       user_dict = json.loads(user_cache_byte)
       return UserModel.from_dict(user_dict)
 
     # Get user data from db
-    user: UserModel = UserModel.query.filter(UserModel.id == user_id).first()
+    user: Optional[UserModel] = UserModel.query.filter(UserModel.id == user_id).first()
 
-    # Write db data to cache
-    user_str = ""
-    if user is not None:
-      user_str = json.dumps(user.to_dict())
-
+    # Cache db result
+    user_str = json.dumps(user.to_dict()) if user is not None else ""
     if not self.rdb.set(key, user_str, duration):
       app_logger.error(f"Failed to write user data to cache, key: {key}.")
 
@@ -64,8 +61,8 @@ class UserStorage(JWTStorage):
   
   def get_user_for_jwt(self, user_id: int) -> Optional[UserInfo]:
     """
-    Get user info for authentication use.
-    Return user info.
+    Get user info for JWT authentication.
+    Return user info if found, else None.
     """
 
     user = self.get_user_by_id(user_id)
@@ -77,6 +74,7 @@ class UserStorage(JWTStorage):
   def create_new_user(self, username: str, password: str) -> UserModel:
     """
     Create and return new user. Username must be unique.
+    Return user data if create success.
     """
     
     user = UserModel(username=username, password=password)
@@ -85,13 +83,13 @@ class UserStorage(JWTStorage):
       self.db.session.add(user)
       self.db.session.commit()
     except IntegrityError:
-      raise custom_error.ResourceConflictError("Username already exists.")
+      raise error.ResourceConflictError("Username already exists.")
     
     return user
 
   def save_session_token(self, user_id: int, session_id: str, access_token: str, refresh_token: str):
     """
-    Save session token to cache.
+    Save session token in redis with expiration.
     """
 
     # Get cache info
@@ -105,24 +103,25 @@ class UserStorage(JWTStorage):
     )
     session_json = json.dumps(asdict(session_data))
 
-    # Save session
-    hset_with_expiry(self.rdb, key, session_id, session_json, duration)
+    # Save session data to redis
+    self.rdb.hset_with_expiry(key, session_id, session_json, duration, 
+                              log_msg=f"Save session token, uid: {user_id}, sid: {session_id}")
 
   def get_session_token(self, user_id: int, session_id: str) -> Tuple[Optional[SessionData], int]:
     """
-    Retrieve session token from cache.
+    Retrieve session token from redis cache.
     """
 
     key, duration = self._get_session_cache_info(user_id)
 
     # Fetch the token data from cache
-    session_bytes = self.rdb.hget(key, session_id)
+    session_bytes = self.rdb.hget(key, session_id, 
+                                  log_msg=f"Get session token, uid: {user_id}, sid: {session_id}")
     if session_bytes is None:
       return None, duration
     
     # Decode the bytes to a string and deserialize it into a dictionary
     session_token_dict = json.loads(session_bytes)
-
     return SessionData(
       access_token=session_token_dict["access_token"],
       refresh_token=session_token_dict["refresh_token"], 
@@ -132,13 +131,13 @@ class UserStorage(JWTStorage):
   
   def get_user_sessions_token(self, user_id: int) -> dict[str, Any]:
     """
-    Retrieve all of the user's session tokens.
+    Retrieve all of the user's session tokens from Redis.
     """
 
     key, _ = self._get_session_cache_info(user_id)
 
     # Fetch the tokens data from cache
-    bytes_dict: dict[bytes, bytes] = self.rdb.hgetall(key)
+    bytes_dict: dict[bytes, bytes] = self.rdb.hgetall(key, log_msg=f"Get user sessions token, uid: {user_id}")
     
     # Decode the bytes to a string and deserialize it into a dictionary
     sessions_token_dict = {
@@ -149,7 +148,7 @@ class UserStorage(JWTStorage):
 
   def delete_sessions_token(self, user_id: int, *session_ids: str):
     """
-    Delete sessions in cache.
+    Delete specific session token from redis cache.
     """
 
     key, _ = self._get_session_cache_info(user_id)
@@ -158,14 +157,14 @@ class UserStorage(JWTStorage):
 
   def update_session_last_online(self, user_id: int, session_id: str, last_online: int) -> bool:
     """
-    Update session's last online in cache.
+    Update session's last online in redis cache.
     Return true if success.
     """
 
     # get session from cache
     session, lifetime = self.get_session_token(user_id, session_id)
     if session is None:
-      raise custom_error.UnauthorizedError(
+      raise error.UnauthorizedError(
         f"Session not found when updating last online, user_id: {user_id}, session_id: {session_id}"
       )
     
@@ -175,7 +174,12 @@ class UserStorage(JWTStorage):
     session_json = json.dumps(asdict(session))
 
     # Save session
-    return hset_if_exist(self.rdb, key, session_id, session_json) == 1
+    return self.rdb.hset_if_exist(
+      key, 
+      session_id, 
+      session_json, 
+      log_msg=f"Update session last online, uid: {user_id}, sid: {session_id}"
+    ) == 1
 
   def create_session_info(self, user_id: int, session_id: str, ip: str, location: str, device_id: str, 
                           device_name: str) -> Optional[SessionModel]:
@@ -218,41 +222,54 @@ class UserStorage(JWTStorage):
     self.db.session.execute(stmt)
     self.db.session.commit()
 
-  def session_lock_wrapper(self, user_id: int, func: Callable[..., Any], 
-                           *args: Any, **kwargs: Any) -> Any:
+  def session_lock_wrapper(self, user_id: int, func: Callable[..., Any]) -> Callable[..., Any]:
     """
-    Acquire session lock in cache for the given user_id and execute the passed function.
-    Return the result of func.
+    A decorator to acquire a Redis-based session lock for the given user_id, execute the 
+    provided function, and release the lock once the function completes.
+
+    The function retrieves a session lock for the specified user_id from Redis, 
+    ensuring that the function passed as `func` is executed exclusively while the lock is held.
+    After execution, the lock is released.
+
+    Parameters:
+    - user_id: The user identifier for which the session lock is acquired.
+    - func: The function to be executed while holding the lock.
+    
+    Returns:
+    - A wrapped function that acquires the session lock, executes `func`, and releases the lock.
     """
-    key, duration = self._get_session_lock_cache_info(user_id)
 
-    # Acquire lock with a specific timeout
-    lock = self.rdb.lock(key, blocking_timeout=duration)
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any):
+      key, duration = self._get_session_lock_cache_info(user_id)
 
-    # Attempt to acquire the lock
-    with lock:
-      # Execute the passed function inside the lock
-      result = func(*args, **kwargs)
-      
-    return result
+      # Acquire lock with a specific timeout
+      lock = self.rdb.lock(key, blocking_timeout=duration)
+
+      # Attempt to acquire the lock
+      with lock:
+        # Execute the passed function inside the lock
+        return func(*args, **kwargs)
+
+    return wrapper
 
   def _get_user_cache_info(self, user_id: int) -> tuple[str, int]:
     """
-    Retrieve user data cache key and cache duration.
+    Construct user data cache key and cache duration.
     """
 
     return f"user:data:{user_id}", 3600
 
   def _get_session_cache_info(self, user_id: int) -> tuple[str, int]:
     """
-    Retrieve session cache key and cache duration.
+    Construct session cache key and cache duration.
     """
 
     return f"user:session:{user_id}", self.config.session_lifetime
 
   def _get_session_lock_cache_info(self, user_id: int) -> tuple[str, int]:
     """
-    Retrieve session lock cache key and cache duration.
+    Construct session lock cache key and cache duration.
     """
 
     return f"user:session_lock:{user_id}", 3

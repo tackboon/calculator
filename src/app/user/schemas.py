@@ -1,4 +1,4 @@
-import src.common.response.custom_error as custom_error
+import src.common.error as error
 
 from marshmallow import Schema, fields, validate
 from typing import Any
@@ -6,8 +6,8 @@ from typing import Any
 
 # Create requests schema
 class BaseRequestSchema(Schema):
-  def handle_error(self, error: fields.ValidationError, data: Any, *, many: bool, **kwargs):
-    raise custom_error.UnprocessableEntityError(message=error.messages ,data=error.args)
+  def handle_error(self, err: fields.ValidationError, data: Any, *, many: bool, **kwargs):
+    raise error.UnprocessableEntityError(message=err.messages ,data=err.args)
 
 
 class LoginRequestSchema(BaseRequestSchema):
