@@ -2,12 +2,14 @@ import time
 
 from sqlalchemy import Column, Integer, String, SmallInteger
 from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from typing import Any, Type
+from typing import Any, TYPE_CHECKING
 
 from src.extensions import db_service
 
-Model: Type[DeclarativeMeta] = db_service.client.Model
+if TYPE_CHECKING:
+  from flask_sqlalchemy.model import Model
+else:
+  Model = db_service.client.Model
 
 class UserModel(Model):
   __tablename__ = "users"

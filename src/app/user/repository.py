@@ -4,20 +4,24 @@ import src.common.error as error
 from dataclasses import asdict
 from datetime import datetime
 from functools import wraps
-from flask_sqlalchemy import SQLAlchemy
+from redis import Redis
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, cast, Optional, Tuple, Union
 
 from src.app.user.models import UserModel, SessionModel
+from src.common.inspect import get_caller_name
 from src.config import Config
 from src.extensions import app_logger
 from src.service.auth import JWTRepo, SessionData, UserInfo
 from src.service.redis import RedisServicer
+from src.service.sql_alchemy import SQLAlchemyServicer
 
 
 class UserRepo(JWTRepo):
-  def __init__(self, config: Config, db: SQLAlchemy, rdb: RedisServicer):
+  rdb: Union[Redis, RedisServicer]
+
+  def __init__(self, config: Config, db: SQLAlchemyServicer, rdb: RedisServicer):
     self.db = db
     self.rdb = rdb
     self.config = config
@@ -80,8 +84,8 @@ class UserRepo(JWTRepo):
     user = UserModel(username=username, password=password)
 
     try:
-      self.db.session.add(user)
-      self.db.session.commit()
+      self.db.client.session.add(user)
+      self.db.client.session.commit()
     except IntegrityError:
       raise error.ResourceConflictError("Username already exists.")
     
@@ -104,8 +108,8 @@ class UserRepo(JWTRepo):
     session_json = json.dumps(asdict(session_data))
 
     # Save session data to redis
-    self.rdb.hset_with_expiry(key, session_id, session_json, duration, 
-                              log_msg=f"Save session token, uid: {user_id}, sid: {session_id}")
+    casted_rdb = cast(RedisServicer, self.rdb)
+    casted_rdb.hset_with_expiry(key, session_id, session_json, duration)
 
   def get_session_token(self, user_id: int, session_id: str) -> Tuple[Optional[SessionData], int]:
     """
@@ -115,8 +119,7 @@ class UserRepo(JWTRepo):
     key, duration = self._get_session_cache_info(user_id)
 
     # Fetch the token data from cache
-    session_bytes = self.rdb.hget(key, session_id, 
-                                  log_msg=f"Get session token, uid: {user_id}, sid: {session_id}")
+    session_bytes = self.rdb.hget(key, session_id)
     if session_bytes is None:
       return None, duration
     
@@ -137,8 +140,8 @@ class UserRepo(JWTRepo):
     key, _ = self._get_session_cache_info(user_id)
 
     # Fetch the tokens data from cache
-    bytes_dict: dict[bytes, bytes] = self.rdb.hgetall(key, log_msg=f"Get user sessions token, uid: {user_id}")
-    
+    bytes_dict: dict[bytes, bytes] = self.rdb.hgetall(key)
+
     # Decode the bytes to a string and deserialize it into a dictionary
     sessions_token_dict = {
       k.decode('utf-8'): json.loads(v.decode('utf-8')) for k, v in bytes_dict.items()
@@ -174,12 +177,8 @@ class UserRepo(JWTRepo):
     session_json = json.dumps(asdict(session))
 
     # Save session
-    return self.rdb.hset_if_exist(
-      key, 
-      session_id, 
-      session_json, 
-      log_msg=f"Update session last online, uid: {user_id}, sid: {session_id}"
-    ) == 1
+    casted_rdb = cast(RedisServicer, self.rdb)
+    return casted_rdb.hset_if_exist(key, session_id, session_json) == 1
 
   def create_session_info(self, user_id: int, session_id: str, ip: str, location: str, device_id: str, 
                           device_name: str) -> Optional[SessionModel]:
@@ -197,8 +196,8 @@ class UserRepo(JWTRepo):
     )
 
     try:
-      self.db.session.add(info)
-      self.db.session.commit()
+      self.db.client.session.add(info)
+      self.db.client.session.commit()
     except IntegrityError:
       return None
     
@@ -219,8 +218,8 @@ class UserRepo(JWTRepo):
       .values(last_ip=last_ip, last_location=last_location, last_online=last_online)
     )
 
-    self.db.session.execute(stmt)
-    self.db.session.commit()
+    self.db.client.session.execute(stmt)
+    self.db.client.session.commit()
 
   def session_lock_wrapper(self, user_id: int, func: Callable[..., Any]) -> Callable[..., Any]:
     """
@@ -239,12 +238,15 @@ class UserRepo(JWTRepo):
     - A wrapped function that acquires the session lock, executes `func`, and releases the lock.
     """
 
+    caller = get_caller_name()
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
       key, duration = self._get_session_lock_cache_info(user_id)
 
       # Acquire lock with a specific timeout
-      lock = self.rdb.lock(key, blocking_timeout=duration)
+      casted_rdb = cast(RedisServicer, self.rdb)
+      lock = casted_rdb.custom_lock(key, blocking_timeout=duration, caller=caller)
 
       # Attempt to acquire the lock
       with lock:

@@ -85,5 +85,10 @@ class BasicJSONFormatter(logging.Formatter):
     if latency is not None:
       log_record["latency"] = str(latency)
 
+    # Add caller to log record if exists
+    caller = getattr(record, "caller", None)
+    if caller is not None:
+      log_record["caller"] = str(caller)
+
     # Convert the log record to JSON string
     return json.dumps(log_record)

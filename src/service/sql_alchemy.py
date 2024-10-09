@@ -9,7 +9,9 @@ from typing import Any
 from src.common.logger import BasicJSONFormatter, create_logger
 
 
-class SQLAlchemyServicer:
+class SQLAlchemyServicer: 
+  client: SQLAlchemy
+
   def __init__(self, app: Flask = None, log_path: str = "", slow_threshold_ms: float = 200):
     """
     Initializes the SQLAlchemyServicer instance, which sets up SQLAlchemy and 
@@ -80,7 +82,7 @@ class SQLAlchemyServicer:
       query_time = round((time.time() - context._query_start_time) * 1000, 3)
       if query_time > self.slow_threshold_ms:
         self.logger.warning(
-          f"Slow Query: {statement}, params: {parameters}",
+          f"Slow Query: {statement}",
           extra={"latency": f"{query_time} ms"}
         )
   

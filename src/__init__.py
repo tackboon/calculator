@@ -57,7 +57,7 @@ def create_app():
     os.path.join(config.log_base_dir, os.path.basename("redis.log")) if config.log_base_dir != "" else "",
     config.db_slow_threshold
   )
-  auth_service.init_app(app, UserRepo(config, db_service.client, redis_service)) 
+  auth_service.init_app(app, UserRepo(config, db_service, redis_service)) 
 
   # Initialize middlewares
   access_log_middleware = AccessLogMiddleware(
@@ -74,11 +74,11 @@ def create_app():
 
   # Register blueprints
   api.register_blueprint(
-    init_user_app(config, db_service.client, redis_service, ip_service), 
+    init_user_app(config, db_service, redis_service, ip_service), 
     url_prefix="/app/api/v1/user"
   )
   api.register_blueprint(
-    init_record_app(config, db_service.client, redis_service), 
+    init_record_app(config, db_service, redis_service), 
     url_prefix="/app/api/v1/record"
   )
 

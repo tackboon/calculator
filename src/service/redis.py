@@ -6,26 +6,25 @@ from functools import wraps
 from logging import Logger
 from typing import Any, Awaitable, Callable, Optional, Union
 
+from src.common.inspect import get_caller_name
 from src.common.logger import BasicJSONFormatter, create_logger
+from redis import Redis
 
-
-def log_slow_queries(threshold_ms: float, logger: Logger, skip_log: bool, log_msg: str, 
+def log_slow_queries(threshold_ms: float, logger: Logger, log_msg: str, caller: str, 
                      fn: Callable[..., Any]) -> Callable[..., Any]:
   """
-  Wrapper function to log slow Redis queries. 
-  It measures the execution time of a Redis call and logs it if it exceeds the threshold.
-  If skip_log is True, logging is bypassed. If log_msg is provided, it is used instead of
-  the default log message.
+  Decorator function to log slow Redis queries.
+  It measures the execution time of a Redis call and logs it if it exceeds the specified threshold.
   
   Parameters:
-  - threshold_ms: The threshold in milliseconds. If the query execution time exceeds this, it is considered slow.
-  - logger: The logger instance to use for logging slow queries.
-  - skip_log: A boolean flag to skip logging if True.
-  - log_msg: Custom message to log instead of the default message. If empty, the default message is logged.
-  - fn: The Redis method to be wrapped with slow query logging.
+  - threshold_ms: The threshold in milliseconds. Queries taking longer than this will be considered slow.
+  - logger: The logger instance used to log slow queries.
+  - log_msg: A custom log message. If provided, it replaces the default message.
+  - caller: The name of the function that called the Redis operation.
+  - fn: The Redis method being wrapped with the slow query logging.
   
   Returns:
-  - A wrapper function that logs slow queries and calls the original method.
+  - A wrapper function that logs slow queries if they exceed the threshold and then calls the original function.
   """
 
   @wraps(fn)
@@ -36,15 +35,14 @@ def log_slow_queries(threshold_ms: float, logger: Logger, skip_log: bool, log_ms
     # Execute the original function
     result = fn(*args, **kwargs)
 
-    # Calculate the execution time
-    if not skip_log:
-      query_time = round((time.time() - start_time) * 1000, 3)
-      if query_time > threshold_ms:
-        msg = f"Slow Query: {fn.__name__}, args: {args}, kwargs: {kwargs}" if log_msg == "" else log_msg
-        logger.warning(
-          msg,
-          extra={"latency": f"{query_time} ms"}
-        )
+    # Calculate the execution time in milliseconds
+    query_time = round((time.time() - start_time) * 1000, 3)
+    if query_time > threshold_ms:
+      msg = f"Slow Query: {fn.__name__}" if log_msg == "" else f"Slow Query: {log_msg}"
+      logger.warning(
+        msg,
+        extra={"latency": f"{query_time} ms", "caller": caller}
+      )
 
     return result
   return wrapper
@@ -52,35 +50,39 @@ def log_slow_queries(threshold_ms: float, logger: Logger, skip_log: bool, log_ms
 
 class RedisServicer:
   """
-  A Redis service wrapper that extends the basic Redis client functionalities 
-  with decorators to log slow queries and implement custom commands. 
+  A Redis service wrapper that extends the basic Redis client functionalities.
+  It adds support for logging slow queries and implementing custom commands.
   """
+
+  client: Union[Redis, FlaskRedis]
 
   def __init__(self, app: Flask = None, log_path: str = "", slow_threshold_ms: float = 50):
     """
-    Initializes the RedisServicer instance, which sets up FlaskRedis and 
-    logs slow queries. The service can be initialized with a Flask app during instantiation,
-    or later via the `init_app` method.
+    Initializes the RedisServicer instance, which sets up FlaskRedis and configures slow query logging.
+    The service can be initialized with a Flask app during instantiation or later via the `init_app` method.
+    
+    Parameters:
+    - app: Optional Flask application instance to initialize the Redis client.
+    - log_path: Path where slow query logs will be stored.
+    - slow_threshold_ms: Threshold (in milliseconds) to classify a query as slow and log it.
     """
-
-    self.client = FlaskRedis()
 
     if app is not None:
       self.init_app(app, log_path, slow_threshold_ms)
 
   def init_app(self, app: Flask, log_path: str, slow_threshold_ms: float = 50):
     """
-    Initializes the FlaskRedis with the given Flask app and sets up logging for slow queries.
-    It also configures a logger to capture queries that exceed the defined threshold.
-
+    Initializes the FlaskRedis with the provided Flask app and sets up logging for slow queries.
+    Configures a logger to capture queries that exceed the defined threshold.
+    
     Parameters:
     - app: Flask application instance to initialize the Redis client.
-    - log_path: Path for logging slow Redis queries.
+    - log_path: Path where slow Redis query logs will be stored.
     - slow_threshold_ms: Threshold (in milliseconds) to classify a query as slow and log it.
     """
 
     # Initializing the Redis client using FlaskRedis
-    self.client.init_app(app)
+    self.client = FlaskRedis(app)
     self.slow_threshold_ms = slow_threshold_ms
 
     # Configure the logger with a JSON format for logging slow queries
@@ -89,11 +91,11 @@ class RedisServicer:
 
   def __getattr__(self, name: str) -> Any:
     """
-    Intercepts calls to Redis methods and applies the slow query logging decorator.
-
+    Intercepts calls to Redis methods and wraps them with the slow query logging decorator.
+    
     Parameters:
-    - name: Name of the Redis command being called.
-
+    - name: Name of the Redis command being accessed.
+    
     Returns:
     - The original Redis method, wrapped with the slow query logging if applicable.
     """
@@ -103,61 +105,12 @@ class RedisServicer:
 
     # If the attribute is callable, wrap it with the slow query logger
     if callable(redis_attr):
-      return log_slow_queries(self.slow_threshold_ms, self.logger, False, "", redis_attr)
+      return log_slow_queries(self.slow_threshold_ms, self.logger, "", 
+                              get_caller_name(), redis_attr)
 
     return redis_attr
 
-  def hget(self, key: str, field: str, 
-           skip_log: bool = False, log_msg: str = "") -> Union[Awaitable[Optional[str]], Optional[str]]:
-    """
-    Redis HGET command with optional slow query logging.
-
-    Parameters:
-    - key: Redis key to retrieve the hash from.
-    - field: The specific field in the hash to retrieve.
-    - skip_log: Flag to skip logging this query if set to True.
-    - log_msg: Custom log message to replace the default slow query log.
-    
-    Returns:
-    - The value of the field in the hash, or None if the field does not exist.
-    """
-    
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger, 
-      skip_log,
-      log_msg,
-      self.client.hget
-    )(key, field)
-
-  def hgetall(self, key: str, skip_log: bool = False, log_msg: str = "") -> Union[Awaitable[dict], dict]:
-    """
-    Redis HGETALL command with optional slow query logging.
-    
-    The HGETALL command retrieves all the fields and values of a hash stored at a specific key.
-    This method wraps the command and adds optional logging of slow queries based on the
-    provided threshold and log configuration.
-
-    Parameters:
-    - key: The Redis key for the hash.
-    - skip_log: Flag to skip logging slow queries. If set to True, the logging is bypassed.
-    - log_msg: Custom log message to replace the default slow query log. If empty, the default message is used.
-    
-    Returns:
-    - A dictionary containing all the fields and values stored in the hash. 
-      If the key does not exist, an empty dictionary is returned.
-    """
-
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger, 
-      skip_log,
-      log_msg,
-      self.client.hgetall
-    )(key)
-
-  def hset_if_exist(self, key: str, field: str, value: str, 
-                    skip_log: bool = False, log_msg: str = "") -> Union[Awaitable[int] | int]:
+  def hset_if_exist(self, key: str, field: str, value: str) -> Union[Awaitable[int] | int]:
     """
     Redis HSET operation that updates a field in a hash only if the field already exists.
     
@@ -180,16 +133,17 @@ class RedisServicer:
     end
     """
 
+    caller = get_caller_name()
+
     return log_slow_queries(
       self.slow_threshold_ms, 
       self.logger, 
-      skip_log,
-      log_msg,
+      "eval hset_if_exist",
+      caller,
       self.client.eval
     )(script, 1, key, field, value)
 
-  def hset_with_expiry(self, key: str, field: str, value: str, duration: int, 
-                       skip_log: bool = False, log_msg: str = "") -> Union[Awaitable[int], int]:
+  def hset_with_expiry(self, key: str, field: str, value: str, duration: int) -> Union[Awaitable[int], int]:
     """
     Redis HSET operation with an expiry. The field is set in the hash and the key's expiry is updated.
 
@@ -210,16 +164,17 @@ class RedisServicer:
     return 1
     """
 
+    caller = get_caller_name()
+
     return log_slow_queries(
       self.slow_threshold_ms, 
       self.logger,
-      skip_log,
-      log_msg,
+      "eval hset_with_expiry",
+      caller,
       self.client.eval
     )(script, 1, key, field, value, duration)
 
-  def hsetnx_with_expiry(self, key: str, field: str, value: str, duration: int, 
-                         skip_log: bool = False, log_msg: str = "") -> Union[Awaitable[int], int]:
+  def hsetnx_with_expiry(self, key: str, field: str, value: str, duration: int) -> Union[Awaitable[int], int]:
     """
     Redis HSETNX operation with an expiry. The field is set only if it does not already exist, 
     and the key's expiry is updated if the field was created.
@@ -244,11 +199,48 @@ class RedisServicer:
     end
     """
 
+    caller = get_caller_name()
+
     return log_slow_queries(
       self.slow_threshold_ms, 
       self.logger,
-      skip_log,
-      log_msg,
+      "eval hsetnx_with_expiry",
+      caller,
       self.client.eval
     )(script, 1, key, field, value, duration)
+
+  def custom_lock(
+      self,
+      name: str,
+      timeout: Optional[float] = None,
+      sleep: float = 0.1,
+      blocking: bool = True,
+      blocking_timeout: Optional[float] = None,
+      lock_class: Union[None, Any] = None,
+      thread_local: bool = True,
+      caller: str = ""
+    ) -> Any:
+    """
+    Returns a new Lock object using key ``name``, which mimics
+    the behavior of threading.Lock.
+
+    Parameters:
+    - name: The Redis key used for the lock.
+    - timeout: Optional maximum life for the lock. It will remain locked until release() is called by default.
+    - sleep: Amount of time to sleep per loop iteration when the lock is in blocking mode.
+    - blocking: Whether ``acquire`` should block until the lock is acquired.
+    - blocking_timeout: Maximum time (in seconds) to wait for acquiring the lock. A value of ``None`` waits indefinitely.
+    - lock_class: Forces a specific lock implementation. Defaults to Redis' Lua-based lock.
+    - thread_local: If True, the lock token is stored in thread-local storage.
+
+    Returns:
+    - The Lock object.
+    """
   
+    return log_slow_queries(
+      self.slow_threshold_ms, 
+      self.logger,
+      "lock",
+      caller,
+      self.client.lock
+    )(name, timeout, sleep, blocking, blocking_timeout, lock_class, thread_local)
