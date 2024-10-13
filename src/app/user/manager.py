@@ -1,7 +1,7 @@
 import base64
 import uuid
 
-import src.common.error as error
+import src.common.error as common_error
 
 from datetime import datetime, timedelta
 from typing import Any, Optional
@@ -54,12 +54,16 @@ class UserService:
     # Retrieve user data from db
     user = self.repo.get_user_by_username(username)
     if user is None:
-      raise error.UnauthorizedError("User record not found.")
+      raise common_error.UnauthorizedError("User record not found.")
+
+    # Check is user valid to login
+    if user.blocked_at != 0 or user.deleted_at != 0:
+      raise common_error.UnauthorizedError("User has been blocked or deleted.")
 
     # Verify user's password
     stored_password = base64.b64decode(user.password)
     if not verify_password(stored_password, password, 16):
-      raise error.UnauthorizedError("Password mismatch.")
+      raise common_error.UnauthorizedError("Password mismatch.")
 
     # Create session info
     session_id = self._create_session_info(user.id, ip, device_id, device_name)
@@ -95,7 +99,7 @@ class UserService:
 
     # Update last online in session's cache
     if not self.repo.update_session_last_online(user_id, session_id, last_online):
-      raise error.UnauthorizedError(
+      raise common_error.UnauthorizedError(
         f"Session id not exists, user_id: {user_id}, session_id: {session_id}."
       ) 
 
@@ -106,6 +110,20 @@ class UserService:
     # Update session info in the db
     self.repo.update_session_info(user_id, session_id, ip, location, last_online)
        
+  def block_user(self, user_id: int):
+    """
+    Block user by user id.
+    """
+
+    self.repo.block_user(user_id)
+    
+  def remove_all_sessions(self, user_id: int):
+    """
+    Remove user's all sessions.
+    """
+
+    self.repo.remove_all_sessions(user_id)
+  
   def check_username_availability(self, username: str):
     """
     Check if a username is already taken
@@ -114,7 +132,7 @@ class UserService:
     # Get user data from db
     user = self.repo.get_user_by_username(username)
     if user is not None:
-      raise error.ResourceConflictError("Username already exists.")
+      raise common_error.ResourceConflictError("Username already exists.")
 
   def _create_session_info(self, user_id: int, ip: str, device_id: str, device_name: str
                            ) -> Optional[str]:

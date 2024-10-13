@@ -1,5 +1,6 @@
 from flask_smorest import Blueprint
 
+from src.app.user.http_internal_handler import create_internal_user_blueprint
 from src.app.user.http_handler import create_user_blueprint
 from src.app.user.repository import UserRepo
 from src.app.user.manager import UserService
@@ -14,3 +15,10 @@ def init_user_app(config: Config, db_client: SQLAlchemyServicer, redis_client: R
   user_service = UserService(config, user_repo, ip_location)
   
   return create_user_blueprint(user_service)
+
+def init_internal_user_app(config: Config, db_client: SQLAlchemyServicer, redis_client: RedisServicer, 
+                    ip_location: IP2LocationServicer) -> Blueprint:
+  user_repo = UserRepo(config, db_client, redis_client)
+  user_service = UserService(config, user_repo, ip_location)
+  
+  return create_internal_user_blueprint(user_service)

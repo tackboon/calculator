@@ -8,6 +8,7 @@ class Config:
   Configuration class to hold application settings loaded from environment variables.
   """
 
+  app_mode: str # App mode to run [http_public, http_internal]
   debug_mode: bool
   log_base_dir: str # Log base directory
   log_level: str # Log level
@@ -21,6 +22,7 @@ class Config:
 
 # Initialize configs
 config = Config(
+  app_mode = os.getenv("APP_MODE", "http_public"),
   debug_mode = os.getenv("FLASK_DEBUG", "1") == "1",
   log_base_dir = os.getenv("LOG_BASE", ""),
   log_level = os.getenv("LOG_LEVEL", "DEBUG"),

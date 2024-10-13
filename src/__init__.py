@@ -1,14 +1,15 @@
 import os
+import sys
 
 from flask import Flask
 from flask_smorest import Api
 from request_id import RequestId
 
-from src.app.user import init_user_app
+from src.app.user import init_internal_user_app, init_user_app
 from src.app.record import init_record_app
 from src.app.user.repository import UserRepo
 from src.config import config
-from src.extensions import auth_service, db_service, ip_service, redis_service
+from src.extensions import app_logger, auth_service, db_service, ip_service, redis_service
 from src.middleware.access_log import AccessLogMiddleware
 from src.middleware.error import ErrorMiddleware
 
@@ -73,13 +74,23 @@ def create_app():
   api = Api(app)
 
   # Register blueprints
-  api.register_blueprint(
-    init_user_app(config, db_service, redis_service, ip_service), 
-    url_prefix="/app/api/v1/user"
-  )
-  api.register_blueprint(
-    init_record_app(config, db_service, redis_service), 
-    url_prefix="/app/api/v1/record"
-  )
+  match config.app_mode:
+    case "http_public":
+      api.register_blueprint(
+        init_user_app(config, db_service, redis_service, ip_service), 
+        url_prefix="/app/api/v1/user"
+      )
+      api.register_blueprint(
+        init_record_app(config, db_service, redis_service), 
+        url_prefix="/app/api/v1/record"
+      )
+    case "http_internal":
+      api.register_blueprint(
+        init_internal_user_app(config, db_service, redis_service, ip_service), 
+        url_prefix="/app/api/v1/user"
+      )
+    case _:  
+      app_logger.fatal(f"Invalid app mode: '{config.app_mode}' detected. Expected 'http_pulic' or 'http_internal'.")
+      sys.exit(1)
 
   return app

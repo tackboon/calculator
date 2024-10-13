@@ -19,6 +19,7 @@ class UserModel(Model):
   password = Column(String(255), nullable=False)
   created_at = Column(Integer, nullable=False, default=lambda: int(time.time()))
   deleted_at = Column(Integer, nullable=False, default=0)
+  blocked_at = Column(Integer, nullable=False, default=0)
   role = Column(SmallInteger, nullable=False, default=0)
 
   def to_dict(self) -> dict[str, Any]:
@@ -32,6 +33,7 @@ class UserModel(Model):
       "password": self.password,
       "created_at": self.created_at,
       "deleted_at": self.deleted_at,
+      "blocked_at": self.blocked_at,
       "role": self.role
     }
 
@@ -53,6 +55,7 @@ class UserModel(Model):
       password = data.get("password"),
       created_at = data.get("created_at"),
       deleted_at = data.get("deleted_at"),
+      blocked_at = data.get("blocked_at"),
       role = data.get("role")
     )
   

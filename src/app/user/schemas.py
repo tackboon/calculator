@@ -1,4 +1,4 @@
-import src.common.error as error
+import src.common.error as common_error
 
 from marshmallow import Schema, fields, validate
 from typing import Any
@@ -7,7 +7,11 @@ from typing import Any
 # Create requests schema
 class BaseRequestSchema(Schema):
   def handle_error(self, err: fields.ValidationError, data: Any, *, many: bool, **kwargs):
-    raise error.UnprocessableEntityError(message=err.messages ,data=err.args)
+    raise common_error.UnprocessableEntityError(message=err.messages ,data=err.args)
+
+
+class BlockUserRequestSchema(BaseRequestSchema):
+  user_id = fields.Int(required=True)
 
 
 class LoginRequestSchema(BaseRequestSchema):
@@ -28,6 +32,10 @@ class RegisterRequestSchema(BaseRequestSchema):
   ])
   device_id = fields.Str(required=True, validate=validate.Length(max=255))
   device_name = fields.Str(required=True, validate=validate.Length(max=255))
+
+
+class RemoveAllSessionsRequestSchema(BaseRequestSchema):
+  user_id = fields.Int(required=True)
 
 
 class UsernameRequestSchema(BaseRequestSchema):

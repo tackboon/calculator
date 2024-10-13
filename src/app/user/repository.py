@@ -1,5 +1,5 @@
 import json
-import src.common.error as error
+import src.common.error as common_error
 
 from dataclasses import asdict
 from datetime import datetime
@@ -73,6 +73,10 @@ class UserRepo(JWTRepo):
     if user is None:
       return None
     
+    # Verify if the user is valid
+    if user.deleted_at != 0 or user.blocked_at != 0:
+      return None
+    
     return UserInfo(user.id, user.username, user.deleted_at, user.role)
 
   def create_new_user(self, username: str, password: str) -> UserModel:
@@ -87,9 +91,37 @@ class UserRepo(JWTRepo):
       self.db.client.session.add(user)
       self.db.client.session.commit()
     except IntegrityError:
-      raise error.ResourceConflictError("Username already exists.")
+      raise common_error.ResourceConflictError("Username already exists.")
     
     return user
+
+  def block_user(self, user_id: int):
+    """
+    Block user by user id.
+    """
+
+    # Update block time in db
+    stmt = (
+      update(UserModel)
+      .where(UserModel.id == user_id)
+      .values(blocked_at=int(datetime.now().timestamp()))
+    )
+
+    self.db.client.session.execute(stmt)
+    self.db.client.session.commit()
+
+    # Delete user's info and session in cache
+    userCacheKey, _ = self._get_user_cache_info(user_id)
+    sessionCacheKey, _ = self._get_session_cache_info(user_id)
+    self.rdb.delete(userCacheKey, sessionCacheKey)
+
+  def remove_all_sessions(self, user_id: int):
+    """
+    Remove user's all sessions.
+    """
+
+    key, _ = self._get_session_cache_info(user_id)
+    self.rdb.delete(key)
 
   def save_session_token(self, user_id: int, session_id: str, access_token: str, refresh_token: str):
     """
@@ -167,7 +199,7 @@ class UserRepo(JWTRepo):
     # get session from cache
     session, lifetime = self.get_session_token(user_id, session_id)
     if session is None:
-      raise error.UnauthorizedError(
+      raise common_error.UnauthorizedError(
         f"Session not found when updating last online, user_id: {user_id}, session_id: {session_id}"
       )
     

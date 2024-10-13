@@ -211,11 +211,7 @@ class AuthServicer:
         # Retrieve user info from storage
         user_info = self.repo.get_user_for_jwt(user_id)
         if user_info is None:
-          raise UnauthorizedError("User not found in storage.")
-
-        # Verify if the user is deleted
-        if user_info.deleted_at != 0:
-          raise UnauthorizedError("User is deleted.")
+          raise UnauthorizedError("User not found in storage, or the user has beed deleted or blocked.")
         
         # Store user info in Flask's global object
         g.user_info = user_info      
