@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import styles from "./nav_layout.module.scss";
 
 const NavLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // State to manage whether navigation menu is open or closed
   const [isOpen, setIsOpen] = useState(false);
+
+  // State to track whether the view is mobile view
   const [isSmallView, setIsSmallView] = useState(window.innerWidth <= 600);
 
+  // Handle window resize
   const handleResize = () => {
     setIsSmallView(window.innerWidth <= 600);
   };
@@ -19,6 +25,7 @@ const NavLayout = () => {
     };
   }, []);
 
+  // Function to toggle the navigation menu and handle navigation to different links
   const toggleNav = (link?: string) => {
     if (isSmallView || isOpen) {
       setIsOpen(!isOpen);
@@ -29,8 +36,12 @@ const NavLayout = () => {
     }
   };
 
+  // Determine if the logout button should be hidden
+  const hideLogin =
+    location.pathname === "/login" || location.pathname === "/register";
+
   return (
-    <>
+    <div className={styles["wrapper"]}>
       <nav className={`${styles["nav-bar"]} ${isOpen ? styles["open"] : ""}`}>
         <div className={styles["hamburger-icon"]}>
           <span onClick={() => toggleNav()}>☰</span>
@@ -52,15 +63,16 @@ const NavLayout = () => {
               <span onClick={() => toggleNav("/portfolio")}>Portfolio</span>
             </li>
           </ul>
-          <ul>
-            <li onClick={() => toggleNav()}>Logout</li>
+
+          <ul className={hideLogin ? styles["hide"] : ""}>
+            <li onClick={() => toggleNav("/login")}>Logout</li>
           </ul>
         </div>
       </nav>
       <main>
         <Outlet />
       </main>
-    </>
+    </div>
   );
 };
 

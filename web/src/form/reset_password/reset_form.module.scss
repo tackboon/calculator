@@ -1,0 +1,44 @@
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .form-group {
+    margin-bottom: 15px;
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+  }
+
+  .error {
+    padding: 5px 0 10px 0;
+    color: #ff0000;
+    min-height: 1rem;
+    line-height: 1;
+  }
+
+  .form-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 10px 0;
+
+    .submit-btn {
+      width: 48%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #000000;
+    }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+
+      .submit-btn {
+        width: 100%;
+      }
+    }
+  }
+}

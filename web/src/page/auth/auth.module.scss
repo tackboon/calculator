@@ -1,0 +1,22 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f9f9f9;
+  min-height: calc(100vh - 70px);
+
+  .container {
+    max-width: 600px;
+    margin: 20px 0;
+    padding: 20px;
+  }
+
+  @media (max-width: 600px) {
+    background-color: #ffffff;
+
+    .container {
+      box-shadow: none;
+      border-radius: 0;
+    }
+  }
+}

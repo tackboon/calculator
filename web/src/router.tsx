@@ -1,11 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-import CalculatorPage from "./page/calculator/calculator.component";
-import LoginPage from "./page/login/login.component";
-import NotFoundPage from "./page/not_found/not_found.component";
 import NavLayout from "./layout/nav_layout.component";
+import LoginPage from "./page/auth/login.component";
+import RegisterPage from "./page/auth/register.component";
+import CalculatorPage from "./page/calculator/calculator.component";
+import ForgotPasswordPage from "./page/auth/forgot.component";
 import StockJournalPage from "./page/journal/stock_journal.component";
+import NotFoundPage from "./page/not_found/not_found.component";
 import PortfolioPage from "./page/portfolio/portfolio.component";
+import ResetPasswordPage from "./page/auth/reset.component";
 
 const router = createBrowserRouter([
   {
@@ -31,6 +34,18 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <LoginPage />,
+      },
+      {
+        path: "/register",
+        element: <RegisterPage />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPasswordPage />,
       },
       {
         path: "*",

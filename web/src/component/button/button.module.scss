@@ -8,6 +8,11 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #333333;
+    opacity: 0.85;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
   }
 }
