@@ -23,6 +23,15 @@ class CustomAPIException(Exception):
     self.data = data
 
 
+class NotFoundError(CustomAPIException):
+  """
+  Exception raised when a resource is not found.
+  """
+
+  def __init__(self, message: str = "Resource not found.", data: dict = {}):
+    super().__init__(status_code=200, code=404, status="Not Found", message=message, data=data)
+
+
 class ResourceConflictError(CustomAPIException):
   """
   Exception raised when a resource conflict occurs (e.g., duplicate resource).
@@ -30,6 +39,15 @@ class ResourceConflictError(CustomAPIException):
 
   def __init__(self, message: str = "Resource already exists", data: dict = {}):
     super().__init__(status_code=200, code=409, status="Conflict", message=message, data=data)
+
+
+class TooManyRequestError(CustomAPIException):
+  """
+  Exception raised when too many requests happened.
+  """
+
+  def __init__(self, message: str = "Too Many Requests", data: dict = {}):
+    super().__init__(status_code=200, code=429, status="Too Many Requests", message=message, data=data)
 
 
 class UnauthorizedError(CustomAPIException):

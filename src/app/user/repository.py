@@ -9,7 +9,7 @@ from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Callable, cast, Optional, Tuple, Union
 
-from src.app.user.models import UserModel, SessionModel
+from src.app.user.models import UserModel, ResetPasswordCacheModel, SessionModel
 from src.common.inspect import get_caller_name
 from src.config import Config
 from src.extensions import app_logger
@@ -26,13 +26,13 @@ class UserRepo(JWTRepo):
     self.rdb = rdb
     self.config = config
 
-  def get_user_by_username(self, username: str) -> Optional[UserModel]:
+  def get_user_by_email(self, email: str) -> Optional[UserModel]:
     """
-    Search user by username.
+    Search user by email.
     Return user data if found, else None.
     """
 
-    return UserModel.query.filter(UserModel.username == username).first()
+    return UserModel.query.filter(UserModel.email == email).first()
 
   def get_user_by_id(self, user_id: int) -> Optional[UserModel]:
     """
@@ -77,21 +77,21 @@ class UserRepo(JWTRepo):
     if user.deleted_at != 0 or user.blocked_at != 0:
       return None
     
-    return UserInfo(user.id, user.username, user.deleted_at, user.role)
+    return UserInfo(user.id, user.email, user.deleted_at, user.role)
 
-  def create_new_user(self, username: str, password: str) -> UserModel:
+  def create_new_user(self, email: str, password: str) -> UserModel:
     """
-    Create and return new user. Username must be unique.
+    Create and return new user. Email must be unique.
     Return user data if create success.
     """
     
-    user = UserModel(username=username, password=password)
+    user = UserModel(email=email, password=password)
 
     try:
       self.db.client.session.add(user)
       self.db.client.session.commit()
     except IntegrityError:
-      raise common_error.ResourceConflictError("Username already exists.")
+      raise common_error.ResourceConflictError("Email already exists.")
     
     return user
 
@@ -286,6 +286,40 @@ class UserRepo(JWTRepo):
         return func(*args, **kwargs)
 
     return wrapper
+  
+  def save_reset_password_secret(self, email: str, secret: str) -> int:
+    """
+    Save reset password secret to cache
+    Return link's expiry.
+    """
+
+    # Get cache key and duration
+    key, duration = self._get_reset_password_cache_info(email)
+
+    # Save secret to 
+    now = int(datetime.now().timestamp())
+    json_data = json.dumps(asdict(ResetPasswordCacheModel(secret=secret, issued_at=now)))
+    self.rdb.set(key, json_data, duration)
+
+    return now + duration
+  
+  def get_reset_password_secret(self, email: str) -> Optional[ResetPasswordCacheModel]:
+    """
+    Retrieve user's reset password secret from cache.
+    Return the cache data.
+    """
+
+    # Get cache key and duration
+    key, _ = self._get_reset_password_cache_info(email)
+
+    # Retrieve secret from cache
+    cache_bytes:Optional[bytes] = self.rdb.get(key)
+    if cache_bytes is None:
+      return None
+    
+    # Return reset password secret cache data
+    reset_dict = json.loads(cache_bytes)
+    return ResetPasswordCacheModel(**reset_dict)
 
   def _get_user_cache_info(self, user_id: int) -> tuple[str, int]:
     """
@@ -307,4 +341,11 @@ class UserRepo(JWTRepo):
     """
 
     return f"user:session_lock:{user_id}", 3
+  
+  def _get_reset_password_cache_info(self, email: str) -> tuple[str, int]:
+    """
+    Construct reset password cache key and cache duration.
+    """
+
+    return f"user:reset:{email}", 600
   

@@ -29,7 +29,7 @@ class UserInfo:
   """
 
   user_id: int
-  username: str
+  email: str
   deleted_at: int
   role: int
 

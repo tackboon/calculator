@@ -2,7 +2,7 @@ import IP2Location
 import re
 
 # Download the bin files from: https://lite.ip2location.com/database-download
-# IPV4 Bin: DB3LITEBIN, IPV6 Bin: DB3LITEBINIPV6
+# IPV4 Bin: DB11LITEBIN, IPV6 Bin: DB11LITEBINIPV6
 
 class IP2LocationServicer:
   def __init__(self, ipv4_bin_path: str, ipv6_bin_path: str):
@@ -48,6 +48,29 @@ class IP2LocationServicer:
       country = country_record if country_record != "INVALID IP ADDRESS" else "-"
 
     return city, country
+
+  def get_timezone(self, ip: str) -> str:
+    """
+    Return timezone from the IP address.
+    Return '-' for if the IP address is invalid.
+
+    Parameters:
+    - ip: The IP address to look up.
+
+    Returns:
+    - timezone.
+    """
+        
+    tz = "-"
+
+    if self.is_ipv4(ip):
+      tz_record = self.ipv4_db.get_timezone(ip)
+      tz = tz_record if tz_record != "INVALID IP ADDRESS" else "-"
+    elif self.is_ipv6(ip):
+      tz_record = self.ipv6_db.get_timezone(ip)
+      tz = tz_record if tz_record != "INVALID IP ADDRESS" else "-"
+
+    return tz
 
   def is_ipv4(self, ip: str) -> bool:
     """

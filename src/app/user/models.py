@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import time
 
 from sqlalchemy import Column, Integer, String, SmallInteger
@@ -15,7 +16,7 @@ class UserModel(Model):
   __tablename__ = "users"
 
   id = Column(Integer, primary_key=True)
-  username = Column(String(100), nullable=False, unique=True)
+  email = Column(String(320), nullable=False, unique=True)
   password = Column(String(255), nullable=False)
   created_at = Column(Integer, nullable=False, default=lambda: int(time.time()))
   deleted_at = Column(Integer, nullable=False, default=0)
@@ -29,7 +30,7 @@ class UserModel(Model):
 
     return {
       "id": self.id,
-      "username": self.username,
+      "email": self.email,
       "password": self.password,
       "created_at": self.created_at,
       "deleted_at": self.deleted_at,
@@ -51,7 +52,7 @@ class UserModel(Model):
 
     return UserModel(
       id = data.get("id"),
-      username = data.get("username"),
+      email = data.get("email"),
       password = data.get("password"),
       created_at = data.get("created_at"),
       deleted_at = data.get("deleted_at"),
@@ -72,3 +73,12 @@ class SessionModel(Model):
   device_name = Column(String(255), nullable=False)
   device_id = Column(String(255), nullable=False)
   
+
+@dataclass
+class ResetPasswordCacheModel:
+  """
+  Data class representing a reset password information.
+  """
+
+  secret: str
+  issued_at: int

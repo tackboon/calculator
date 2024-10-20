@@ -1,4 +1,5 @@
 import src.app.user.schemas as schemas
+import src.common.error as common_error
 
 from flask import request
 from flask.views import MethodView
@@ -10,21 +11,21 @@ from src.service.auth.token import get_info_from_token
 from src.extensions import auth_service
 
 
-def create_user_blueprint(user_service: UserService) -> Blueprint:
-  user_bp = Blueprint("Users", __name__, description="Operations on user")
+def create_auth_blueprint(user_service: UserService) -> Blueprint:
+  auth_bp = Blueprint("Auth", __name__, description="Operations on auth")
 
-  @user_bp.route("/register")
+  @auth_bp.route("/register")
   class UserRegister(MethodView):
-    @user_bp.arguments(schemas.RegisterRequestSchema)
-    @user_bp.response(200, schemas.BaseResponseSchema)
+    @auth_bp.arguments(schemas.LoginRequestSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self, req_data: dict):
-      username = req_data["username"]
+      email = req_data["email"]
       password = req_data["password"]
       device_id = req_data["device_id"]
       device_name = req_data["device_name"]
     
       user, access_token, refresh_token = user_service.register(
-        username=username, 
+        email=email, 
         password=password,
         ip=request.remote_addr,
         device_id=device_id,
@@ -39,18 +40,18 @@ def create_user_blueprint(user_service: UserService) -> Blueprint:
       return make_response(201, "", resp), 200
 
 
-  @user_bp.route("/login")
+  @auth_bp.route("/login")
   class UserLogin(MethodView):
-    @user_bp.arguments(schemas.LoginRequestSchema)
-    @user_bp.response(200, schemas.BaseResponseSchema)
+    @auth_bp.arguments(schemas.LoginRequestSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self, req_data: dict):
-      username = req_data["username"]
+      email = req_data["email"]
       password = req_data["password"]
       device_id = req_data["device_id"]
       device_name = req_data["device_name"]
       
       user, access_token, refresh_token = user_service.login(
-        username=username, 
+        email=email, 
         password=password,
         ip=request.remote_addr,
         device_id=device_id,
@@ -65,10 +66,10 @@ def create_user_blueprint(user_service: UserService) -> Blueprint:
       return make_response(200, "", resp), 200
     
 
-  @user_bp.route("/logout")
+  @auth_bp.route("/logout")
   class Logout(MethodView):
     @auth_service.jwt_required()
-    @user_bp.response(200, schemas.BaseResponseSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self):
       # Extract info from JWT
       user_id, session_id = get_info_from_token()
@@ -79,10 +80,10 @@ def create_user_blueprint(user_service: UserService) -> Blueprint:
       return make_response(200, "", {}), 200
 
 
-  @user_bp.route("/refresh-token")
+  @auth_bp.route("/refresh-token")
   class RefreshToken(MethodView):
     @auth_service.jwt_required(refresh=True)
-    @user_bp.response(200, schemas.BaseResponseSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self):
       # Extract info from JWT
       user_id, session_id = get_info_from_token()
@@ -93,10 +94,10 @@ def create_user_blueprint(user_service: UserService) -> Blueprint:
       return make_response(200, "", resp), 200
 
 
-  @user_bp.route("/heartbeat")
+  @auth_bp.route("/heartbeat")
   class Heartbeat(MethodView):
     @auth_service.jwt_required()
-    @user_bp.response(200, schemas.BaseResponseSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self):
       ip = request.remote_addr
       user_id, session_id = get_info_from_token()
@@ -106,16 +107,29 @@ def create_user_blueprint(user_service: UserService) -> Blueprint:
       return make_response(200, "", {}), 200
 
 
-  @user_bp.route("/check-username")
-  class CheckUsername(MethodView):
-    @user_bp.arguments(schemas.UsernameRequestSchema)
-    @user_bp.response(200, schemas.BaseResponseSchema)
+  @auth_bp.route("/check-email")
+  class CheckEmail(MethodView):
+    @auth_bp.arguments(schemas.EmailRequestSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
     def post(self, req_data: dict):
-      username = req_data["username"]
+      email = req_data["email"]
 
-      user_service.check_username_availability(username)
+      if user_service.check_email_exists(email):
+        raise common_error.ResourceConflictError("Email already exists.")
 
       return make_response(200, "", {}), 200
 
 
-  return user_bp
+  @auth_bp.route("/send-reset-password-link")
+  class SendResetPasswordLink(MethodView):
+    @auth_bp.arguments(schemas.EmailRequestSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
+    def post(self, req_data: dict):
+      email = req_data["email"]
+      ip = request.remote_addr
+
+      user_service.send_reset_password_link(ip, email)
+
+      return make_response(200, "", {}), 200
+
+  return auth_bp

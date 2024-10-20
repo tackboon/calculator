@@ -3,28 +3,33 @@ import uuid
 
 import src.common.error as common_error
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from src.app.user.models import UserModel
 from src.app.user.repository import UserRepo
+from src.app.user.constants import RESET_PASSWORD_SEND_COOLDOWN
 from src.config import Config
 from src.common.crypto.hash import hash_password, verify_password
+from src.common.time import convert_timestamp_to_datetime
 from src.service.auth import check_session_expired
 from src.service.auth.token import generate_token, SessionToken
+from src.service.email import SendEmailService
 from src.service.ip import IP2LocationServicer
 
 
 class UserService:
-  def __init__(self, config: Config, repo: UserRepo, ip_location: IP2LocationServicer):
+  def __init__(self, config: Config, repo: UserRepo, ip_location: IP2LocationServicer,
+               email_service: SendEmailService):
     self.config = config
     self.repo = repo
     self.ip_location = ip_location
+    self.email_service = email_service
 
-  def register(self, username: str, password: str, ip: str, device_id: str, device_name: str
+  def register(self, email: str, password: str, ip: str, device_id: str, device_name: str
                ) -> tuple[UserModel, str, str]:
     """
-    Register a new user. Username must be unique. 
+    Register a new user. Email must be unique. 
     Return new user data, access token, and refresh_token.
     """
 
@@ -32,7 +37,7 @@ class UserService:
     hashed_password = base64.b64encode(hash_password(password, 16)).decode("utf-8")
 
     # Create new user
-    user = self.repo.create_new_user(username, hashed_password)
+    user = self.repo.create_new_user(email, hashed_password)
 
     # Create session info
     session_id = self._create_session_info(user.id, ip, device_id, device_name)
@@ -44,15 +49,15 @@ class UserService:
     session_token = self._generate_and_save_session_token_with_lock(user.id, session_id, True)
     return user, session_token.access_token, session_token.refresh_token
 
-  def login(self, username: str, password: str, ip: str, device_id: str, device_name: str
+  def login(self, email: str, password: str, ip: str, device_id: str, device_name: str
             ) -> tuple[UserModel, str, str]:
     """
-    User login with username and password.
+    User login with email and password.
     Return user data, access token and refresh token.
     """
     
     # Retrieve user data from db
-    user = self.repo.get_user_by_username(username)
+    user = self.repo.get_user_by_email(email)
     if user is None:
       raise common_error.UnauthorizedError("User record not found.")
 
@@ -124,15 +129,56 @@ class UserService:
 
     self.repo.remove_all_sessions(user_id)
   
-  def check_username_availability(self, username: str):
+  def check_email_exists(self, email: str) -> bool:
     """
-    Check if a username is already taken
+    Check if a email is already taken.
+    Return true if email is exists, else return false.
     """
 
     # Get user data from db
-    user = self.repo.get_user_by_username(username)
+    user = self.repo.get_user_by_email(email)
     if user is not None:
-      raise common_error.ResourceConflictError("Username already exists.")
+      return True
+    
+    return False
+  
+  def send_reset_password_link(self, ip: str, email: str):
+    """
+    Send reset password link to user via email.
+    """
+
+    # Check if email exists
+    user = self.repo.get_user_by_email(email)
+    if user is None:
+      raise common_error.NotFoundError("Email record not found.")
+    
+    # Check if user available
+    if user.deleted_at != 0 or user.blocked_at != 0:
+      return None
+      
+    # Check for cooldown
+    cache = self.repo.get_reset_password_secret(email)
+    if cache is not None and (cache.issued_at + RESET_PASSWORD_SEND_COOLDOWN) > int(datetime.now().timestamp()):
+      raise common_error.TooManyRequestError("Send reset password link on cooldown")
+
+    # Generate reset password secret
+    secret = str(uuid.uuid4())
+    expiry = self.repo.save_reset_password_secret(email, secret)
+    
+    # Get user timezone and convert expiry to datetime
+    tz = self.ip_location.get_timezone(ip)
+    if tz == "-":
+      tz = "00:00"
+    formated_expiry = convert_timestamp_to_datetime(float(expiry), tz)
+
+    # Create reset password link
+    link = f"{self.config.reset_password_link}?secret={secret}&exp={expiry}"
+
+    # Get email template
+    subject, content = self.email_service.get_reset_password_template(link, formated_expiry)
+
+    # Send reset password link to email
+    self.email_service.send_email([email], subject, content)
 
   def _create_session_info(self, user_id: int, ip: str, device_id: str, device_name: str
                            ) -> Optional[str]:

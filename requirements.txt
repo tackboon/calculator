@@ -10,3 +10,4 @@ flask-redis==0.4.0
 mypy==1.11.2
 request-id-flask==0.0.4
 IP2Location==8.10.4
+requests==2.32.3

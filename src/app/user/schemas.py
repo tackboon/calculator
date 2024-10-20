@@ -15,14 +15,7 @@ class BlockUserRequestSchema(BaseRequestSchema):
 
 
 class LoginRequestSchema(BaseRequestSchema):
-  username = fields.Str(required=True)
-  password = fields.Str(required=True, load_only=True)
-  device_id = fields.Str(required=True, validate=validate.Length(max=255))
-  device_name = fields.Str(required=True, validate=validate.Length(max=255))
-
-
-class RegisterRequestSchema(BaseRequestSchema):
-  username = fields.Str(required=True, validate=validate.Length(min=3, max=20))
+  email = fields.Email(required=True)
   password = fields.Str(required=True, load_only=True, validates=[
     validate.Length(min=6, max=20),
     validate.Regexp(
@@ -38,8 +31,8 @@ class RemoveAllSessionsRequestSchema(BaseRequestSchema):
   user_id = fields.Int(required=True)
 
 
-class UsernameRequestSchema(BaseRequestSchema):
-  username = fields.Str(required=True, validate=validate.Length(min=3, max=20))
+class EmailRequestSchema(BaseRequestSchema):
+  email = fields.Email(required=True)
 
 
 # Create response schema
@@ -51,4 +44,4 @@ class BaseResponseSchema(Schema):
 
 class UserResponseSchema(Schema):
   id = fields.Int(dump_only=True)
-  username = fields.Str()
+  email = fields.Str()

@@ -19,6 +19,10 @@ class Config:
   db_slow_threshold: float # Threshold in milliseconds to identify slow queries.
   redis_uri: str # Redis connection URI
   redis_slow_threshold: float # Threshold in milliseconds to identify slow queries.
+  reset_password_link: str # Reset password link base url.
+  send_grid_token: str # SendGrid auth token.
+  sender_email: str # Email to use for sending email to user.
+
 
 # Initialize configs
 config = Config(
@@ -32,5 +36,8 @@ config = Config(
   db_uri = os.getenv("DATABASE_URI", ""),
   db_slow_threshold = float(os.getenv("DB_SLOW_THRESHOLD", "200")),
   redis_uri = os.getenv("REDIS_URI", ""),
-  redis_slow_threshold = float(os.getenv("REDIS_SLOW_THRESHOLD", "50"))
+  redis_slow_threshold = float(os.getenv("REDIS_SLOW_THRESHOLD", "50")),
+  reset_password_link= os.getenv("RESET_PASSWORD_LINK", ""),
+  send_grid_token = os.getenv("SEND_GRID_TOKEN", ""),
+  sender_email = os.getenv("SENDER_EMAIL", "")
 )
