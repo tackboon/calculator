@@ -27,6 +27,16 @@ class LoginRequestSchema(BaseRequestSchema):
   device_name = fields.Str(required=True, validate=validate.Length(max=255))
 
 
+class ResetPasswordRequestSchema(BaseRequestSchema):
+  new_password = fields.Str(required=True, load_only=True, validates=[
+    validate.Length(min=6, max=20),
+    validate.Regexp(
+      regex=r"^(?=.*[A-Za-z])(?=.*\d)", 
+      error="Password must contain atleast one number and one letter"
+    )
+  ])
+
+
 class RemoveAllSessionsRequestSchema(BaseRequestSchema):
   user_id = fields.Int(required=True)
 

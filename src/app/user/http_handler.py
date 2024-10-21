@@ -3,6 +3,7 @@ import src.common.error as common_error
 
 from flask import request
 from flask.views import MethodView
+from flask_jwt_extended import jwt_required
 from flask_smorest import Blueprint
 
 from src.app.user.manager import UserService
@@ -131,5 +132,20 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
       user_service.send_reset_password_link(ip, email)
 
       return make_response(200, "", {}), 200
+
+
+  @auth_bp.route("/reset-password")
+  class ResetPassword(MethodView):
+    @jwt_required()
+    @auth_bp.arguments(schemas.ResetPasswordRequestSchema)
+    @auth_bp.response(200, schemas.BaseResponseSchema)
+    def post(self, req_data: dict):
+      new_password = req_data["new_password"]
+      claims = get_info_from_token()
+
+      user_service.reset_password(claims.user_id, claims.session_id, new_password)
+
+      return make_response(200, "", {}), 200
+
 
   return auth_bp

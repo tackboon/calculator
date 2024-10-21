@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS public.users
     deleted_at integer NOT NULL,
     email character varying(320) COLLATE pg_catalog."default" NOT NULL,
     password character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    role smallint NOT NULL DEFAULT 0,
+    reset_pass_at integer NOT NULL,
+    role smallint NOT NULL,
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT unique_email UNIQUE (email)
 )

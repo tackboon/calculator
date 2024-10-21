@@ -4,7 +4,7 @@ from flask import Flask
 from flask_redis import FlaskRedis
 from functools import wraps
 from logging import Logger
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from src.common.inspect import get_caller_name
 from src.common.logger import BasicJSONFormatter, create_logger
@@ -110,7 +110,7 @@ class RedisServicer:
 
     return redis_attr
 
-  def hset_if_exist(self, key: str, field: str, value: str) -> Union[Awaitable[int] | int]:
+  def hset_if_exist(self, key: str, field: str, value: str) -> int:
     """
     Redis HSET operation that updates a field in a hash only if the field already exists.
     
@@ -143,7 +143,7 @@ class RedisServicer:
       self.client.eval
     )(script, 1, key, field, value)
 
-  def hset_with_expiry(self, key: str, field: str, value: str, duration: int) -> Union[Awaitable[int], int]:
+  def hset_with_expiry(self, key: str, field: str, value: str, duration: int) -> int:
     """
     Redis HSET operation with an expiry. The field is set in the hash and the key's expiry is updated.
 
@@ -174,7 +174,7 @@ class RedisServicer:
       self.client.eval
     )(script, 1, key, field, value, duration)
 
-  def hsetnx_with_expiry(self, key: str, field: str, value: str, duration: int) -> Union[Awaitable[int], int]:
+  def hsetnx_with_expiry(self, key: str, field: str, value: str, duration: int) -> int:
     """
     Redis HSETNX operation with an expiry. The field is set only if it does not already exist, 
     and the key's expiry is updated if the field was created.
@@ -244,3 +244,33 @@ class RedisServicer:
       caller,
       self.client.lock
     )(name, timeout, sleep, blocking, blocking_timeout, lock_class, thread_local)
+
+  def incr_with_expiry(self, key: str, incr: int, duration: int) -> int:
+    """
+    Redis INCRBY operation with an expiry. The key is incremented by the given value, 
+    and the key's expiry is updated after incrementing.
+
+    Parameters:
+    - key: The Redis key to increment.
+    - incr: The amount by which to increment the key's value.
+    - duration: Expiry time (in seconds) to be set for the key.
+
+    Returns:
+    - The new value after incrementing.
+    """
+     
+    script = """
+    local result = redis.call("INCRBY", KEYS[1], ARGV[1])
+    redis.call("EXPIRE", KEYS[1], ARGV[2])
+    return result
+    """
+
+    caller = get_caller_name()
+
+    return log_slow_queries(
+      self.slow_threshold_ms, 
+      self.logger,
+      "eval incr_with_expiry",
+      caller,
+      self.client.eval
+    )(script, 1, key, incr, duration)

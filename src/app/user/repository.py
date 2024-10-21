@@ -9,7 +9,7 @@ from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Callable, cast, Optional, Tuple, Union
 
-from src.app.user.models import UserModel, ResetPasswordCacheModel, SessionModel
+from src.app.user.models import UserModel, ResetPasswordSessionCache, SessionModel
 from src.common.inspect import get_caller_name
 from src.config import Config
 from src.extensions import app_logger
@@ -94,6 +94,29 @@ class UserRepo(JWTRepo):
       raise common_error.ResourceConflictError("Email already exists.")
     
     return user
+
+  def update_user_password(self, user_id: int, new_password: str):
+    """
+    Update user's password
+    """
+
+    # Remove reset password session
+    key, _ = self._get_reset_password_cache_info(user_id)
+    self.rdb.delete(key)
+
+    # Update user's password
+    stmt = (
+      update(UserModel)
+      .where(
+        UserModel.id == user_id,
+        UserModel.deleted_at == 0,
+        UserModel.blocked_at == 0
+      )
+      .values(password=new_password, reset_pass_at=int(datetime.now().timestamp()))
+    )
+
+    self.db.client.session.execute(stmt)
+    self.db.client.session.commit()
 
   def block_user(self, user_id: int):
     """
@@ -253,6 +276,24 @@ class UserRepo(JWTRepo):
     self.db.client.session.execute(stmt)
     self.db.client.session.commit()
 
+  def incr_login_attempts(self, user_id: int) -> int:
+    """
+    Increase login attempts count
+    """
+
+    key, duration = self._get_login_attempts_cache_info(user_id)
+    # return self.rdb.incrby(key, 1)
+    casted_rdb = cast(RedisServicer, self.rdb)
+    return casted_rdb.incr_with_expiry(key, 1, duration)
+
+  def remove_login_attempts(self, user_id: int):
+    """
+    Remove login attempts
+    """
+
+    key, _ = self._get_login_attempts_cache_info(user_id)
+    return self.rdb.delete(key)
+
   def session_lock_wrapper(self, user_id: int, func: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator to acquire a Redis-based session lock for the given user_id, execute the 
@@ -287,30 +328,30 @@ class UserRepo(JWTRepo):
 
     return wrapper
   
-  def save_reset_password_secret(self, email: str, secret: str) -> int:
+  def save_reset_password_session(self, user_id: int, session_id: str) -> int:
     """
-    Save reset password secret to cache
-    Return link's expiry.
+    Save reset password session to cache
+    Return session's expiry.
     """
 
     # Get cache key and duration
-    key, duration = self._get_reset_password_cache_info(email)
+    key, duration = self._get_reset_password_cache_info(user_id)
 
     # Save secret to 
     now = int(datetime.now().timestamp())
-    json_data = json.dumps(asdict(ResetPasswordCacheModel(secret=secret, issued_at=now)))
+    json_data = json.dumps(asdict(ResetPasswordSessionCache(session_id=session_id, issued_at=now)))
     self.rdb.set(key, json_data, duration)
 
     return now + duration
   
-  def get_reset_password_secret(self, email: str) -> Optional[ResetPasswordCacheModel]:
+  def get_reset_password_session(self, user_id: int) -> Optional[ResetPasswordSessionCache]:
     """
-    Retrieve user's reset password secret from cache.
+    Retrieve user's reset password session from cache.
     Return the cache data.
     """
 
     # Get cache key and duration
-    key, _ = self._get_reset_password_cache_info(email)
+    key, _ = self._get_reset_password_cache_info(user_id)
 
     # Retrieve secret from cache
     cache_bytes:Optional[bytes] = self.rdb.get(key)
@@ -319,7 +360,7 @@ class UserRepo(JWTRepo):
     
     # Return reset password secret cache data
     reset_dict = json.loads(cache_bytes)
-    return ResetPasswordCacheModel(**reset_dict)
+    return ResetPasswordSessionCache(**reset_dict)
 
   def _get_user_cache_info(self, user_id: int) -> tuple[str, int]:
     """
@@ -342,10 +383,17 @@ class UserRepo(JWTRepo):
 
     return f"user:session_lock:{user_id}", 3
   
-  def _get_reset_password_cache_info(self, email: str) -> tuple[str, int]:
+  def _get_reset_password_cache_info(self, user_id: int) -> tuple[str, int]:
     """
     Construct reset password cache key and cache duration.
     """
 
-    return f"user:reset:{email}", 600
+    return f"user:reset:{user_id}", self.config.reset_token_lifetime
+  
+  def _get_login_attempts_cache_info(self, user_id: int) -> tuple[str, int]:
+    """
+    Construct login attempts cache key and cache duration.
+    """
+
+    return f"user:login_attempts:{user_id}", 3600
   

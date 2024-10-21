@@ -54,3 +54,18 @@ def generate_token(user_id: int, session_id: str, is_fresh_token: bool, expires_
 
   token_claim = TokenClaim(user_id, session_id)
   return SessionToken(access_token, refresh_token, token_claim)
+
+def generate_reset_token(user_id: int, session_id: str, expires_delta: timedelta) -> str:
+  """
+  Generate reset password token
+  """
+
+  claims = {"sid": session_id}
+  reset_password_token = create_access_token(
+    identity=user_id, 
+    fresh=True, 
+    additional_claims=claims, 
+    expires_delta=expires_delta
+  )
+
+  return reset_password_token

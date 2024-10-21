@@ -18,6 +18,7 @@ class UserModel(Model):
   id = Column(Integer, primary_key=True)
   email = Column(String(320), nullable=False, unique=True)
   password = Column(String(255), nullable=False)
+  reset_pass_at = Column(Integer, nullable=False, default=0)
   created_at = Column(Integer, nullable=False, default=lambda: int(time.time()))
   deleted_at = Column(Integer, nullable=False, default=0)
   blocked_at = Column(Integer, nullable=False, default=0)
@@ -32,6 +33,7 @@ class UserModel(Model):
       "id": self.id,
       "email": self.email,
       "password": self.password,
+      "reset_pass_at": self.reset_pass_at,
       "created_at": self.created_at,
       "deleted_at": self.deleted_at,
       "blocked_at": self.blocked_at,
@@ -54,6 +56,7 @@ class UserModel(Model):
       id = data.get("id"),
       email = data.get("email"),
       password = data.get("password"),
+      reset_pass_at = data.get("reset_pass_at"),
       created_at = data.get("created_at"),
       deleted_at = data.get("deleted_at"),
       blocked_at = data.get("blocked_at"),
@@ -75,10 +78,10 @@ class SessionModel(Model):
   
 
 @dataclass
-class ResetPasswordCacheModel:
+class ResetPasswordSessionCache:
   """
   Data class representing a reset password information.
   """
 
-  secret: str
+  session_id: str
   issued_at: int

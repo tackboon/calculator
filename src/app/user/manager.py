@@ -3,17 +3,17 @@ import uuid
 
 import src.common.error as common_error
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from src.app.user.models import UserModel
 from src.app.user.repository import UserRepo
-from src.app.user.constants import RESET_PASSWORD_SEND_COOLDOWN
+from src.app.user.constants import MAX_LOGIN_ATTEMPTS_COUNT, RESET_PASSWORD_SEND_COOLDOWN
 from src.config import Config
 from src.common.crypto.hash import hash_password, verify_password
 from src.common.time import convert_timestamp_to_datetime
 from src.service.auth import check_session_expired
-from src.service.auth.token import generate_token, SessionToken
+from src.service.auth.token import generate_token, generate_reset_token, SessionToken
 from src.service.email import SendEmailService
 from src.service.ip import IP2LocationServicer
 
@@ -65,6 +65,11 @@ class UserService:
     if user.blocked_at != 0 or user.deleted_at != 0:
       raise common_error.UnauthorizedError("User has been blocked or deleted.")
 
+    # Check login attempts
+    login_count = self.repo.incr_login_attempts(user.id)
+    if login_count > MAX_LOGIN_ATTEMPTS_COUNT:
+      raise common_error.TooManyRequestError("Too many login attempts")
+
     # Verify user's password
     stored_password = base64.b64decode(user.password)
     if not verify_password(stored_password, password, 16):
@@ -77,6 +82,10 @@ class UserService:
 
     # Generate session token
     session_token = self._generate_and_save_session_token_with_lock(user.id, session_id, True)
+
+    # Clear login attempts
+    self.repo.remove_login_attempts(user.id)
+
     return user, session_token.access_token, session_token.refresh_token
 
   def logout(self, user_id: int, session_id: str):
@@ -157,13 +166,14 @@ class UserService:
       return None
       
     # Check for cooldown
-    cache = self.repo.get_reset_password_secret(email)
+    cache = self.repo.get_reset_password_session(user.id)
     if cache is not None and (cache.issued_at + RESET_PASSWORD_SEND_COOLDOWN) > int(datetime.now().timestamp()):
       raise common_error.TooManyRequestError("Send reset password link on cooldown")
 
-    # Generate reset password secret
-    secret = str(uuid.uuid4())
-    expiry = self.repo.save_reset_password_secret(email, secret)
+    # Generate reset password token
+    session_id = str(uuid.uuid4())
+    token = generate_reset_token(user.id, session_id, timedelta(seconds=self.config.reset_token_lifetime))
+    expiry = self.repo.save_reset_password_session(user.id, session_id)
     
     # Get user timezone and convert expiry to datetime
     tz = self.ip_location.get_timezone(ip)
@@ -172,13 +182,29 @@ class UserService:
     formated_expiry = convert_timestamp_to_datetime(float(expiry), tz)
 
     # Create reset password link
-    link = f"{self.config.reset_password_link}?secret={secret}&exp={expiry}"
+    link = f"{self.config.reset_password_link}?token={token}"
 
     # Get email template
     subject, content = self.email_service.get_reset_password_template(link, formated_expiry)
 
     # Send reset password link to email
     self.email_service.send_email([email], subject, content)
+
+  def reset_password(self, user_id: int, session_id: str, new_password: str,):
+    """
+    Reset user's password
+    """
+
+    # Check for token validity
+    cache = self.repo.get_reset_password_session(user_id)
+    if cache is None or cache.session_id != session_id:
+      raise common_error.UnauthorizedError("Invalid reset password session id")
+    
+    # Hash the password and encode it to base64
+    hashed_password = base64.b64encode(hash_password(new_password, 16)).decode("utf-8")
+
+    # Change password
+    self.repo.update_user_password(user_id, hashed_password)
 
   def _create_session_info(self, user_id: int, ip: str, device_id: str, device_name: str
                            ) -> Optional[str]:
