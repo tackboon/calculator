@@ -4,6 +4,15 @@ from marshmallow import Schema, fields, validate
 from typing import Any
 
 
+# Validators
+password_validator = [
+  validate.Length(min=8, max=20),
+  validate.Regexp(
+    regex=r"^(?=.*[A-Za-z])(?=.*\d)", 
+    error="Password must contain atleast one number and one letter"
+  )
+]
+
 # Create requests schema
 class BaseRequestSchema(Schema):
   def handle_error(self, err: fields.ValidationError, data: Any, *, many: bool, **kwargs):
@@ -16,25 +25,13 @@ class BlockUserRequestSchema(BaseRequestSchema):
 
 class LoginRequestSchema(BaseRequestSchema):
   email = fields.Email(required=True)
-  password = fields.Str(required=True, load_only=True, validates=[
-    validate.Length(min=6, max=20),
-    validate.Regexp(
-      regex=r"^(?=.*[A-Za-z])(?=.*\d)", 
-      error="Password must contain atleast one number and one letter"
-    )
-  ])
+  password = fields.Str(required=True, load_only=True, validates=password_validator)
   device_id = fields.Str(required=True, validate=validate.Length(max=255))
   device_name = fields.Str(required=True, validate=validate.Length(max=255))
 
 
 class ResetPasswordRequestSchema(BaseRequestSchema):
-  new_password = fields.Str(required=True, load_only=True, validates=[
-    validate.Length(min=6, max=20),
-    validate.Regexp(
-      regex=r"^(?=.*[A-Za-z])(?=.*\d)", 
-      error="Password must contain atleast one number and one letter"
-    )
-  ])
+  new_password = fields.Str(required=True, load_only=True, validates=password_validator)
 
 
 class RemoveAllSessionsRequestSchema(BaseRequestSchema):

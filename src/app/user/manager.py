@@ -206,6 +206,9 @@ class UserService:
     # Change password
     self.repo.update_user_password(user_id, hashed_password)
 
+    # Remove login attempts
+    self.repo.remove_login_attempts(user_id)
+
   def _create_session_info(self, user_id: int, ip: str, device_id: str, device_name: str
                            ) -> Optional[str]:
     """
