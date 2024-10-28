@@ -33,23 +33,24 @@ def get_info_from_token() -> TokenClaim:
 
   return TokenClaim(user_id, session_id)
 
-def generate_token(user_id: int, session_id: str, is_fresh_token: bool, expires_delta: timedelta
-                   ) -> SessionToken:
+def generate_auth_token(user_id: int, session_id: str, access_id: str, refresh_id: str, 
+  is_fresh_token: bool, access_expires_delta: timedelta, refresh_expires_delta: timedelta) -> SessionToken:
   """
   Generate access token and refresh token. 
   """
 
   # generate access token and refresh token
-  claims = {"sid": session_id}
+  claims = {"sid": session_id, "aid": access_id, "rid": refresh_id}
   access_token = create_access_token(
     identity=user_id, 
     fresh=is_fresh_token, 
     additional_claims=claims, 
-    expires_delta=expires_delta
+    expires_delta=access_expires_delta
   )
   refresh_token = create_refresh_token(
     identity=user_id, 
     additional_claims=claims, 
+    expires_delta=refresh_expires_delta
   )
 
   token_claim = TokenClaim(user_id, session_id)

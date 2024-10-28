@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from flask import current_app, g, Flask, jsonify, request
+from flask import current_app, g, Flask, jsonify
 from flask_jwt_extended import JWTManager, verify_jwt_in_request
 from flask_jwt_extended.view_decorators import LocationType
 from functools import wraps
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional
 
 from src.common.error import UnauthorizedError
 
@@ -16,10 +16,9 @@ class SessionData:
   Data class representing a user's session information.
   """
 
-  access_token: str
-  refresh_token: str
-  issued_at: int
-  last_online: int
+  session_id: str
+  access_id: str
+  refresh_id: str
 
 
 @dataclass
@@ -40,12 +39,12 @@ class JWTRepo(ABC):
   """
       
   @abstractmethod
-  def get_session_token(self, user_id: int, session_id: str) -> Tuple[Optional[SessionData], int]:
+  def get_session_for_jwt(self, user_id: int, session_id: str) -> Optional[SessionData]:
     """
     Retrieve session data from storage by user_id and session_id.
     
     Returns:
-    - Tuple containing SessionData (if available) and the session's lifetime in seconds.
+    - SessionData (if available).
     """
 
     pass
@@ -62,19 +61,19 @@ class JWTRepo(ABC):
     pass
 
 
-def check_session_expired(last_online: int, lifetime: int) -> bool:
+def check_is_session_expired(last_refresh_time: int, lifetime: int) -> bool:
   """
   Check if the session has expired.
   
   Parameters:
-  - last_online: The last online timestamp of the user.
+  - last_refresh_time: The last refresh timestamp of the session.
   - lifetime: The session lifetime in seconds.
   
   Returns:
   - True if the session is expired, otherwise False.
   """
 
-  return int(datetime.now().timestamp()) - lifetime > last_online
+  return int(datetime.now().timestamp()) - last_refresh_time > lifetime
 
 
 class AuthServicer:
@@ -186,27 +185,21 @@ class AuthServicer:
         g.user_id = user_id
 
         # Retrieve session data from storage
-        session_data, lifetime = self.repo.get_session_token(user_id, session_id)
+        session_data = self.repo.get_session_for_jwt(user_id, session_id)
 
         # Verify if session data exists in storage
         if session_data is None:
           raise UnauthorizedError("The session was not found in storage.")
-        
-        # Extract the token from the Authorization header
-        auth_header = request.headers.get("Authorization")
-        token = auth_header.split(" ")[1]
 
         # Verify based on token type (access or refresh)
         if refresh:
-          if session_data.refresh_token != token:
-            raise UnauthorizedError("Refresh token does not match.")
+          refresh_id = jwt_data["rid"]
+          if session_data.refresh_id != refresh_id:
+            raise UnauthorizedError("Refresh id does not match.")
         else:
-          if session_data.access_token != token:
-            raise UnauthorizedError("Access token does not match.")
-
-        # Check if the session has expired
-        if check_session_expired(session_data.last_online, lifetime):
-          raise UnauthorizedError("Session expired.")
+          access_id = jwt_data["aid"]
+          if session_data.access_id != access_id:
+            raise UnauthorizedError("Access id does not match.")
         
         # Retrieve user info from storage
         user_info = self.repo.get_user_for_jwt(user_id)

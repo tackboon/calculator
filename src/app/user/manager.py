@@ -1,33 +1,32 @@
 import base64
 import uuid
 
+import src.app.user.constant as constant
 import src.common.error as common_error
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
 
-from src.app.user.models import UserModel
-from src.app.user.repository import UserRepo
-from src.app.user.constants import MAX_LOGIN_ATTEMPTS_COUNT, RESET_PASSWORD_SEND_COOLDOWN
+from src.app.user.model import UserModel
+from src.app.user.repository import Repository
 from src.config import Config
 from src.common.crypto.hash import hash_password, verify_password
 from src.common.time import convert_timestamp_to_datetime
-from src.service.auth import check_session_expired
-from src.service.auth.token import generate_token, generate_reset_token, SessionToken
+from src.service.auth.token import generate_auth_token, generate_reset_token, SessionToken
 from src.service.email import SendEmailService
 from src.service.ip import IP2LocationServicer
 
 
 class UserService:
-  def __init__(self, config: Config, repo: UserRepo, ip_location: IP2LocationServicer,
-               email_service: SendEmailService):
+  def __init__(self, config: Config, repo: Repository, ip_location: IP2LocationServicer,
+    email_service: SendEmailService):
+
     self.config = config
     self.repo = repo
     self.ip_location = ip_location
     self.email_service = email_service
 
   def register(self, email: str, password: str, ip: str, device_id: str, device_name: str
-               ) -> tuple[UserModel, str, str]:
+    ) -> tuple[UserModel, str, str]:
     """
     Register a new user. Email must be unique. 
     Return new user data, access token, and refresh_token.
@@ -37,27 +36,21 @@ class UserService:
     hashed_password = base64.b64encode(hash_password(password, 16)).decode("utf-8")
 
     # Create new user
-    user = self.repo.create_new_user(email, hashed_password)
+    user = self.repo.user.create_new_user(email, hashed_password)
 
     # Create session info
-    session_id = self._create_session_info(user.id, ip, device_id, device_name)
-
-    if session_id is None:
-      raise Exception(f"Session id already exists, user_id: {user.id}.")
-
-    # Generate session token
-    session_token = self._generate_and_save_session_token_with_lock(user.id, session_id, True)
-    return user, session_token.access_token, session_token.refresh_token
+    session = self._create_auth_session(user.id, ip, device_id, device_name)
+    return user, session.access_token, session.refresh_token
 
   def login(self, email: str, password: str, ip: str, device_id: str, device_name: str
-            ) -> tuple[UserModel, str, str]:
+    ) -> tuple[UserModel, str, str]:
     """
     User login with email and password.
     Return user data, access token and refresh token.
     """
     
     # Retrieve user data from db
-    user = self.repo.get_user_by_email(email)
+    user = self.repo.user.get_user_by_email(email)
     if user is None:
       raise common_error.UnauthorizedError("User record not found.")
 
@@ -66,8 +59,8 @@ class UserService:
       raise common_error.UnauthorizedError("User has been blocked or deleted.")
 
     # Check login attempts
-    login_count = self.repo.incr_login_attempts(user.id)
-    if login_count > MAX_LOGIN_ATTEMPTS_COUNT:
+    login_count = self.repo.session.incr_login_attempts(user.id)
+    if login_count > constant.MAX_LOGIN_ATTEMPTS_COUNT:
       raise common_error.TooManyRequestError("Too many login attempts")
 
     # Verify user's password
@@ -76,15 +69,17 @@ class UserService:
       raise common_error.UnauthorizedError("Password mismatch.")
 
     # Create session info
-    session_id = self._create_session_info(user.id, ip, device_id, device_name)
-    if session_id is None:
+    session_token = self._create_auth_session(user.id, ip, device_id, device_name)
+    if session_token is None:
       raise Exception(f"Session id already exists, user_id: {user.id}.")
 
-    # Generate session token
-    session_token = self._generate_and_save_session_token_with_lock(user.id, session_id, True)
+    # Remove sessions that exceed the maximum session count.
+    self.repo.session.remove_auth_sessions(
+      user.id, constant.MAX_SESSION_PER_USER, constant.REFRESH_TOKEN_LIFETIME
+    )
 
     # Clear login attempts
-    self.repo.remove_login_attempts(user.id)
+    self.repo.session.remove_login_attempts(user.id)
 
     return user, session_token.access_token, session_token.refresh_token
 
@@ -93,50 +88,37 @@ class UserService:
     Logout session by deleting session token.
     """
 
-    self.repo.delete_sessions_token(user_id, session_id)
+    self.repo.session.remove_auth_session_by_id(user_id, session_id)
 
   def refresh_token(self, user_id: int, session_id: str) -> tuple[str, str]:   
     """
     Refresh session's token.
     Return access token, refresh token.
     """
+
+    # Update session in db
+    new_access_id = str(uuid.uuid4())
+    new_refresh_id = str(uuid.uuid4())
+    self.repo.session.update_auth_session(user_id, session_id, new_access_id, new_refresh_id)
+
+    session_token = generate_auth_token(user_id, session_id, new_access_id, new_refresh_id, False, 
+      constant.ACCESS_TOKEN_LIFETIME, constant.REFRESH_TOKEN_LIFETIME)
     
-    session_token = self._generate_and_save_session_token_with_lock(user_id, session_id, False)
     return session_token.access_token, session_token.refresh_token
-
-  def heartbeat(self, user_id: int, session_id: str, ip: str):
-    """
-    Update session info and keep the session alive.
-    """
-
-    last_online = int(datetime.now().timestamp())
-
-    # Update last online in session's cache
-    if not self.repo.update_session_last_online(user_id, session_id, last_online):
-      raise common_error.UnauthorizedError(
-        f"Session id not exists, user_id: {user_id}, session_id: {session_id}."
-      ) 
-
-    # Get location info from ip address
-    city, country = self.ip_location.get_city_and_country(ip)
-    location = f"{city},{country}"
-
-    # Update session info in the db
-    self.repo.update_session_info(user_id, session_id, ip, location, last_online)
        
   def block_user(self, user_id: int):
     """
     Block user by user id.
     """
 
-    self.repo.block_user(user_id)
+    self.repo.user.block_user_by_id(user_id)
     
   def remove_all_sessions(self, user_id: int):
     """
     Remove user's all sessions.
     """
 
-    self.repo.remove_all_sessions(user_id)
+    self.repo.session.remove_auth_sessions(user_id, 0)
   
   def check_email_exists(self, email: str) -> bool:
     """
@@ -145,7 +127,7 @@ class UserService:
     """
 
     # Get user data from db
-    user = self.repo.get_user_by_email(email)
+    user = self.repo.user.get_user_by_email(email)
     if user is not None:
       return True
     
@@ -157,7 +139,7 @@ class UserService:
     """
 
     # Check if email exists
-    user = self.repo.get_user_by_email(email)
+    user = self.repo.user.get_user_by_email(email)
     if user is None:
       raise common_error.NotFoundError("Email record not found.")
     
@@ -166,14 +148,14 @@ class UserService:
       return None
       
     # Check for cooldown
-    cache = self.repo.get_reset_password_session(user.id)
-    if cache is not None and (cache.issued_at + RESET_PASSWORD_SEND_COOLDOWN) > int(datetime.now().timestamp()):
+    cache = self.repo.session.get_reset_password_session(user.id, False)
+    if cache is not None and (cache.issued_at + constant.RESET_PASSWORD_SEND_COOLDOWN.seconds) > int(datetime.now().timestamp()):
       raise common_error.TooManyRequestError("Send reset password link on cooldown")
 
     # Generate reset password token
     session_id = str(uuid.uuid4())
-    token = generate_reset_token(user.id, session_id, timedelta(seconds=self.config.reset_token_lifetime))
-    expiry = self.repo.save_reset_password_session(user.id, session_id)
+    token = generate_reset_token(user.id, session_id, constant.RESET_PASSWORD_TOKEN_LIFETIME)
+    expiry = self.repo.session.save_reset_password_session(user.id, session_id)
     
     # Get user timezone and convert expiry to datetime
     tz = self.ip_location.get_timezone(ip)
@@ -195,8 +177,10 @@ class UserService:
     Reset user's password
     """
 
+    # 
+
     # Check for token validity
-    cache = self.repo.get_reset_password_session(user_id)
+    cache = self.repo.session.get_reset_password_session(user_id, True)
     if cache is None or cache.session_id != session_id:
       raise common_error.UnauthorizedError("Invalid reset password session id")
     
@@ -204,16 +188,20 @@ class UserService:
     hashed_password = base64.b64encode(hash_password(new_password, 16)).decode("utf-8")
 
     # Change password
-    self.repo.update_user_password(user_id, hashed_password)
+    self.repo.user.update_user_password(user_id, hashed_password)
+
+    # Logout all sessions
+    self.remove_all_sessions(user_id)
 
     # Remove login attempts
-    self.repo.remove_login_attempts(user_id)
+    self.repo.session.remove_login_attempts(user_id)
 
-  def _create_session_info(self, user_id: int, ip: str, device_id: str, device_name: str
-                           ) -> Optional[str]:
+    # Remove reset password session
+    self.repo.session.remove_reset_password_session(user_id)
+
+  def _create_auth_session(self, user_id: int, ip: str, device_id: str, device_name: str) -> SessionToken:
     """
-    Create session info to db.
-    Return session id.
+    Create session info into the db. Generate auth session tokens.
     """
 
     # Get location info from ip
@@ -222,82 +210,21 @@ class UserService:
 
     # Create session info
     retry = 0
-    session_id: Optional[str] = None
+    session_id = ""
+    access_id = str(uuid.uuid4())
+    refresh_id = str(uuid.uuid4())
     while retry < 3:
       session_id = str(uuid.uuid4())
-      session = self.repo.create_session_info(
-        user_id, 
-        session_id, 
-        ip, 
-        location, 
-        device_id, 
-        device_name
-      )
+      session = self.repo.session.create_auth_session(user_id, session_id, access_id, refresh_id,
+                  ip, location, device_id, device_name)
 
       if session is not None:
         break
       retry += 1
 
-    return session_id
-
-  def _generate_and_save_session_token(self, user_id: int, session_id: str, is_fresh_token: bool
-                                       ) -> SessionToken:
-    """
-    Generates and saves session token.
-    Return access_token, refresh_token, session_id, and user_id.
-    """
-
-    # Get all of the user's session tokens
-    sessions = self.repo.get_user_sessions_token(user_id)
-
-    # Find expired sessions
-    valid_sessions: dict[str, Any] = {}
-    sessions_to_remove: set[str] = set()
-    for key, value in sessions.items():
-      if check_session_expired(value["last_online"], self.config.session_lifetime):
-        sessions_to_remove.add(key)
-      else:
-        valid_sessions[key] = value
-
-    # Get the oldest sessions if maximum session limit is exceeded.
-    exceed_session_count = len(valid_sessions) - self.config.max_session_per_user + 1
-    if exceed_session_count > 0:
-      # Sort sessions by last online in ascending order (oldest first)
-      sorted_sessions = sorted(valid_sessions.items(), key=lambda session: session[1]["last_online"])
-      for i in range(exceed_session_count):
-        sessions_to_remove.add(sorted_sessions[i][0])
-
-    # Remove sessions
-    if len(sessions_to_remove) > 0:
-      self.repo.delete_sessions_token(user_id, *sessions_to_remove)
-
-    # Generate session token
-    session_token = generate_token(
-      user_id=user_id, 
-      session_id=session_id, 
-      is_fresh_token=is_fresh_token, 
-      expires_delta=timedelta(seconds=self.config.access_token_lifetime)
-    )
-
-    # Save session token to cache
-    self.repo.save_session_token(
-      user_id=user_id, 
-      session_id=session_id, 
-      access_token=session_token.access_token, 
-      refresh_token=session_token.refresh_token
-    )
-
-    return session_token
-
-  def _generate_and_save_session_token_with_lock(self, user_id: int, session_id: str, 
-                                                 is_fresh_token: bool) -> SessionToken:
-    """
-    Generates and saves session token with session lock.
-    Return access_token, refresh_token, session_id, and user_id.
-    """
-
-    return self.repo.session_lock_wrapper(
-      user_id, 
-      self._generate_and_save_session_token, 
-    )(user_id, session_id, is_fresh_token)
+    if retry >= 3:
+      raise Exception(f"Session id already exists, user_id: {user_id}.")
+    
+    return generate_auth_token(user_id, session_id, access_id, refresh_id, True, 
+            constant.ACCESS_TOKEN_LIFETIME, constant.REFRESH_TOKEN_LIFETIME)
   

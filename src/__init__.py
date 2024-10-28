@@ -7,7 +7,7 @@ from request_id import RequestId
 
 from src.app.user import init_internal_auth_app, init_auth_app
 from src.app.record import init_record_app
-from src.app.user.repository import UserRepo
+from src.app.user.repository import Repository as AuthRepo
 from src.config import config
 from src.extensions import app_logger, auth_service, db_service, email_service, ip_service, redis_service
 from src.middleware.access_log import AccessLogMiddleware
@@ -58,7 +58,7 @@ def create_app():
     os.path.join(config.log_base_dir, os.path.basename("redis.log")) if config.log_base_dir != "" else "",
     config.db_slow_threshold
   )
-  auth_service.init_app(app, UserRepo(config, db_service, redis_service)) 
+  auth_service.init_app(app, AuthRepo(db_service, redis_service)) 
 
   # Initialize middlewares
   access_log_middleware = AccessLogMiddleware(

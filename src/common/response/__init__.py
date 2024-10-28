@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 
-def make_response(code: int, message: str = "", data: Optional[dict] = None) -> dict[str, Any]:
+def make_response_body(code: int, message: str = "", data: Optional[dict] = None) -> dict[str, Any]:
   """
   Constructs a response dictionary with a given status code, message, and data.
   

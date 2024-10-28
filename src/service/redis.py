@@ -1,5 +1,6 @@
 import time
 
+from datetime import timedelta
 from flask import Flask
 from flask_redis import FlaskRedis
 from functools import wraps
@@ -110,105 +111,6 @@ class RedisServicer:
 
     return redis_attr
 
-  def hset_if_exist(self, key: str, field: str, value: str) -> int:
-    """
-    Redis HSET operation that updates a field in a hash only if the field already exists.
-    
-    Parameters:
-    - key: The Redis key for the hash.
-    - field: The field to be updated in the hash.
-    - value: The new value to be set for the field.
-
-    Returns:
-    - 1 if the field was updated, 0 if the field does not exist.
-    """
-
-    script = """
-    local exists = redis.call("HEXISTS", KEYS[1], ARGV[1])
-    if exists == 1 then
-      redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
-      return 1
-    else
-      return 0
-    end
-    """
-
-    caller = get_caller_name()
-
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger, 
-      "eval hset_if_exist",
-      caller,
-      self.client.eval
-    )(script, 1, key, field, value)
-
-  def hset_with_expiry(self, key: str, field: str, value: str, duration: int) -> int:
-    """
-    Redis HSET operation with an expiry. The field is set in the hash and the key's expiry is updated.
-
-    Parameters:
-    - key: The Redis key for the hash.
-    - field: The field to be set in the hash.
-    - value: The value to be set for the field.
-    - duration: Expiry time (in seconds) to be set for the key.
-
-    Returns:
-    - Always 1 in this implementation.
-    """
-
-    script = """
-    redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
-    redis.call("EXPIRE", KEYS[1], ARGV[3])
-
-    return 1
-    """
-
-    caller = get_caller_name()
-
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger,
-      "eval hset_with_expiry",
-      caller,
-      self.client.eval
-    )(script, 1, key, field, value, duration)
-
-  def hsetnx_with_expiry(self, key: str, field: str, value: str, duration: int) -> int:
-    """
-    Redis HSETNX operation with an expiry. The field is set only if it does not already exist, 
-    and the key's expiry is updated if the field was created.
-
-    Parameters:
-    - key: The Redis key for the hash.
-    - field: The field to be conditionally set in the hash.
-    - value: The value to be set for the field if it does not exist.
-    - duration: Expiry time (in seconds) to be set for the key.
-
-    Returns:
-    - 1 if the field was created, 0 if the field already existed.
-    """
-    
-    script = """
-    local result = redis.call("HSETNX", KEYS[1], ARGV[1], ARGV[2])
-    if result == 1 then
-      redis.call("EXPIRE", KEYS[1], ARGV[3])
-      return 1
-    else
-      return 0
-    end
-    """
-
-    caller = get_caller_name()
-
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger,
-      "eval hsetnx_with_expiry",
-      caller,
-      self.client.eval
-    )(script, 1, key, field, value, duration)
-
   def custom_lock(
       self,
       name: str,
@@ -245,7 +147,7 @@ class RedisServicer:
       self.client.lock
     )(name, timeout, sleep, blocking, blocking_timeout, lock_class, thread_local)
 
-  def incr_with_expiry(self, key: str, incr: int, duration: int) -> int:
+  def incr_with_expiry(self, key: str, incr: int, duration: timedelta) -> int:
     """
     Redis INCRBY operation with an expiry. The key is incremented by the given value, 
     and the key's expiry is updated after incrementing.
@@ -253,7 +155,7 @@ class RedisServicer:
     Parameters:
     - key: The Redis key to increment.
     - incr: The amount by which to increment the key's value.
-    - duration: Expiry time (in seconds) to be set for the key.
+    - duration: Expiry time to be set for the key.
 
     Returns:
     - The new value after incrementing.
@@ -273,4 +175,36 @@ class RedisServicer:
       "eval incr_with_expiry",
       caller,
       self.client.eval
-    )(script, 1, key, incr, duration)
+    )(script, 1, key, incr, duration.seconds)
+
+  def pop(self, key: str):
+    """
+    Simulate Redis Pop operation using Get and Del.
+
+    Parameters:
+    - key: The Redis key to pop.
+
+    Returns:
+    - Return the value (or nil if the key didn't exist)
+    """
+     
+    script = """
+    local result = redis.call("GET", KEYS[1])
+
+    -- If the key exists, delete it
+    if result then
+      redis.call("DEL", KEYS[1])
+    end
+
+    return result
+    """
+
+    caller = get_caller_name()
+
+    return log_slow_queries(
+      self.slow_threshold_ms, 
+      self.logger,
+      "eval pop",
+      caller,
+      self.client.eval
+    )(script, 1, key)

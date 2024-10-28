@@ -28,7 +28,11 @@ class LoginRequestSchema(BaseRequestSchema):
   password = fields.Str(required=True, load_only=True, validates=password_validator)
   device_id = fields.Str(required=True, validate=validate.Length(max=255))
   device_name = fields.Str(required=True, validate=validate.Length(max=255))
+  set_cookie = fields.Bool(required=False, missing=False)
 
+
+class RefreshTokenRequestSchema(BaseRequestSchema):
+  set_cookie = fields.Bool(required=False, missing=False)
 
 class ResetPasswordRequestSchema(BaseRequestSchema):
   new_password = fields.Str(required=True, load_only=True, validates=password_validator)
