@@ -1,5 +1,4 @@
 import { FC, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import styles from "./reset_form.module.scss";
 import { ValidatePassword } from "../../common/validation/auth.validation";
@@ -7,12 +6,18 @@ import Button from "../../component/button/button.component";
 import Input from "../../component/input/input.component";
 
 type FormProps = {
-  submitHandler: (password: string) => string;
+  apiError: string;
+  apiLoading: boolean;
+  email: string;
+  submitHandler: (password: string) => void;
 };
 
-const ResetPasswordForm: FC<FormProps> = ({ submitHandler }) => {
-  const navigate = useNavigate();
-
+const ResetPasswordForm: FC<FormProps> = ({
+  apiError,
+  apiLoading,
+  email,
+  submitHandler,
+}) => {
   // State for submit button
   const [isDisabled, setIsDisabled] = useState(false);
 
@@ -45,8 +50,7 @@ const ResetPasswordForm: FC<FormProps> = ({ submitHandler }) => {
       }
 
       // Handle successful form submission
-      setErrorMessage(submitHandler(password));
-      navigate("/login", { replace: true });
+      submitHandler(password);
     } finally {
       setIsDisabled(false);
     }
@@ -57,6 +61,11 @@ const ResetPasswordForm: FC<FormProps> = ({ submitHandler }) => {
       <h1 className={styles["form-title"]}>Reset Password</h1>
 
       <div>
+        <div className={styles["form-group"]}>
+          <label htmlFor="email">Email</label>
+          <Input id="email" value={email} disabled={true} />
+        </div>
+
         <div className={styles["form-group"]}>
           <label htmlFor="password">Password</label>
           <Input
@@ -79,14 +88,16 @@ const ResetPasswordForm: FC<FormProps> = ({ submitHandler }) => {
           />
         </div>
 
-        <p className={styles["error"]}>{errorMessage}</p>
+        <p className={styles["error"]}>
+          {errorMessage === "" ? apiError : errorMessage}
+        </p>
       </div>
 
       <div className={styles["form-footer"]}>
         <Button
           className={styles["submit-btn"]}
           type="submit"
-          disabled={isDisabled}
+          disabled={isDisabled || apiLoading}
         >
           Reset Password
         </Button>

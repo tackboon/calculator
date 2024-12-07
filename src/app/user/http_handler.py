@@ -1,17 +1,34 @@
 import src.app.user.schema as schema
 import src.common.error as common_error
 
-from datetime import datetime
-from flask import make_response, request
+from flask import g, make_response, request, Response
 from flask.views import MethodView
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import (
+  jwt_required, set_access_cookies, set_refresh_cookies, unset_access_cookies, unset_refresh_cookies
+)
 from flask_smorest import Blueprint
 
+import src.app.user.constant as constant
 from src.app.user.manager import UserService
 from src.common.response import make_response_body
-from src.service.auth.token import get_info_from_token
-from src.extensions import auth_service
+from src.service.auth.token import get_info_from_token, get_token_expiry
+from src.extensions import app_logger, auth_service
 
+def set_tokens_in_cookies(resp_body: dict, access_token: str, refresh_token: str, clear: bool = False) -> Response:
+  """
+  Set tokens in cookies and create the HTTP response.
+  """
+  
+  resp = make_response(resp_body, 200)
+
+  if clear:
+    unset_access_cookies(resp)
+    unset_refresh_cookies(resp)
+  else:
+    set_access_cookies(resp, access_token, constant.ACCESS_TOKEN_LIFETIME)
+    set_refresh_cookies(resp, refresh_token, constant.REFRESH_TOKEN_LIFETIME)
+
+  return resp
 
 def create_auth_blueprint(user_service: UserService) -> Blueprint:
   auth_bp = Blueprint("Auth", __name__, description="Operations on auth")
@@ -23,23 +40,36 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
     def post(self, req_data: dict):
       email = req_data["email"]
       password = req_data["password"]
-      device_id = req_data["device_id"]
       device_name = req_data["device_name"]
+      set_cookie = req_data["set_cookie"]
     
       user, access_token, refresh_token = user_service.register(
         email=email, 
         password=password,
         ip=request.remote_addr,
-        device_id=device_id,
         device_name=device_name
       )
-
+    
       # Serialize user data
       user_schema = schema.UserResponseSchema()
       serialized_user = user_schema.dump(user)
 
-      resp_data = {"user": serialized_user, "access_token": access_token, "refresh_token": refresh_token}   
-      return make_response_body(201, "", resp_data), 200
+      if not set_cookie:
+        resp_data = {
+          "user": serialized_user,
+          "access_token": access_token,
+          "refresh_token": refresh_token
+        }
+        return make_response_body(201, "", resp_data), 200
+      else:
+        # Get access token expiry
+        exp = get_token_expiry(access_token)
+
+        # Set tokens to cookies
+        resp_data = {"user": serialized_user, "access_token_expiry": exp}   
+        resp_body = make_response_body(201, "", resp_data)
+
+        return set_tokens_in_cookies(resp_body, access_token, refresh_token)
 
 
   @auth_bp.route("/login")
@@ -49,7 +79,6 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
     def post(self, req_data: dict):
       email = req_data["email"]
       password = req_data["password"]
-      device_id = req_data["device_id"]
       device_name = req_data["device_name"]
       set_cookie = req_data["set_cookie"]
       
@@ -57,7 +86,6 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
         email=email, 
         password=password,
         ip=request.remote_addr,
-        device_id=device_id,
         device_name=device_name
       )
 
@@ -66,31 +94,41 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
       serialized_user = user_schema.dump(user)
 
       if not set_cookie:
-        resp_data = {"user": serialized_user, "access_token": access_token, "refresh_token": refresh_token}
+        resp_data = {
+          "user": serialized_user,
+          "access_token": access_token, 
+          "refresh_token": refresh_token
+        }
         return make_response_body(200, "", resp_data), 200
       else:
-        # Set tokens to cookies
-        resp_data = {"user": serialized_user}   
-        resp_body = make_response_body(200, "", resp_data)
+        # Get access token expiry
+        exp = get_token_expiry(access_token)
 
-        resp = make_response(resp_body, 200)
-        resp.set_cookie("access_token", access_token, httponly=True, secure=True, samesite="Lax")
-        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=True, samesite="Lax",
-          path="/app/api/v1/auth/refresh-token")
-        return resp
+        # Set tokens to cookies
+        resp_data = {"user": serialized_user, "access_token_expiry": exp}   
+        resp_body = make_response_body(200, "", resp_data)
+        return set_tokens_in_cookies(resp_body, access_token, refresh_token)
 
   @auth_bp.route("/logout")
   class Logout(MethodView):
-    @auth_service.jwt_required()
+    @auth_service.jwt_required(optional=True)
     @auth_bp.response(200, schema.BaseResponseSchema)
     def post(self):
       # Extract info from JWT
-      user_id, session_id = get_info_from_token()
+      token_info = get_info_from_token()
+      if token_info is not None:
+        user_id, session_id = token_info
 
-      # Logout session
-      user_service.logout(user_id, session_id)
+        try:
+          # Logout session
+          user_service.logout(user_id, session_id)
+        except Exception as e:
+          # Handle exception gracefully
+          app_logger.error(f"Failed to logout: {e}")
+          pass
 
-      return make_response_body(200, "", {}), 200
+      resp_body = make_response_body(200, "", {})
+      return set_tokens_in_cookies(resp_body, "", "", True)
 
 
   @auth_bp.route("/refresh-token")
@@ -101,22 +139,38 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
     def post(self, req_data: dict):
       set_cookie = req_data["set_cookie"]
 
-      user_id, session_id = get_info_from_token()
-      access_token, refresh_token = user_service.refresh_token(user_id, session_id)
+      claims = get_info_from_token()
+      if not claims:
+        raise common_error.UnauthorizedError("Failed to extract info from token.")
+
+      access_token, refresh_token = user_service.refresh_token(claims.user_id, claims.session_id)
 
       if not set_cookie:
-        resp_data = {"access_token": access_token, "refresh_token": refresh_token}
+        resp_data = {
+          "access_token": access_token, 
+          "refresh_token": refresh_token
+        }
         return make_response_body(200, "", resp_data), 200
       else:
-        # Set tokens to cookies
-        resp_body = make_response_body(200, "", {})
+        # Get access token expiry
+        exp = get_token_expiry(access_token)
 
-        resp = make_response(resp_body, 200)
-        resp.set_cookie("access_token", access_token, httponly=True, secure=True, samesite="Lax")
-        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=True, samesite="Lax",
-          path="/app/api/v1/auth/refresh-token")
-        return resp
+        # Set tokens to cookies
+        resp_body = make_response_body(200, "", {"access_token_expiry": exp})
+        return set_tokens_in_cookies(resp_body, access_token, refresh_token)
     
+
+  @auth_bp.route("/me")
+  class GetMyInfo(MethodView):
+    @auth_service.jwt_required()
+    @auth_bp.response(200, schema.BaseResponseSchema)
+    def post(self):
+      # Serialize user data
+      user_schema = schema.UserResponseSchema()
+      serialized_user = user_schema.dump(g.user_info)
+      
+      resp_data = {"user": serialized_user}
+      return make_response_body(200, "", resp_data), 200
 
   @auth_bp.route("/check-email")
   class CheckEmail(MethodView):
@@ -152,6 +206,8 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
     def post(self, req_data: dict):
       new_password = req_data["new_password"]
       claims = get_info_from_token()
+      if not claims:
+        raise common_error.UnauthorizedError("Failed to extract info from token.")
 
       user_service.reset_password(claims.user_id, claims.session_id, new_password)
 

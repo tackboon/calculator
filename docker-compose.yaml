@@ -44,3 +44,19 @@ services:
     volumes:
       - ./docker-volume/redis/data:/data
     command: redis-server --requirepass redis
+
+  ################################################################
+  # Web
+  ################################################################
+  # web:
+  #   build:
+  #     context: web
+  #   container_name: web
+  #   hostname: web
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - /home/web/app/node_modules
+  #     - ./web:/home/web/app
+  #   env_file:
+  #     - ./web/.env

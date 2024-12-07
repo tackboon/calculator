@@ -6,14 +6,22 @@ import { ValidateEmail } from "../../common/validation/auth.validation";
 import Button from "../../component/button/button.component";
 import Input from "../../component/input/input.component";
 import Link from "../../component/link/link.component";
+import { getLastForgotPasswordTimeFromCookie } from "../../common/storage/cookie";
+import toast from "react-hot-toast";
 
 type FormProps = {
-  submitHandler: (email: string) => string;
+  apiError: string;
+  apiLoading: boolean;
+  submitHandler: (email: string) => Promise<null>;
 };
 
 const COOLDOWN_PERIOD = 60;
 
-const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
+const ForgotPasswordForm: FC<FormProps> = ({
+  submitHandler,
+  apiError,
+  apiLoading,
+}) => {
   const navigate = useNavigate();
 
   // State for send link cooldown
@@ -29,11 +37,15 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
 
   // Enable send link button if cooldown is 0
   const startCooldown = () => {
+    if (intervalID.current) return;
+
     // Start the countdown
+    if (intervalID.current) return;
     const id = setInterval(() => {
       setCooldown((prevCooldown) => {
         if (prevCooldown <= 1) {
           clearInterval(id);
+          intervalID.current = null;
           setIsDisabled(false);
           return 0;
         }
@@ -43,33 +55,24 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
     intervalID.current = id;
   };
 
-  // Save last action time to local storage
-  const saveLastActionTime = () => {
-    const currentTime = Date.now();
-    localStorage.setItem("lastActionTime", currentTime.toString());
-  };
-
-  // Retrieve last action time from local storage
-  const retrieveLastActionTime = (): string | null => {
-    return localStorage.getItem("lastActionTime");
-  };
-
   // Check localStorage for last action timestamp
   useEffect(() => {
-    const lastActionTime = retrieveLastActionTime();
-    if (lastActionTime) {
-      const elapsedTime = Math.floor(
-        (Date.now() - Number(lastActionTime)) / 1000
-      );
-      const remainingCooldown = COOLDOWN_PERIOD - elapsedTime;
+    (async () => {
+      const lastActionTime = await getLastForgotPasswordTimeFromCookie();
+      if (lastActionTime) {
+        const elapsedTime = Math.floor(
+          (Date.now() - Number(lastActionTime)) / 1000
+        );
+        const remainingCooldown = COOLDOWN_PERIOD - elapsedTime;
 
-      // Start the timer if there's time left
-      if (remainingCooldown > 0) {
-        setIsDisabled(true);
-        setCooldown(remainingCooldown);
-        startCooldown();
+        // Start the timer if there's time left
+        if (remainingCooldown > 0) {
+          setIsDisabled(true);
+          setCooldown(remainingCooldown);
+          startCooldown();
+        }
       }
-    }
+    })();
 
     // Cleanup interval
     return () => {
@@ -77,7 +80,7 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
         clearInterval(intervalID.current);
       }
     };
-  }, []);
+  }, [apiLoading]);
 
   // Form submission handler
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,13 +98,19 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
       return;
     }
 
-    // Handle successful form submission
-    setErrorMessage(submitHandler(email));
-
-    // Start cooldown send link
-    saveLastActionTime();
-    setCooldown(COOLDOWN_PERIOD);
-    startCooldown();
+    toast
+      .promise(submitHandler(email), {
+        loading: "Sending...",
+        success: <b>Reset email sent.</b>,
+        error: <b>Failed to send email.</b>,
+      })
+      .then(() => {
+        setCooldown(COOLDOWN_PERIOD);
+        startCooldown(); // Start cooldown send link
+      })
+      .catch(() => {
+        setIsDisabled(false);
+      });
   };
 
   const handleBackToLogin = () => {
@@ -128,14 +137,16 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler }) => {
           />
         </div>
 
-        <p className={styles["error"]}>{errorMessage}</p>
+        <p className={styles["error"]}>
+          {errorMessage === "" ? apiError : errorMessage}
+        </p>
       </div>
 
       <div className={styles["form-footer"]}>
         <Button
           className={styles["submit-btn"]}
           type="submit"
-          disabled={isDisabled}
+          disabled={isDisabled || apiLoading}
         >
           Request reset link{cooldown > 0 ? ` (${cooldown})s` : ""}
         </Button>

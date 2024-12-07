@@ -2,11 +2,12 @@ import os
 import sys
 
 from flask import Flask
+from flask_cors import CORS
 from flask_smorest import Api
 from request_id import RequestId
 
 from src.app.user import init_internal_auth_app, init_auth_app
-from src.app.record import init_record_app
+from src.app.journal import init_journal_app
 from src.app.user.repository import Repository as AuthRepo
 from src.config import config
 from src.extensions import app_logger, auth_service, db_service, email_service, ip_service, redis_service
@@ -16,6 +17,9 @@ from src.middleware.error import ErrorMiddleware
 
 def create_app():
   app = Flask(__name__)
+
+  # cors policy
+  CORS(app, origins=config.cors_allowed_origins, supports_credentials=True)
 
   # API Configuration
   app.config["API_TITLE"] = "Calculator Rest API"
@@ -43,6 +47,12 @@ def create_app():
   app.config["JWT_ALGORITHM"] = "ES256"
   app.config["JWT_PRIVATE_KEY"] = private_key
   app.config["JWT_PUBLIC_KEY"] = public_key
+  app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
+  app.config["JWT_REFRESH_TOKEN_LOCATION"] = ["headers", "cookies"]
+  app.config["JWT_REFRESH_COOKIE_PATH"] = "/app/api/v1/auth/refresh-token"
+  app.config["JWT_COOKIE_DOMAIN"] = config.cookie_domain
+  app.config["JWT_COOKIE_SAMESITE"] = config.cookie_samesite
+  app.config["JWT_COOKIE_SECURE"] = "False" if config.debug_mode else "True"
 
   # Disable strict slash
   app.url_map.strict_slashes = False
@@ -81,8 +91,8 @@ def create_app():
         url_prefix="/app/api/v1/auth"
       )
       api.register_blueprint(
-        init_record_app(config, db_service, redis_service), 
-        url_prefix="/app/api/v1/record"
+        init_journal_app(config, db_service, redis_service), 
+        url_prefix="/app/api/v1/journals"
       )
     case "http_internal":
       api.register_blueprint(

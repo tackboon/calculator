@@ -11,11 +11,18 @@ import {
 import Link from "../../component/link/link.component";
 
 type FormProps = {
+  apiError: string;
+  apiLoading: boolean;
   isRegister?: boolean;
-  submitHandler: (email: string, password: string) => string;
+  submitHandler: (email: string, password: string) => void;
 };
 
-const LoginForm: FC<FormProps> = ({ isRegister = false, submitHandler }) => {
+const LoginForm: FC<FormProps> = ({
+  isRegister = false,
+  apiError,
+  apiLoading,
+  submitHandler,
+}) => {
   // Setup navigation
   const navigate = useNavigate();
 
@@ -64,7 +71,7 @@ const LoginForm: FC<FormProps> = ({ isRegister = false, submitHandler }) => {
       }
 
       // Handle successful form submission
-      setErrorMessage(submitHandler(email, password));
+      submitHandler(email, password);
     } finally {
       setIsDisabled(false);
     }
@@ -128,7 +135,9 @@ const LoginForm: FC<FormProps> = ({ isRegister = false, submitHandler }) => {
           </div>
         )}
 
-        <p className={styles["error"]}>{errorMessage}</p>
+        <p className={styles["error"]}>
+          {errorMessage === "" ? apiError : errorMessage}
+        </p>
       </div>
 
       <div className={styles["form-footer"]}>
@@ -142,7 +151,7 @@ const LoginForm: FC<FormProps> = ({ isRegister = false, submitHandler }) => {
         <Button
           className={styles["submit-btn"]}
           type="submit"
-          disabled={isDisabled}
+          disabled={isDisabled || apiLoading}
         >
           {submitBtnText}
         </Button>

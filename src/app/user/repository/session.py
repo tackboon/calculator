@@ -27,7 +27,7 @@ class SessionRepo:
     self.rdb = rdb
 
   def create_auth_session(self, user_id: int, session_id: str, access_id: str, refresh_id: str, 
-    ip: str, location: str, device_id: str, device_name: str) -> Optional[SessionModel]:
+    ip: str, location: str, device_name: str) -> Optional[SessionModel]:
     """
     Insert auth session info into db.
     """
@@ -39,7 +39,6 @@ class SessionRepo:
       refresh_id=refresh_id,
       last_ip=ip,
       last_location=location,
-      device_id=device_id,
       device_name=device_name,
     )
 

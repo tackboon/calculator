@@ -77,7 +77,6 @@ class SessionModel(Model):
   last_ip = Column(INET, nullable=False)
   last_location = Column(String(100), nullable=False)
   device_name = Column(String(255), nullable=False)
-  device_id = Column(String(255), nullable=False)
   
   def to_dict(self) -> dict[str, Any]:
     """
@@ -94,8 +93,7 @@ class SessionModel(Model):
       "refreshed_at": self.refreshed_at,
       "last_ip": self.last_ip,
       "last_location": self.last_location,
-      "device_name": self.device_name,
-      "device_id": self.device_id
+      "device_name": self.device_name
     }
 
   @staticmethod
@@ -120,8 +118,7 @@ class SessionModel(Model):
       refreshed_at = data.get("refreshed_at"),
       last_ip = data.get("last_ip"),
       last_location = data.get("last_location"),
-      device_name = data.get("device_name"),
-      device_id = data.get("device_id")
+      device_name = data.get("device_name")
     )
   
 

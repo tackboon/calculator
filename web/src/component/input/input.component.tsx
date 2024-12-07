@@ -23,6 +23,7 @@ const Input: FC<InputProps> = ({ type = "text", ...props }) => {
           type="button"
           className={styles["toggle-button"]}
           onClick={togglePasswordVisibility}
+          tabIndex={-1}
         >
           {showPassword ? "Hide" : "Show"}
         </button>

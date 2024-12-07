@@ -26,7 +26,6 @@ class BlockUserRequestSchema(BaseRequestSchema):
 class LoginRequestSchema(BaseRequestSchema):
   email = fields.Email(required=True)
   password = fields.Str(required=True, load_only=True, validates=password_validator)
-  device_id = fields.Str(required=True, validate=validate.Length(max=255))
   device_name = fields.Str(required=True, validate=validate.Length(max=255))
   set_cookie = fields.Bool(required=False, missing=False)
 
@@ -54,5 +53,6 @@ class BaseResponseSchema(Schema):
 
 
 class UserResponseSchema(Schema):
-  id = fields.Int(dump_only=True)
+  id = fields.Int()
   email = fields.Str()
+  role = fields.Int()

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from flask import current_app, g, Flask, jsonify
+from flask import current_app, g, Flask, jsonify, request
 from flask_jwt_extended import JWTManager, verify_jwt_in_request
 from flask_jwt_extended.view_decorators import LocationType
 from functools import wraps
@@ -27,7 +27,7 @@ class UserInfo:
   Data class representing a user's basic info.
   """
 
-  user_id: int
+  id: int
   email: str
   deleted_at: int
   role: int
@@ -174,40 +174,49 @@ class AuthServicer:
       @wraps(fn)
       def decorator(*args: Any, **kwargs: Any):
         # Verify JWT token from the request
-        jwt_header, jwt_data = verify_jwt_in_request(
+        jwt_info = verify_jwt_in_request(
             optional, fresh, refresh, locations, verify_type, skip_revocation_check
         )
 
-        user_id = jwt_data["sub"]
-        session_id = jwt_data["sid"]
+        try:
+          if jwt_info is not None:
+            jwt_header, jwt_data = jwt_info
 
-        # Store the user ID in Flask's global objectt
-        g.user_id = user_id
+            user_id = jwt_data["sub"]
+            session_id = jwt_data["sid"]
 
-        # Retrieve session data from storage
-        session_data = self.repo.get_session_for_jwt(user_id, session_id)
+            # Store the user ID in Flask's global objectt
+            g.user_id = user_id
 
-        # Verify if session data exists in storage
-        if session_data is None:
-          raise UnauthorizedError("The session was not found in storage.")
+            # Retrieve session data from storage
+            session_data = self.repo.get_session_for_jwt(user_id, session_id)
 
-        # Verify based on token type (access or refresh)
-        if refresh:
-          refresh_id = jwt_data["rid"]
-          if session_data.refresh_id != refresh_id:
-            raise UnauthorizedError("Refresh id does not match.")
-        else:
-          access_id = jwt_data["aid"]
-          if session_data.access_id != access_id:
-            raise UnauthorizedError("Access id does not match.")
-        
-        # Retrieve user info from storage
-        user_info = self.repo.get_user_for_jwt(user_id)
-        if user_info is None:
-          raise UnauthorizedError("User not found in storage, or the user has beed deleted or blocked.")
-        
-        # Store user info in Flask's global object
-        g.user_info = user_info      
+            # Verify if session data exists in storage
+            if session_data is None:
+              raise UnauthorizedError("The session was not found in storage.")
+
+            # Verify based on token type (access or refresh)
+            if refresh:
+              refresh_id = jwt_data["rid"]
+              if session_data.refresh_id != refresh_id:
+                raise UnauthorizedError("Refresh id does not match.")
+            else:
+              access_id = jwt_data["aid"]
+              if session_data.access_id != access_id:
+                raise UnauthorizedError("Access id does not match.")
+            
+            # Retrieve user info from storage
+            user_info = self.repo.get_user_for_jwt(user_id)
+            if user_info is None:
+              raise UnauthorizedError("User not found in storage, or the user has beed deleted or blocked.")
+            
+            # Store user info in Flask's global object
+            g.user_info = user_info      
+        except Exception as e:
+          if optional:
+            pass
+          else:
+            raise e
 
         # Call the original endpoint function
         return current_app.ensure_sync(fn)(*args, **kwargs)

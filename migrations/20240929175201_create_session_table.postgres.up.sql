@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS public.sessions
     last_ip inet NOT NULL,
     location_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
     device_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    device_id character varying(255) COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT sessions_pkey PRIMARY KEY (user_id, session_id)
 )
 

@@ -25,7 +25,7 @@ class UserService:
     self.ip_location = ip_location
     self.email_service = email_service
 
-  def register(self, email: str, password: str, ip: str, device_id: str, device_name: str
+  def register(self, email: str, password: str, ip: str, device_name: str
     ) -> tuple[UserModel, str, str]:
     """
     Register a new user. Email must be unique. 
@@ -39,10 +39,10 @@ class UserService:
     user = self.repo.user.create_new_user(email, hashed_password)
 
     # Create session info
-    session = self._create_auth_session(user.id, ip, device_id, device_name)
+    session = self._create_auth_session(user.id, ip, device_name)
     return user, session.access_token, session.refresh_token
 
-  def login(self, email: str, password: str, ip: str, device_id: str, device_name: str
+  def login(self, email: str, password: str, ip: str, device_name: str
     ) -> tuple[UserModel, str, str]:
     """
     User login with email and password.
@@ -69,7 +69,7 @@ class UserService:
       raise common_error.UnauthorizedError("Password mismatch.")
 
     # Create session info
-    session_token = self._create_auth_session(user.id, ip, device_id, device_name)
+    session_token = self._create_auth_session(user.id, ip, device_name)
     if session_token is None:
       raise Exception(f"Session id already exists, user_id: {user.id}.")
 
@@ -112,7 +112,7 @@ class UserService:
     """
 
     self.repo.user.block_user_by_id(user_id)
-    
+
   def remove_all_sessions(self, user_id: int):
     """
     Remove user's all sessions.
@@ -154,7 +154,7 @@ class UserService:
 
     # Generate reset password token
     session_id = str(uuid.uuid4())
-    token = generate_reset_token(user.id, session_id, constant.RESET_PASSWORD_TOKEN_LIFETIME)
+    token = generate_reset_token(user.id, email, session_id, constant.RESET_PASSWORD_TOKEN_LIFETIME)
     expiry = self.repo.session.save_reset_password_session(user.id, session_id)
     
     # Get user timezone and convert expiry to datetime
@@ -199,7 +199,7 @@ class UserService:
     # Remove reset password session
     self.repo.session.remove_reset_password_session(user_id)
 
-  def _create_auth_session(self, user_id: int, ip: str, device_id: str, device_name: str) -> SessionToken:
+  def _create_auth_session(self, user_id: int, ip: str, device_name: str) -> SessionToken:
     """
     Create session info into the db. Generate auth session tokens.
     """
@@ -216,7 +216,7 @@ class UserService:
     while retry < 3:
       session_id = str(uuid.uuid4())
       session = self.repo.session.create_auth_session(user_id, session_id, access_id, refresh_id,
-                  ip, location, device_id, device_name)
+                  ip, location, device_name)
 
       if session is not None:
         break

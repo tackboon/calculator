@@ -9,6 +9,9 @@ class Config:
   """
 
   app_mode: str # App mode to run [http_public, http_internal]
+  cors_allowed_origins: str # CORS origins to whitelist
+  cookie_domain: str # Auth cookies's domain
+  cookie_samesite: str # Auth cookie's samesite
   debug_mode: bool
   log_base_dir: str # Log base directory
   log_level: str # Log level
@@ -24,6 +27,9 @@ class Config:
 # Initialize configs
 config = Config(
   app_mode = os.getenv("APP_MODE", "http_public"),
+  cors_allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", ""),
+  cookie_domain = os.getenv("COOKIE_DOMAIN", ""),
+  cookie_samesite = os.getenv("COOKIE_SAMESITE", "Lax"),
   debug_mode = os.getenv("FLASK_DEBUG", "1") == "1",
   log_base_dir = os.getenv("LOG_BASE", ""),
   log_level = os.getenv("LOG_LEVEL", "DEBUG"),
