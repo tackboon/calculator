@@ -1,12 +1,13 @@
 import base64
 import uuid
+import random
 
 import src.app.user.constant as constant
 import src.common.error as common_error
 
 from datetime import datetime
 
-from src.app.user.model import UserModel
+from src.app.user.model import OTPTyp, UserModel
 from src.app.user.repository import Repository
 from src.config import Config
 from src.common.crypto.hash import hash_password, verify_password
@@ -25,12 +26,15 @@ class UserService:
     self.ip_location = ip_location
     self.email_service = email_service
 
-  def register(self, email: str, password: str, ip: str, device_name: str
+  def register(self, email: str, password: str, ip: str, device_name: str, otp_code: str
     ) -> tuple[UserModel, str, str]:
     """
     Register a new user. Email must be unique. 
     Return new user data, access token, and refresh_token.
     """
+
+    if not self.verify_otp(OTPTyp.REGISTER.value, email, otp_code):
+      raise common_error.UnauthorizedError("Failed to verify OTP.")
 
     # Hash the password and encode it to base64
     hashed_password = base64.b64encode(hash_password(password, 16)).decode("utf-8")
@@ -133,6 +137,46 @@ class UserService:
     
     return False
   
+  def send_otp(self, ip: str, typ: int, email: str):
+    """
+    Send OTP to email
+    """
+    
+    if typ == OTPTyp.REGISTER.value and self.check_email_exists(email):
+      raise common_error.ResourceConflictError("Email already exists.")
+
+    code = str(random.randint(1000, 9999))
+
+    # Hash the otp code and encode it to base64
+    hashed_otp = base64.b64encode(hash_password(code, 0)).decode("utf-8")
+
+    is_success, expiry = self.repo.session.save_otp_session(typ, email, hashed_otp)
+    if not is_success:
+      raise common_error.TooManyRequestError("Send OTP on cooldown")
+    
+    # Get user timezone and convert expiry to datetime
+    tz = self.ip_location.get_timezone(ip)
+    if tz == "-":
+      tz = "00:00"
+    formated_expiry = convert_timestamp_to_datetime(float(expiry), tz)
+
+    # Get email template
+    subject, content = self.email_service.get_otp_template(code, formated_expiry)
+
+    # Send otp to email
+    self.email_service.send_email([email], subject, content)
+
+  def verify_otp(self, typ: int, email: str, code: str) -> bool:
+    """
+    Verify OTP
+    """
+
+    # Hash the otp code and encode it to base64
+    hashed_otp = base64.b64encode(hash_password(code, 0)).decode("utf-8")
+
+    # Verify OTP
+    return self.repo.session.verify_otp_session(typ, email, hashed_otp)
+
   def send_reset_password_link(self, ip: str, email: str):
     """
     Send reset password link to user via email.
@@ -176,8 +220,6 @@ class UserService:
     """
     Reset user's password
     """
-
-    # 
 
     # Check for token validity
     cache = self.repo.session.get_reset_password_session(user_id, True)

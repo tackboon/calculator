@@ -1,21 +1,17 @@
 import json
 import src.app.user.constant as constant
-import src.common.error as common_error
 
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from functools import wraps
 from redis import Redis
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from typing import Any, Callable, cast, Optional, Tuple, Union
+from typing import cast, Optional, Tuple, Union
 
-from src.app.user.model import UserModel, ResetPasswordSessionCache, SessionModel
-from src.common.inspect import get_caller_name
-from src.config import Config
+from src.app.user.model import OTPSessionCache, ResetPasswordSessionCache, SessionModel
 from src.extensions import app_logger
-from src.service.auth import JWTRepo, SessionData, UserInfo
-from src.service.redis import RedisServicer
+from src.service.auth import SessionData
+from src.service.redis import Action, Condition, RedisServicer
 from src.service.sql_alchemy import SQLAlchemyServicer
 
 
@@ -241,12 +237,67 @@ class SessionRepo:
     # Get cache key and duration
     key, duration = self._get_reset_password_cache_info(user_id)
 
-    # Save secret to 
+    # Save secret to cache
     now = int(datetime.now().timestamp())
     json_data = json.dumps(asdict(ResetPasswordSessionCache(session_id=session_id, issued_at=now)))
     self.rdb.set(key, json_data, duration)
 
     return now + duration.seconds
+  
+  def verify_otp_session(self, typ: int, identifier: str, code: str) -> bool:
+    """
+    Verifies the OTP session.
+    Returns whether the code matches.
+    """
+
+    # Get cache key and duration
+    key, duration = self._get_otp_cache_info(typ, identifier)
+
+    # Verify otp on Redis
+    now = datetime.now()
+    success_actions: list[Action] = [
+      {"field": "status", "action": "set", "value": "1"}
+    ]
+    failure_actions: list[Action] = [
+      {"field": "retry", "action": "incr", "value": "1"}
+    ]
+    conditions: list[Condition] = [
+      {"field": "issued_at", "operator": ">", "value": str(int((now - duration).timestamp()))},
+      {"field": "status", "operator": "==", "value": "0"},
+      {"field": "retry", "operator": "<", "value": "5"},
+      {"field": "code", "operator": "==", "value": code}
+    ]
+
+    casted_rdb = cast(RedisServicer, self.rdb)
+    success = casted_rdb.hset_with_condition(key, conditions, success_actions, failure_actions, False) == 1
+    return success
+
+  def save_otp_session(self, typ: int, identifier: str, code: str) -> Tuple[bool, int]:
+    """
+    Save OTP session to cache.
+    Return if the cache has been successfully set and its expiry time.
+    """
+
+    # Get cache key and duration
+    key, duration = self._get_otp_cache_info(typ, identifier)
+
+    # Save otp info to cache
+    now = datetime.now()
+    actions: list[Action] = [
+      {"field": "issued_at", "action": "set", "value": str(int(now.timestamp()))},
+      {"field": "code", "action": "set", "value": code},
+      {"field": "status", "action": "set", "value": "0"},
+      {"field": "retry", "action": "set", "value": "0"},
+      {"field": "", "action": "expr", "value": str(duration.seconds)}
+    ]
+    conditions: list[Condition] = [
+      {"field": "issued_at", "operator": "<", "value": str(int((now - timedelta(minutes=1)).timestamp()))}
+    ]
+
+    casted_rdb = cast(RedisServicer, self.rdb)
+    success = casted_rdb.hset_with_condition(key, conditions, actions, [], True) == 1
+    expiry = int((now + duration).timestamp())
+    return success, expiry
 
   def _get_login_attempts_cache_info(self, user_id: int) -> tuple[str, timedelta]:
     """
@@ -254,6 +305,13 @@ class SessionRepo:
     """
 
     return f"user:login_attempts:{user_id}", timedelta(hours=1)
+  
+  def _get_otp_cache_info(self, typ: int, identifier: str) -> tuple[str, timedelta]:
+    """
+    Construct otp cache key and cache expiry.
+    """
+
+    return f"user:otp:{typ}:{identifier}", timedelta(minutes=10)
 
   def _get_reset_password_cache_info(self, user_id: int) -> tuple[str, timedelta]:
     """

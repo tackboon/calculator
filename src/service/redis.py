@@ -1,3 +1,4 @@
+import json
 import time
 
 from datetime import timedelta
@@ -5,7 +6,7 @@ from flask import Flask
 from flask_redis import FlaskRedis
 from functools import wraps
 from logging import Logger
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypedDict, Union
 
 from src.common.inspect import get_caller_name
 from src.common.logger import BasicJSONFormatter, create_logger
@@ -47,6 +48,18 @@ def log_slow_queries(threshold_ms: float, logger: Logger, log_msg: str, caller: 
 
     return result
   return wrapper
+
+
+class Action(TypedDict):
+  field: str
+  action: str
+  value: str
+
+
+class Condition(TypedDict):
+  field: str
+  operator: str
+  value: str
 
 
 class RedisServicer:
@@ -146,6 +159,155 @@ class RedisServicer:
       caller,
       self.client.lock
     )(name, timeout, sleep, blocking, blocking_timeout, lock_class, thread_local)
+
+  def hset_with_condition(self, key: str, conditions: list[Condition], success_actions: list[Action], 
+      failure_actions: list[Action], success_if_key_not_exists: bool):
+    """
+    Atomically update a Redis hash based on conditions.
+
+    Args:
+    - key (str): The Redis key to operate on.
+    - conditions (list[Condition]): A list of conditions to check against the existing hash values.
+    - success_actions (list[Action]): A list of actions to perform if the conditions are met.
+    - failure_actions (list[Action]): A list of actions to perform if the conditions are not met.
+    - success_if_key_not_exists (bool): Whether to treat a non-existent key as a successful case (True) or a failure (False).
+
+    Returns:
+    - int: 1 if the success path is executed, 0 if the failure path is executed.
+    """
+
+    script = """
+    local key = KEYS[1]
+
+    -- Parse arguments
+    local conditions = cjson.decode(ARGV[1])
+    local success_actions = cjson.decode(ARGV[2])
+    local failure_actions = cjson.decode(ARGV[3])
+    local success_if_key_not_exists = tonumber(ARGV[4]) -- 0: fail if key doesn't exist, 1: success if key doesn't exist
+   
+    -- Function to handle actions
+    local function handle_actions(actions)
+      local hset_args = {}
+      local expr = 0
+
+      for i, action in ipairs(actions) do
+        local field = action["field"]
+        local action_type = action["action"]
+        local value = action["value"]
+
+        if action_type == "set" then
+          table.insert(hset_args, field)
+          table.insert(hset_args, value)
+        elseif action_type == "incr" then
+          redis.call("HINCRBY", key, field, tonumber(value))
+        elseif action_type == "expr" then
+          expr = tonumber(value)
+        end
+      end
+
+      -- Call HSET with all collected fields and values
+      local batch_size = 500
+      for i = 1, #hset_args, batch_size * 2 do
+        local batch = {unpack(hset_args, i, math.min(i + batch_size * 2 - 1, #hset_args))}
+        redis.call("HSET", key, unpack(batch))
+      end
+
+      if expr ~= 0 then 
+        redis.call("EXPIRE", key, expr)
+      end
+    end
+
+    if redis.call("EXISTS", key) == 0 then
+      if success_if_key_not_exists == 1 then
+        handle_actions(success_actions)
+        return 1
+      else
+        handle_actions(failure_actions)
+        return 0
+      end
+    end
+
+
+    -- Get current values
+    local current_values_raw = redis.call("HGETALL", key)
+
+    -- Convert HGETALL results into a key-value map
+    local current_values = {}
+    for i = 1, #current_values_raw, 2 do
+      local field = current_values_raw[i]
+      local value = current_values_raw[i + 1]
+      current_values[field] = value
+    end
+
+    -- Check conditions
+    for i, condition in ipairs(conditions) do
+      local field = condition["field"]
+      local operator = condition["operator"]
+      local value = condition["value"]
+
+      if operator == "==" then
+        local current_value = tostring(current_values[field]) or ""
+        if current_value ~= tostring(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      elseif operator == "!=" then
+        local current_value = tostring(current_values[field]) or ""
+        if current_value == tostring(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      elseif operator == ">" then
+        local current_value = tonumber(current_values[field]) or 0
+        if current_value <= tonumber(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      elseif operator == ">=" then
+        local current_value = tonumber(current_values[field]) or 0
+        if current_value < tonumber(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      elseif operator == "<" then
+        local current_value = tonumber(current_values[field]) or 0
+        if current_value >= tonumber(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      elseif operator == "<=" then
+        local current_value = tonumber(current_values[field]) or 0
+        if current_value > tonumber(value) then
+          handle_actions(failure_actions)
+          return 0
+        end
+      else
+        handle_actions(failure_actions)
+        return 0
+      end
+    end
+
+    handle_actions(success_actions)
+    return 1
+    """
+
+    caller = get_caller_name()
+
+    return log_slow_queries(
+      self.slow_threshold_ms, 
+      self.logger,
+      "eval hset_with_condition",
+      caller,
+      self.client.eval
+    )(
+      script, 
+      1, 
+      key, 
+      json.dumps(conditions), 
+      json.dumps(success_actions),
+      json.dumps(failure_actions), 
+      1 if success_if_key_not_exists else 0
+    )
 
   def incr_with_expiry(self, key: str, incr: int, duration: timedelta) -> int:
     """

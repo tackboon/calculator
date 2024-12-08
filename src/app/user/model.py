@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 import time
 
+from dataclasses import dataclass
+from enum import Enum
 from sqlalchemy import Column, Integer, String, SmallInteger
 from sqlalchemy.dialects.postgresql import INET
 from typing import Any, TYPE_CHECKING
@@ -130,3 +131,20 @@ class ResetPasswordSessionCache:
 
   session_id: str
   issued_at: int
+
+
+@dataclass
+class OTPSessionCache:
+  """
+  Data class representing a otp information
+  """
+
+  code: str
+  status: int
+  retry: int
+  issued_at: int
+
+
+class OTPTyp(Enum):
+  REGISTER = 1
+

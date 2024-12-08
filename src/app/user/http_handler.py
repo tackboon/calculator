@@ -1,3 +1,4 @@
+import src.app.user.constant as constant
 import src.app.user.schema as schema
 import src.common.error as common_error
 
@@ -8,7 +9,7 @@ from flask_jwt_extended import (
 )
 from flask_smorest import Blueprint
 
-import src.app.user.constant as constant
+
 from src.app.user.manager import UserService
 from src.common.response import make_response_body
 from src.service.auth.token import get_info_from_token, get_token_expiry
@@ -33,21 +34,34 @@ def set_tokens_in_cookies(resp_body: dict, access_token: str, refresh_token: str
 def create_auth_blueprint(user_service: UserService) -> Blueprint:
   auth_bp = Blueprint("Auth", __name__, description="Operations on auth")
 
+  @auth_bp.route("/send-otp")
+  class SendOTP(MethodView):
+    @auth_bp.arguments(schema.SendOTPRequestSchema)
+    @auth_bp.response(200, schema.BaseResponseSchema)
+    def post(self, req_data: dict):
+      email = req_data["email"]
+      typ = req_data["typ"]
+      
+      user_service.send_otp(request.remote_addr, typ, email)
+      return make_response_body(200, "", {}), 200
+
   @auth_bp.route("/register")
   class UserRegister(MethodView):
-    @auth_bp.arguments(schema.LoginRequestSchema)
+    @auth_bp.arguments(schema.RegisterRequestSchema)
     @auth_bp.response(200, schema.BaseResponseSchema)
     def post(self, req_data: dict):
       email = req_data["email"]
       password = req_data["password"]
       device_name = req_data["device_name"]
       set_cookie = req_data["set_cookie"]
+      otp_code = req_data["otp_code"]
     
       user, access_token, refresh_token = user_service.register(
         email=email, 
         password=password,
         ip=request.remote_addr,
-        device_name=device_name
+        device_name=device_name,
+        otp_code=otp_code
       )
     
       # Serialize user data

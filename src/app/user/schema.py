@@ -3,6 +3,8 @@ import src.common.error as common_error
 from marshmallow import Schema, fields, validate
 from typing import Any
 
+from src.app.user.model import OTPTyp
+
 
 # Validators
 password_validator = [
@@ -30,6 +32,14 @@ class LoginRequestSchema(BaseRequestSchema):
   set_cookie = fields.Bool(required=False, missing=False)
 
 
+class RegisterRequestSchema(BaseRequestSchema):
+  email = fields.Email(required=True)
+  password = fields.Str(required=True, load_only=True, validates=password_validator)
+  device_name = fields.Str(required=True, validate=validate.Length(max=255))
+  set_cookie = fields.Bool(required=False, missing=False)
+  otp_code = fields.Str(required=True, validate=validate.Length(equal=4))
+
+
 class RefreshTokenRequestSchema(BaseRequestSchema):
   set_cookie = fields.Bool(required=False, missing=False)
 
@@ -43,6 +53,11 @@ class RemoveAllSessionsRequestSchema(BaseRequestSchema):
 
 class EmailRequestSchema(BaseRequestSchema):
   email = fields.Email(required=True)
+
+
+class SendOTPRequestSchema(BaseRequestSchema):
+  email = fields.Email(required=True)
+  typ = fields.Int(required=True, validate=validate.OneOf([e.value for e in OTPTyp]))
 
 
 # Create response schema

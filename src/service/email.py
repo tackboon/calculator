@@ -95,3 +95,27 @@ class SendEmailService:
     """
 
     return subject, content
+  
+  def get_otp_template(self, code: str, expiry: str) -> tuple[str, str]:
+    """
+    Return OTP email template.
+
+    Return:
+    - subject
+    - content
+    """
+
+    subject = "Your One-Time Password (OTP)"
+    content = f"""
+    Hello,
+
+    Your One-Time Password (OTP) is: {code}
+
+    Please use this OTP to complete your request. 
+    This OTP will expire on {expiry}.
+
+    If you did not request this OTP, please ignore this message.
+    """
+
+    return subject, content
+  
