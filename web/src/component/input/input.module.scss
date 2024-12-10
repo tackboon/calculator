@@ -1,18 +1,30 @@
 .input-container {
-  position: relative;
-  display: inline-block;
-  width: 100%; /* Ensure the container takes full width */
+  display: flex;
+  width: 100%;
+
+  &.password {
+    position: relative;
+    display: inline-block;
+  }
 }
 
 .input {
   padding: 10px;
-  padding-right: 50px; /* Add extra padding on the right to make space for the button */
   border-radius: 4px;
   border: 1px solid #ccc;
   font-size: 16px;
   width: 100%; /* Ensure the input takes full width */
   box-sizing: border-box;
   outline: none;
+
+  &.password {
+    padding-right: 50px;
+  }
+
+  &.btn-input {
+    border-radius: 4px 0 0 4px;
+    border-right: none;
+  }
 }
 
 .toggle-button {

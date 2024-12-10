@@ -1,6 +1,6 @@
 import src.common.error as common_error
 
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, EXCLUDE
 from typing import Any
 
 from src.app.user.model import OTPTyp
@@ -17,6 +17,10 @@ password_validator = [
 
 # Create requests schema
 class BaseRequestSchema(Schema):
+  class Meta:
+    unknown = EXCLUDE
+
+
   def handle_error(self, err: fields.ValidationError, data: Any, *, many: bool, **kwargs):
     raise common_error.UnprocessableEntityError(message=err.messages ,data=err.args)
 

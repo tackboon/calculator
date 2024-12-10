@@ -29,10 +29,7 @@ export enum USER_ERROR_TYPES {
 }
 
 export enum USER_STATUS_TYPES {
-  CHECK_AUTH_SESSION = "status/check_auth_session",
-  FORGOT_PASSWORD = "status/forgot_password",
   REFRESH_TOKEN = "status/refresh_token",
-  RESET_PASSWORD = "status/reset_password",
 }
 
 export enum USER_STATUS_VALUES {

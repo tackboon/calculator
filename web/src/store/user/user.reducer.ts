@@ -50,6 +50,10 @@ export const userReducer = (
         ...state.isLoading,
         [USER_LOADING_TYPES.LOGIN]: true,
       },
+      error: {
+        ...state.error,
+        [USER_ERROR_TYPES.LOGIN]: "",
+      },
     };
   }
 
@@ -114,9 +118,9 @@ export const userReducer = (
   if (checkSession.match(action)) {
     return {
       ...state,
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.CHECK_AUTH_SESSION]: USER_STATUS_VALUES.START,
+      isLoading: {
+        ...state.isLoading,
+        [USER_LOADING_TYPES.CHECK_AUTH_SESSION]: true,
       },
     };
   }
@@ -125,9 +129,9 @@ export const userReducer = (
   if (checkSessionFinished.match(action)) {
     return {
       ...state,
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.CHECK_AUTH_SESSION]: USER_STATUS_VALUES.SUCCESS,
+      isLoading: {
+        ...state.isLoading,
+        [USER_LOADING_TYPES.CHECK_AUTH_SESSION]: false,
       },
     };
   }
@@ -140,9 +144,9 @@ export const userReducer = (
         ...state.isLoading,
         [USER_LOADING_TYPES.FORGOT_PASSWORD]: true,
       },
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.FORGOT_PASSWORD]: USER_STATUS_VALUES.START,
+      error: {
+        ...state.error,
+        [USER_ERROR_TYPES.FORGOT_PASSWORD]: "",
       },
     };
   }
@@ -158,10 +162,6 @@ export const userReducer = (
       isLoading: {
         ...state.isLoading,
         [USER_LOADING_TYPES.FORGOT_PASSWORD]: false,
-      },
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.FORGOT_PASSWORD]: action.payload.status,
       },
     };
   }
@@ -185,9 +185,9 @@ export const userReducer = (
         ...state.isLoading,
         [USER_LOADING_TYPES.RESET_PASSWORD]: true,
       },
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.RESET_PASSWORD]: USER_STATUS_VALUES.START,
+      error: {
+        ...state.error,
+        [USER_ERROR_TYPES.RESET_PASSWORD]: "",
       },
     };
   }
@@ -203,13 +203,6 @@ export const userReducer = (
       isLoading: {
         ...state.isLoading,
         [USER_LOADING_TYPES.RESET_PASSWORD]: false,
-      },
-      status: {
-        ...state.status,
-        [USER_STATUS_TYPES.RESET_PASSWORD]:
-          action.payload.err === ""
-            ? USER_STATUS_VALUES.SUCCESS
-            : USER_STATUS_VALUES.FAILED,
       },
     };
   }

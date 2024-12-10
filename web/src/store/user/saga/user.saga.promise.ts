@@ -5,18 +5,21 @@ import {
   refreshToken,
   resetPassword,
 } from "../user.action";
-import { USER_STATUS_TYPES, USER_STATUS_VALUES, UserData } from "../user.types";
+import {
+  USER_ERROR_TYPES,
+  USER_LOADING_TYPES,
+  USER_STATUS_TYPES,
+  USER_STATUS_VALUES,
+  UserData,
+} from "../user.types";
 
 export const getCurrentUserFromSession = (): Promise<UserData | null> =>
   new Promise((resolve) => {
     const unsubscribe = store.subscribe(() => {
       const state = store.getState();
-      const { currentUser, status } = state.user;
+      const { currentUser, isLoading } = state.user;
 
-      if (
-        status[USER_STATUS_TYPES.CHECK_AUTH_SESSION] !==
-        USER_STATUS_VALUES.START
-      ) {
+      if (!isLoading[USER_LOADING_TYPES.CHECK_AUTH_SESSION]) {
         // Stop listening to store updates
         unsubscribe();
         resolve(currentUser);
@@ -50,18 +53,20 @@ export const sendResetPasswordLink = (email: string): Promise<null> =>
   new Promise((resolve, reject) => {
     const unsubscribe = store.subscribe(() => {
       const state = store.getState();
-      const { status } = state.user;
+      const { isLoading, error } = state.user;
 
       if (
-        status[USER_STATUS_TYPES.FORGOT_PASSWORD] === USER_STATUS_VALUES.SUCCESS
+        !isLoading[USER_LOADING_TYPES.FORGOT_PASSWORD] &&
+        error[USER_ERROR_TYPES.FORGOT_PASSWORD] === ""
       ) {
         unsubscribe(); // Stop listening to store updates
         resolve(null);
       } else if (
-        status[USER_STATUS_TYPES.FORGOT_PASSWORD] === USER_STATUS_VALUES.FAILED
+        !isLoading[USER_LOADING_TYPES.FORGOT_PASSWORD] &&
+        error[USER_ERROR_TYPES.FORGOT_PASSWORD] !== ""
       ) {
         unsubscribe(); // Stop listening to store updates
-        reject(null);
+        reject(error[USER_ERROR_TYPES.FORGOT_PASSWORD]);
       }
     });
 
@@ -73,17 +78,24 @@ export const callResetPassword = (
   password: string,
   token: string,
   exp: number
-): Promise<USER_STATUS_VALUES> =>
-  new Promise((resolve) => {
+): Promise<null> =>
+  new Promise((resolve, reject) => {
     const unsubscribe = store.subscribe(() => {
       const state = store.getState();
-      const { status } = state.user;
+      const { isLoading, error } = state.user;
 
       if (
-        status[USER_STATUS_TYPES.RESET_PASSWORD] !== USER_STATUS_VALUES.START
+        !isLoading[USER_LOADING_TYPES.RESET_PASSWORD] &&
+        error[USER_ERROR_TYPES.RESET_PASSWORD] === ""
       ) {
         unsubscribe(); // Stop listening to store updates
-        resolve(status[USER_STATUS_TYPES.RESET_PASSWORD]);
+        resolve(null);
+      } else if (
+        !isLoading[USER_LOADING_TYPES.RESET_PASSWORD] &&
+        error[USER_ERROR_TYPES.RESET_PASSWORD] !== ""
+      ) {
+        unsubscribe(); // Stop listening to store updates
+        reject(error[USER_ERROR_TYPES.RESET_PASSWORD]);
       }
     });
 

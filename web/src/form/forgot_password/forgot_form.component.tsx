@@ -10,7 +10,6 @@ import { getLastForgotPasswordTimeFromCookie } from "../../common/storage/cookie
 import toast from "react-hot-toast";
 
 type FormProps = {
-  apiError: string;
   apiLoading: boolean;
   submitHandler: (email: string) => Promise<null>;
 };
@@ -19,7 +18,6 @@ const COOLDOWN_PERIOD = 60;
 
 const ForgotPasswordForm: FC<FormProps> = ({
   submitHandler,
-  apiError,
   apiLoading,
 }) => {
   const navigate = useNavigate();
@@ -55,7 +53,7 @@ const ForgotPasswordForm: FC<FormProps> = ({
     intervalID.current = id;
   };
 
-  // Check localStorage for last action timestamp
+  // Check cookie for last action timestamp
   useEffect(() => {
     (async () => {
       const lastActionTime = await getLastForgotPasswordTimeFromCookie();
@@ -102,7 +100,7 @@ const ForgotPasswordForm: FC<FormProps> = ({
       .promise(submitHandler(email), {
         loading: "Sending...",
         success: <b>Reset email sent.</b>,
-        error: <b>Failed to send email.</b>,
+        error: (err) => <b>Failed to send email. {err}</b>,
       })
       .then(() => {
         setCooldown(COOLDOWN_PERIOD);
@@ -138,7 +136,7 @@ const ForgotPasswordForm: FC<FormProps> = ({
         </div>
 
         <p className={styles["error"]}>
-          {errorMessage === "" ? apiError : errorMessage}
+          {errorMessage}
         </p>
       </div>
 

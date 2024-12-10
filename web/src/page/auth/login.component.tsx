@@ -19,8 +19,8 @@ const LoginPage = () => {
   const userError = useSelector(selectUserError);
   const userLoading = useSelector(selectUserIsLoading);
 
-  const handleSubmit = (email: string, password: string) => {
-    dispatch(login(email, password, navigator.userAgent, false));
+  const handleSubmit = (email: string, password: string, otp: string) => {
+    dispatch(login(email, password, navigator.userAgent, false, otp));
   };
 
   useEffect(() => {

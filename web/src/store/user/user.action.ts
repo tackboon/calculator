@@ -15,6 +15,7 @@ export type Login = ActionWithPayload<
     password: string;
     device_name: string;
     is_register: boolean;
+    otp: string;
   }
 >;
 export const login = withMatcher(
@@ -22,13 +23,15 @@ export const login = withMatcher(
     email: string,
     password: string,
     device_name: string,
-    is_register: boolean
+    is_register: boolean,
+    otp: string
   ): Login =>
     createActionWithPayload(USER_ACTION_TYPES.LOGIN, {
       email,
       password,
       device_name,
       is_register,
+      otp,
     })
 );
 

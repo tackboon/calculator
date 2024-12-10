@@ -10,17 +10,23 @@ import {
 
 import { api } from "../../../service/openapi";
 import { loginFinished, Login, LoginFinished } from "../user.action";
-import { BaseResponse, LoginRequest } from "../../../openapi";
+import { BaseResponse, RegisterRequest } from "../../../openapi";
 import { setAccessTokenExpiryToCookie } from "../../../common/storage/cookie";
 import { CustomError } from "../../../common/error/error";
 import { LoginResponse, USER_ACTION_TYPES } from "../user.types";
 import { scheduleNextRefreshToken } from "./user.saga.refresh";
 
 function* login({
-  payload: { email, password, device_name, is_register },
+  payload: { email, password, device_name, is_register, otp },
 }: Login) {
   const controller = new AbortController();
-  const req: LoginRequest = { email, password, device_name, set_cookie: true };
+  const req: RegisterRequest = {
+    email,
+    password,
+    device_name,
+    otp_code: otp,
+    set_cookie: true,
+  };
 
   try {
     const res: AxiosResponse<BaseResponse> = yield call(
@@ -44,6 +50,9 @@ function* login({
         }
         break;
       case 401:
+        if (is_register) {
+          throw new CustomError("Invalid OTP code.", 401);
+        }
         throw new CustomError("Invalid username or password.", 401);
       case 409:
         throw new CustomError("Username already exists.", 409);

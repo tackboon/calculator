@@ -16,7 +16,6 @@ import { sendResetPasswordLink } from "../../store/user/saga/user.saga.promise";
 
 const ForgotPasswordPage = () => {
   const dispatch = useDispatch();
-  const userError = useSelector(selectUserError);
   const userLoading = useSelector(selectUserIsLoading);
 
   const handleSubmit = (email: string): Promise<null> => {
@@ -31,7 +30,6 @@ const ForgotPasswordPage = () => {
     <div className={styles["wrapper"]}>
       <Container className={styles["container"]}>
         <ForgotPasswordForm
-          apiError={userError[USER_ERROR_TYPES.FORGOT_PASSWORD]}
           apiLoading={userLoading[USER_LOADING_TYPES.FORGOT_PASSWORD]}
           submitHandler={handleSubmit}
         />

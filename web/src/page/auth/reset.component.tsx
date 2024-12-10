@@ -11,12 +11,10 @@ import {
 import {
   USER_ERROR_TYPES,
   USER_LOADING_TYPES,
-  USER_STATUS_VALUES,
 } from "../../store/user/user.types";
 import { callResetPassword } from "../../store/user/saga/user.saga.promise";
 
 const ResetPasswordPage = () => {
-  const navigate = useNavigate();
   const userError = useSelector(selectUserError);
   const userLoading = useSelector(selectUserIsLoading);
   const params = useLoaderData() as Awaited<
@@ -30,15 +28,9 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (password: string) => {
     if (!(params instanceof Response)) {
-      const status = await callResetPassword(
-        password,
-        params.token,
-        params.exp,
-      );
-      if (status === USER_STATUS_VALUES.SUCCESS) {
-        navigate("/login", { replace: true });
-      }
+      return callResetPassword(password, params.token, params.exp);
     }
+    throw new Error("Invalid reset password link.")
   };
 
   return (

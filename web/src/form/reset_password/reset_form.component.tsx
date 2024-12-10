@@ -1,15 +1,17 @@
 import { FC, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import styles from "./reset_form.module.scss";
 import { ValidatePassword } from "../../common/validation/auth.validation";
 import Button from "../../component/button/button.component";
 import Input from "../../component/input/input.component";
+import toast from "react-hot-toast";
 
 type FormProps = {
   apiError: string;
   apiLoading: boolean;
   email: string;
-  submitHandler: (password: string) => void;
+  submitHandler: (password: string) => Promise<null>;
 };
 
 const ResetPasswordForm: FC<FormProps> = ({
@@ -18,6 +20,8 @@ const ResetPasswordForm: FC<FormProps> = ({
   email,
   submitHandler,
 }) => {
+  const navigate = useNavigate();
+
   // State for submit button
   const [isDisabled, setIsDisabled] = useState(false);
 
@@ -36,24 +40,31 @@ const ResetPasswordForm: FC<FormProps> = ({
     setErrorMessage("");
     let errorMsg = "";
 
-    try {
-      // Validate password
-      errorMsg = ValidatePassword(password);
-      if (errorMsg !== "") {
-        setErrorMessage(errorMsg);
-        return;
-      }
-
-      // Validate confirm password
-      if (password !== confirmPassword) {
-        setErrorMessage("Passwords do not match.");
-      }
-
-      // Handle successful form submission
-      submitHandler(password);
-    } finally {
+    // Validate password
+    errorMsg = ValidatePassword(password);
+    if (errorMsg !== "") {
+      setErrorMessage(errorMsg);
       setIsDisabled(false);
+      return;
     }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      setIsDisabled(false);
+      return;
+    }
+
+    // Handle form submission
+    submitHandler(password)
+      .then(() => {
+        toast.success(<b>Password reset successfully.</b>)
+        setIsDisabled(false);
+        navigate("/login", { replace: true });
+      })
+      .catch((e) => {
+        setIsDisabled(false);
+      });
   };
 
   return (

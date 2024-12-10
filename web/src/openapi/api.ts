@@ -186,6 +186,43 @@ export interface RefreshTokenRequest {
 /**
  * 
  * @export
+ * @interface RegisterRequest
+ */
+export interface RegisterRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof RegisterRequest
+     */
+    'email': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RegisterRequest
+     */
+    'password': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RegisterRequest
+     */
+    'device_name': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof RegisterRequest
+     */
+    'set_cookie'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof RegisterRequest
+     */
+    'otp_code': string;
+}
+/**
+ * 
+ * @export
  * @interface ResetPasswordRequest
  */
 export interface ResetPasswordRequest {
@@ -196,6 +233,32 @@ export interface ResetPasswordRequest {
      */
     'new_password': string;
 }
+/**
+ * 
+ * @export
+ * @interface SendOTPRequest
+ */
+export interface SendOTPRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof SendOTPRequest
+     */
+    'email': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof SendOTPRequest
+     */
+    'typ': SendOTPRequestTypEnum;
+}
+
+export const SendOTPRequestTypEnum = {
+    NUMBER_1: 1
+} as const;
+
+export type SendOTPRequestTypEnum = typeof SendOTPRequestTypEnum[keyof typeof SendOTPRequestTypEnum];
+
 
 /**
  * AuthApi - axios parameter creator
@@ -368,13 +431,13 @@ export const AuthApiAxiosParamCreator = function (configuration?: Configuration)
         },
         /**
          * 
-         * @param {LoginRequest} loginRequest 
+         * @param {RegisterRequest} registerRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        appApiV1AuthRegisterPost: async (loginRequest: LoginRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'loginRequest' is not null or undefined
-            assertParamExists('appApiV1AuthRegisterPost', 'loginRequest', loginRequest)
+        appApiV1AuthRegisterPost: async (registerRequest: RegisterRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'registerRequest' is not null or undefined
+            assertParamExists('appApiV1AuthRegisterPost', 'registerRequest', registerRequest)
             const localVarPath = `/app/api/v1/auth/register`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -394,7 +457,7 @@ export const AuthApiAxiosParamCreator = function (configuration?: Configuration)
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(loginRequest, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(registerRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -430,6 +493,41 @@ export const AuthApiAxiosParamCreator = function (configuration?: Configuration)
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(resetPasswordRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {SendOTPRequest} sendOTPRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1AuthSendOtpPost: async (sendOTPRequest: SendOTPRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sendOTPRequest' is not null or undefined
+            assertParamExists('appApiV1AuthSendOtpPost', 'sendOTPRequest', sendOTPRequest)
+            const localVarPath = `/app/api/v1/auth/send-otp`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(sendOTPRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -531,12 +629,12 @@ export const AuthApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {LoginRequest} loginRequest 
+         * @param {RegisterRequest} registerRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async appApiV1AuthRegisterPost(loginRequest: LoginRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1AuthRegisterPost(loginRequest, options);
+        async appApiV1AuthRegisterPost(registerRequest: RegisterRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1AuthRegisterPost(registerRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -547,6 +645,16 @@ export const AuthApiFp = function(configuration?: Configuration) {
          */
         async appApiV1AuthResetPasswordPost(resetPasswordRequest: ResetPasswordRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1AuthResetPasswordPost(resetPasswordRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @param {SendOTPRequest} sendOTPRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async appApiV1AuthSendOtpPost(sendOTPRequest: SendOTPRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1AuthSendOtpPost(sendOTPRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -614,12 +722,12 @@ export const AuthApiFactory = function (configuration?: Configuration, basePath?
         },
         /**
          * 
-         * @param {LoginRequest} loginRequest 
+         * @param {RegisterRequest} registerRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        appApiV1AuthRegisterPost(loginRequest: LoginRequest, options?: any): AxiosPromise<BaseResponse> {
-            return localVarFp.appApiV1AuthRegisterPost(loginRequest, options).then((request) => request(axios, basePath));
+        appApiV1AuthRegisterPost(registerRequest: RegisterRequest, options?: any): AxiosPromise<BaseResponse> {
+            return localVarFp.appApiV1AuthRegisterPost(registerRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -629,6 +737,15 @@ export const AuthApiFactory = function (configuration?: Configuration, basePath?
          */
         appApiV1AuthResetPasswordPost(resetPasswordRequest: ResetPasswordRequest, options?: any): AxiosPromise<BaseResponse> {
             return localVarFp.appApiV1AuthResetPasswordPost(resetPasswordRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {SendOTPRequest} sendOTPRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1AuthSendOtpPost(sendOTPRequest: SendOTPRequest, options?: any): AxiosPromise<BaseResponse> {
+            return localVarFp.appApiV1AuthSendOtpPost(sendOTPRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -704,13 +821,13 @@ export class AuthApi extends BaseAPI {
 
     /**
      * 
-     * @param {LoginRequest} loginRequest 
+     * @param {RegisterRequest} registerRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof AuthApi
      */
-    public appApiV1AuthRegisterPost(loginRequest: LoginRequest, options?: AxiosRequestConfig) {
-        return AuthApiFp(this.configuration).appApiV1AuthRegisterPost(loginRequest, options).then((request) => request(this.axios, this.basePath));
+    public appApiV1AuthRegisterPost(registerRequest: RegisterRequest, options?: AxiosRequestConfig) {
+        return AuthApiFp(this.configuration).appApiV1AuthRegisterPost(registerRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -722,6 +839,17 @@ export class AuthApi extends BaseAPI {
      */
     public appApiV1AuthResetPasswordPost(resetPasswordRequest: ResetPasswordRequest, options?: AxiosRequestConfig) {
         return AuthApiFp(this.configuration).appApiV1AuthResetPasswordPost(resetPasswordRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {SendOTPRequest} sendOTPRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthApi
+     */
+    public appApiV1AuthSendOtpPost(sendOTPRequest: SendOTPRequest, options?: AxiosRequestConfig) {
+        return AuthApiFp(this.configuration).appApiV1AuthSendOtpPost(sendOTPRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

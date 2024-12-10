@@ -25,3 +25,16 @@ export const ValidatePassword = (password: string): string => {
 
   return errorMessage;
 };
+
+export const ValidateOTP = (otp: string): string => {
+  let errorMessage: string = "";
+
+  // Password validation
+  if (!otp) {
+    errorMessage = "OTP code is required.";
+  } else if (otp.length !== 4) {
+    errorMessage = "Invalid OTP code.";
+  }
+
+  return errorMessage;
+};

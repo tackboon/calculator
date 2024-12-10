@@ -12,9 +12,15 @@ const Input: FC<InputProps> = ({ type = "text", ...props }) => {
   };
 
   return (
-    <div className={styles["input-container"]}>
+    <div
+      className={`${styles["input-container"]} ${
+        type === "password" ? styles["password"] : ""
+      }`}
+    >
       <input
-        className={styles["input"]}
+        className={`${styles["input"]} ${
+          type === "password" ? styles["password"] : ""
+        }`}
         type={type === "password" && showPassword ? "text" : type}
         {...props}
       />

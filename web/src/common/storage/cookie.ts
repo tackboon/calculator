@@ -55,3 +55,23 @@ export const setLastForgotPassowrdTimeToCookie = async () => {
 
   Cookies.set("jTrl0cx7nT", encVal, { expires: 1 / (24 * 60) });
 };
+
+export const getLastGetRegisterOTPTimeFromCookie = async (): Promise<
+  string | null
+> => {
+  const aesKey = process.env.REACT_APP_AES_KEY || "";
+  const val = Cookies.get("3e8SN1Qsew");
+  if (val === undefined) {
+    return null;
+  }
+
+  return await aesDecrypt(aesKey, val);
+};
+
+export const setLastGetRegisterOTPTimeToCookie = async () => {
+  const currentTime = Date.now();
+  const aesKey = process.env.REACT_APP_AES_KEY || "";
+  const encVal = await aesEncrypt(aesKey, currentTime.toString());
+
+  Cookies.set("3e8SN1Qsew", encVal, { expires: 1 / (24 * 60) });
+};

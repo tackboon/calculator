@@ -16,6 +16,25 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
+
+    .otp-container {
+      display: flex;
+      width: 100%;
+
+      input {
+        border-right: none;
+        border-radius: 4px 0 0 4px;
+      }
+
+      button {
+        background-color: #1d1160;
+        color: #ffffff;
+        width: 12rem;
+        border-radius: 0 4px 4px 0;
+        font-size: 0.9rem;
+        padding: 12px 0;
+      }
+    }
   }
 
   .forgot-password {
