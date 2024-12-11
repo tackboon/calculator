@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./login_form.module.scss";
@@ -21,8 +21,6 @@ type FormProps = {
   submitHandler: (email: string, password: string, otp: string) => void;
   otpHandler?: (email: string) => Promise<null>;
 };
-
-const COOLDOWN_PERIOD = 60;
 
 const LoginForm: FC<FormProps> = ({
   isRegister = false,
@@ -52,67 +50,12 @@ const LoginForm: FC<FormProps> = ({
   // State for error messages
   const [errorMessage, setErrorMessage] = useState("");
 
-  // State for send otp cooldown
-  const [isOTPDisabled, setIsOTPDisabled] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-  const intervalID = useRef<NodeJS.Timeout | null>(null);
-
-  // Enable send link button if cooldown is 0
-  const startCooldown = () => {
-    if (intervalID.current) return;
-
-    // Start the countdown
-    if (intervalID.current) return;
-    const id = setInterval(() => {
-      setCooldown((prevCooldown) => {
-        if (prevCooldown <= 1) {
-          clearInterval(id);
-          intervalID.current = null;
-          setIsOTPDisabled(false);
-          return 0;
-        }
-        return prevCooldown - 1;
-      });
-    }, 1000);
-    intervalID.current = id;
-  };
-
-  // Check cookie for last action timestamp
-  useEffect(() => {
-    (async () => {
-      const lastActionTime = await getLastGetRegisterOTPTimeFromCookie();
-      if (lastActionTime) {
-        const elapsedTime = Math.floor(
-          (Date.now() - Number(lastActionTime)) / 1000
-        );
-        const remainingCooldown = COOLDOWN_PERIOD - elapsedTime;
-
-        // Start the timer if there's time left
-        if (remainingCooldown > 0) {
-          setIsOTPDisabled(true);
-          setCooldown(remainingCooldown);
-          startCooldown();
-        }
-      }
-    })();
-
-    // Cleanup interval
-    return () => {
-      if (intervalID.current) {
-        clearInterval(intervalID.current);
-      }
-    };
-  }, []);
-
   // Send OTP handler
   const handleSendOTP = () => {
     if (otpHandler) {
-      setIsOTPDisabled(true);
-
       const errorMsg = ValidateEmail(email);
       if (errorMsg !== "") {
         toast.error(<b>Failed to send email. Invalid email address.</b>);
-        setIsOTPDisabled(false);
         return;
       }
 
@@ -122,13 +65,7 @@ const LoginForm: FC<FormProps> = ({
           success: <b>OTP sent to your email.</b>,
           error: (err) => <b>Failed to send email. {err}</b>,
         })
-        .then(() => {
-          setCooldown(COOLDOWN_PERIOD);
-          startCooldown(); // Start cooldown send otp
-        })
-        .catch(() => {
-          setIsOTPDisabled(false);
-        });
+        .catch(() => {});
     }
   };
 
@@ -244,9 +181,12 @@ const LoginForm: FC<FormProps> = ({
                 <Button
                   type="button"
                   onClick={handleSendOTP}
-                  disabled={isOTPDisabled || otpLoading}
+                  disabled={otpLoading}
+                  checkCooldown={otpLoading}
+                  cooldownPeriod={60}
+                  getRemainingCooldown={getLastGetRegisterOTPTimeFromCookie}
                 >
-                  Get OTP{cooldown > 0 ? ` (${cooldown})s` : ""}
+                  Get OTP
                 </Button>
               </div>
             </div>
