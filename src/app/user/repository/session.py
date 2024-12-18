@@ -8,10 +8,10 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from typing import cast, Optional, Tuple, Union
 
-from src.app.user.model import OTPSessionCache, ResetPasswordSessionCache, SessionModel
+from src.app.user.model import ResetPasswordSessionCache, SessionModel
 from src.extensions import app_logger
 from src.service.auth import SessionData
-from src.service.redis import Action, Condition, RedisServicer
+from src.service.redis import ConditionAction, RedisServicer
 from src.service.sql_alchemy import SQLAlchemyServicer
 
 
@@ -255,22 +255,27 @@ class SessionRepo:
 
     # Verify otp on Redis
     now = datetime.now()
-    success_actions: list[Action] = [
-      {"field": "status", "action": "set", "value": "1"}
-    ]
-    failure_actions: list[Action] = [
-      {"field": "retry", "action": "incr", "value": "1"}
-    ]
-    conditions: list[Condition] = [
-      {"field": "issued_at", "operator": ">", "value": str(int((now - duration).timestamp()))},
-      {"field": "status", "operator": "==", "value": "0"},
-      {"field": "retry", "operator": "<", "value": "5"},
-      {"field": "code", "operator": "==", "value": code}
+    conditions_and_actions: list[ConditionAction] = [
+      {
+        "conditions": [
+          {"field": "issued_at", "operator": ">", "value": str(int((now - duration).timestamp()))},
+          {"field": "status", "operator": "==", "value": "0"},
+          {"field": "retry", "operator": "<", "value": "5"},
+          {"field": "code", "operator": "==", "value": code}
+        ],
+        "success_actions": [
+          {"field": "status", "action": "hset", "value": "1"}
+        ],
+        "failure_actions": [
+          {"field": "retry", "action": "hincr", "value": "1"}
+        ]
+      }
     ]
 
     casted_rdb = cast(RedisServicer, self.rdb)
-    success = casted_rdb.hset_with_condition(key, conditions, success_actions, failure_actions, False) == 1
-    return success
+    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
+    
+    return res["is_success"][0] == 1
 
   def save_otp_session(self, typ: int, identifier: str, code: str) -> Tuple[bool, int]:
     """
@@ -283,21 +288,29 @@ class SessionRepo:
 
     # Save otp info to cache
     now = datetime.now()
-    actions: list[Action] = [
-      {"field": "issued_at", "action": "set", "value": str(int(now.timestamp()))},
-      {"field": "code", "action": "set", "value": code},
-      {"field": "status", "action": "set", "value": "0"},
-      {"field": "retry", "action": "set", "value": "0"},
-      {"field": "", "action": "expr", "value": str(duration.seconds)}
-    ]
-    conditions: list[Condition] = [
-      {"field": "issued_at", "operator": "<", "value": str(int((now - timedelta(minutes=1)).timestamp()))}
+    conditions_and_actions: list[ConditionAction] = [
+      {
+        "conditions": [
+          {"field": "issued_at", "operator": "<", "value": str(int((now - timedelta(minutes=1)).timestamp()))}
+        ],
+        "success_actions": [
+          {"field": "issued_at", "action": "hset", "value": str(int(now.timestamp()))},
+          {"field": "code", "action": "hset", "value": code},
+          {"field": "status", "action": "hset", "value": "0"},
+          {"field": "retry", "action": "hset", "value": "0"},
+          {"field": "", "action": "expire", "value": str(duration.seconds)}
+        ],
+        "failure_actions": []
+      }
     ]
 
     casted_rdb = cast(RedisServicer, self.rdb)
-    success = casted_rdb.hset_with_condition(key, conditions, actions, [], True) == 1
-    expiry = int((now + duration).timestamp())
-    return success, expiry
+    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
+    if res["is_success"][0] == 1:
+      expiry = int((now + duration).timestamp())
+      return True, expiry
+
+    return False, 0
 
   def _get_login_attempts_cache_info(self, user_id: int) -> tuple[str, timedelta]:
     """

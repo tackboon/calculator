@@ -153,7 +153,7 @@ class UserService:
     is_success, expiry = self.repo.session.save_otp_session(typ, email, hashed_otp)
     if not is_success:
       raise common_error.TooManyRequestError("Send OTP on cooldown")
-    
+
     # Get user timezone and convert expiry to datetime
     tz = self.ip_location.get_timezone(ip)
     if tz == "-":
