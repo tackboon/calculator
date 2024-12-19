@@ -263,6 +263,13 @@ class SessionRepo:
     conditions_and_actions: list[ConditionAction] = [
       {
         "conditions": [
+          {"field": "issued_at", "operator": ">", "value": "0"}
+        ],
+        "success_actions": [],
+        "failure_actions": []
+      },
+      {
+        "conditions": [
           {"field": "issued_at", "operator": ">", "value": str(int((now - duration).timestamp()))},
           {"field": "status", "operator": "==", "value": "0"},
           {"field": "retry", "operator": "<", "value": "5"},
@@ -278,9 +285,9 @@ class SessionRepo:
     ]
 
     casted_rdb = cast(RedisServicer, self.rdb)
-    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
+    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set(), True)
     
-    return res["is_successes"][0] == 1
+    return res["is_successes"][1] == 1
 
   def save_otp_session(self, typ: int, identifier: str, code: str) -> Tuple[bool, int]:
     """
@@ -310,7 +317,7 @@ class SessionRepo:
     ]
 
     casted_rdb = cast(RedisServicer, self.rdb)
-    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
+    res = casted_rdb.hset_with_condition(key, conditions_and_actions, set(), True)
     if res["is_successes"][0] == 1:
       expiry = int((now + duration).timestamp())
       return True, expiry

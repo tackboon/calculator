@@ -194,7 +194,7 @@ class RedisServicer:
     )()
 
   def hset_with_condition(self, key: str, conditions_and_actions: list[ConditionAction], 
-    fields_to_return: set[str], pipe: Optional[Pipeline]=None) -> dict:
+    fields_to_return: set[str], return_if_fail: bool, pipe: Optional[Pipeline]=None) -> dict:
     """
     Atomically update a Redis hash based on conditions and actions.
 
@@ -202,6 +202,7 @@ class RedisServicer:
     - key (str): The Redis key to operate on.
     - conditions_and_actions (list[ConditionAction]): A list of condition-action sets where each set contains conditions to check and actions to perform based on the result of the condition check.
     - fields_to_return (set[str]): A set of fields to return after execution.
+    - return_if_fail (bool): Return if any condition failed.  
 
     Returns:
     - dict: A dictionary containing two keys:
@@ -220,6 +221,7 @@ class RedisServicer:
         local fields = cjson.decode(ARGV[1]) -- fields to fetch
         local fields_to_return = cjson.decode(ARGV[2]) -- fields to return
         local sets = cjson.decode(ARGV[3]) -- multiple (conditions, actions) sets
+        local return_if_fail = tonumber(ARGV[4]) -- return if any condition failed
 
         -- Get current values with HMGET
         local current_values_raw = {}
@@ -322,14 +324,20 @@ class RedisServicer:
         end
 
         -- Process conditions and actions
+        local is_failed = 0
         for i = 1, #sets do
           -- Check conditions
-          if handle_conditions(sets[i]["conditions"]) == 1 then
-            handle_actions(sets[i]["success_actions"])
-            is_successes[i] = 1
-          else
-            handle_actions(sets[i]["failure_actions"])
+          if return_if_fail == 1 and is_failed == 1 then
             is_successes[i] = 0
+          else
+            if handle_conditions(sets[i]["conditions"]) == 1 then
+              handle_actions(sets[i]["success_actions"])
+              is_successes[i] = 1
+            else
+              handle_actions(sets[i]["failure_actions"])
+              is_successes[i] = 0
+              is_failed = 1
+            end
           end
         end
 
@@ -397,6 +405,7 @@ class RedisServicer:
         json.dumps(fields),
         json.dumps(list(fields_to_return)),
         json.dumps(conditions_and_actions), 
+        1 if return_if_fail else 0
       ))
     except NoScriptError as e:
       self.sha.pop("hset_with_condition")
