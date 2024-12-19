@@ -218,7 +218,7 @@ def create_auth_blueprint(user_service: UserService) -> Blueprint:
     @auth_bp.arguments(schema.ResetPasswordRequestSchema)
     @auth_bp.response(200, schema.BaseResponseSchema)
     def post(self, req_data: dict):
-      new_password = req_data["new_password"]
+      new_password = req_data["password"]
       claims = get_info_from_token()
       if not claims:
         raise common_error.UnauthorizedError("Failed to extract info from token.")

@@ -1,7 +1,6 @@
 import json
 import time
 
-from datetime import timedelta
 from flask import Flask
 from flask_redis import FlaskRedis
 from functools import wraps
@@ -11,6 +10,8 @@ from typing import Any, Callable, Optional, TypedDict, Union
 from src.common.inspect import get_caller_name
 from src.common.logger import BasicJSONFormatter, create_logger
 from redis import Redis
+from redis.client import Pipeline
+from redis.exceptions import NoScriptError
 
 def log_slow_queries(threshold_ms: float, logger: Logger, log_msg: str, caller: str, 
                      fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -75,6 +76,7 @@ class RedisServicer:
   """
 
   client: Union[Redis, FlaskRedis]
+  sha: dict[str, str]
 
   def __init__(self, app: Flask = None, log_path: str = "", slow_threshold_ms: float = 50):
     """
@@ -86,7 +88,8 @@ class RedisServicer:
     - log_path: Path where slow query logs will be stored.
     - slow_threshold_ms: Threshold (in milliseconds) to classify a query as slow and log it.
     """
-
+  
+    self.sha = {}
     if app is not None:
       self.init_app(app, log_path, slow_threshold_ms)
 
@@ -166,8 +169,32 @@ class RedisServicer:
       self.client.lock
     )(name, timeout, sleep, blocking, blocking_timeout, lock_class, thread_local)
 
+  def exec_with_pipeline(self, fn: Callable[[Pipeline], None]) -> (list | Any):
+    """
+    Executes multiple Redis commands in a pipeline.
+
+    Args:
+    - fn: Function that queues Redis commands.
+
+    Returns:
+    - Results of the executed commands.
+    """
+
+    pipe = self.client.pipeline()
+    fn(pipe)
+
+    caller = get_caller_name()
+
+    return log_slow_queries(
+      self.slow_threshold_ms, 
+      self.logger,
+      "exec_with_pipeline",
+      caller,
+      pipe.execute
+    )()
+
   def hset_with_condition(self, key: str, conditions_and_actions: list[ConditionAction], 
-    fields_to_return: set[str]) -> dict:
+    fields_to_return: set[str], pipe: Optional[Pipeline]=None) -> dict:
     """
     Atomically update a Redis hash based on conditions and actions.
 
@@ -179,138 +206,145 @@ class RedisServicer:
     Returns:
     - dict: A dictionary containing two keys:
       - "results": A dictionary with the values of the requested fields after the operation.
-      - "is_success": A list of 1 and 0 to indicate the success of each condition set.
+      - "is_successes": A list of 1 and 0 to indicate the success of each condition set.
     """
 
-    script = """
-    	local key = KEYS[1]
-      local results = {}
-      local is_success = {}
+    sha = self.sha.get("hset_with_condition")
+    if sha is None:
+      script = """
+        local key = KEYS[1]
+        local results = {}
+        local is_successes = {}
 
-      -- Parse arguments
-      local fields = cjson.decode(ARGV[1]) -- fields to fetch
-      local fields_to_return = cjson.decode(ARGV[2]) -- fields to return
-      local sets = cjson.decode(ARGV[3]) -- multiple (conditions, actions) sets
+        -- Parse arguments
+        local fields = cjson.decode(ARGV[1]) -- fields to fetch
+        local fields_to_return = cjson.decode(ARGV[2]) -- fields to return
+        local sets = cjson.decode(ARGV[3]) -- multiple (conditions, actions) sets
 
-      -- Get current values with HMGET
-      local current_values_raw = {}
-      if #fields > 0 then
-        current_values_raw = redis.call("HMGET", key, unpack(fields))
-      end
+        -- Get current values with HMGET
+        local current_values_raw = {}
+        if #fields > 0 then
+          current_values_raw = redis.call("HMGET", key, unpack(fields))
+        end
 
-      -- Convert HMGET results into a key-value map
-      local current_values = {}
-      for i = 1, #fields do 
-        current_values[fields[i]] = current_values_raw[i]
-      end
+        -- Convert HMGET results into a key-value map
+        local current_values = {}
+        for i = 1, #fields do 
+          if current_values_raw[i] then
+            current_values[fields[i]] = current_values_raw[i]
+          end
+        end
 
-      -- Function to handle actions
-      local function handle_actions(actions)
-        local hset_args = {}
+        -- Function to handle actions
+        local function handle_actions(actions)
+          local hset_args = {}
 
-        for i, action in ipairs(actions) do
-          local field = action["field"]
-          local action_type = action["action"]
-          local value = action["value"]
+          for i, action in ipairs(actions) do
+            local field = action["field"]
+            local action_type = action["action"]
+            local value = action["value"]
 
-          if #hset_args > 0 and action_type ~= "hset" then
+            if #hset_args > 0 and action_type ~= "hset" then
+              redis.call("HSET", key, unpack(hset_args))
+              hset_args = {}
+            end
+
+            if action_type == "hset" then
+              hset_args[#hset_args + 1] = field
+              hset_args[#hset_args + 1] = value
+
+              if fields_to_return[field] then
+                results[field] = value
+              end		
+            elseif action_type == "hincr" then
+              local new_value = redis.call("HINCRBY", key, field, tonumber(value))
+
+              if fields_to_return[field] then 
+                results[field] = new_value
+              end
+            elseif action_type == "hexpire" then
+              redis.call("HEXPIRE", key, field, tonumber(value))
+            elseif action_type == "hpersist" then
+              redis.call("HPERSIST", key, field)
+            elseif action_type == "expire" then
+              redis.call("EXPIRE", key, tonumber(value))
+            elseif action_type == "persist" then
+              redis.call("PERSIST", key)
+            end				
+          end
+
+          if #hset_args > 0 then
             redis.call("HSET", key, unpack(hset_args))
-            hset_args = {}
-          end
-
-          if action_type == "hset" then
-            hset_args[#hset_args + 1] = field
-            hset_args[#hset_args + 1] = value
-
-            if fields_to_return[field] then
-              results[field] = value
-            end		
-          elseif action_type == "hincr" then
-            local new_value = redis.call("HINCRBY", key, field, tonumber(value))
-
-            if fields_to_return[field] then 
-              results[field] = new_value
-            end
-          elseif action_type == "hexpire" then
-            redis.call("HEXPIRE", key, field, tonumber(value))
-          elseif action_type == "hpersist" then
-            redis.call("HPERSIST", key, field)
-          elseif action_type == "expire" then
-            redis.call("EXPIRE", key, tonumber(value))
-          elseif action_type == "persist" then
-            redis.call("PERSIST", key)
-          end				
-        end
-
-        if #hset_args > 0 then
-          redis.call("HSET", key, unpack(hset_args))
-        end
-      end
-
-      -- Function to handle conditions
-      local function handle_conditions(conditions)
-        for i, condition in ipairs(conditions) do
-          local field = condition["field"]
-          local operator = condition["operator"]
-          local value = condition["value"]
-          
-          if operator == "==" then
-            local current_value = current_values[field] and tostring(current_values[field]) or ""
-            if current_value ~= tostring(value) then
-              return 0
-            end
-          elseif operator == "!=" then
-            local current_value = current_values[field] and tostring(current_values[field]) or ""
-            if current_value == tostring(value) then
-              return 0
-            end
-          elseif operator == ">" then
-            local current_value = current_values[field] and tonumber(current_values[field]) or 0
-            if current_value <= tonumber(value) then
-              return 0
-            end
-          elseif operator == ">=" then
-            local current_value = current_values[field] and tonumber(current_values[field]) or 0
-            if current_value < tonumber(value) then
-              return 0
-            end
-          elseif operator == "<" then
-            local current_value = current_values[field] and tonumber(current_values[field]) or 0
-            if current_value >= tonumber(value) then
-              return 0
-            end
-          elseif operator == "<=" then
-            local current_value = current_values[field] and tonumber(current_values[field]) or 0
-            if current_value > tonumber(value) then
-              return 0
-            end
           end
         end
 
-        return 1
-      end
+        -- Function to handle conditions
+        local function handle_conditions(conditions)
+          for i, condition in ipairs(conditions) do
+            local field = condition["field"]
+            local operator = condition["operator"]
+            local value = condition["value"]
+            
+            if operator == "==" then
+              local current_value = current_values[field] and tostring(current_values[field]) or ""
+              if current_value ~= tostring(value) then
+                return 0
+              end
+            elseif operator == "!=" then
+              local current_value = current_values[field] and tostring(current_values[field]) or ""
+              if current_value == tostring(value) then
+                return 0
+              end
+            elseif operator == ">" then
+              local current_value = current_values[field] and tonumber(current_values[field]) or 0
+              if current_value <= tonumber(value) then
+                return 0
+              end
+            elseif operator == ">=" then
+              local current_value = current_values[field] and tonumber(current_values[field]) or 0
+              if current_value < tonumber(value) then
+                return 0
+              end
+            elseif operator == "<" then
+              local current_value = current_values[field] and tonumber(current_values[field]) or 0
+              if current_value >= tonumber(value) then
+                return 0
+              end
+            elseif operator == "<=" then
+              local current_value = current_values[field] and tonumber(current_values[field]) or 0
+              if current_value > tonumber(value) then
+                return 0
+              end
+            end
+          end
 
-      -- Process conditions and actions
-      for i = 1, #sets do
-        -- Check conditions
-        if handle_conditions(sets[i]["conditions"]) == 1 then
-          handle_actions(sets[i]["success_actions"])
-          is_success[i] = 1
-        else
-          handle_actions(sets[i]["failure_actions"])
-          is_success[i] = 0
+          return 1
         end
-      end
 
-      -- Populate results from fields_to_return
-      for field, _ in pairs(fields_to_return) do
-        if results[field] == nil and current_values[field] ~= nil then
-          results[field] = current_values[field]
+        -- Process conditions and actions
+        for i = 1, #sets do
+          -- Check conditions
+          if handle_conditions(sets[i]["conditions"]) == 1 then
+            handle_actions(sets[i]["success_actions"])
+            is_successes[i] = 1
+          else
+            handle_actions(sets[i]["failure_actions"])
+            is_successes[i] = 0
+          end
         end
-      end
 
-      return cjson.encode({results=results or {}, is_success=is_success or {}})
-    """
+        -- Populate results from fields_to_return
+        for field, _ in pairs(fields_to_return) do
+          if results[field] == nil and current_values[field] ~= nil then
+            results[field] = current_values[field]
+          end
+        end
+
+        return cjson.encode({results=results, is_successes=is_successes})
+      """
+      sha = self.client.script_load(script)
+      if sha is not None:
+        self.sha["hset_with_condition"] = sha
 
     fields: list[str] = []
     field_sets: set[str] = set()
@@ -341,55 +375,34 @@ class RedisServicer:
         field_sets.add(field)
         fields.append(field)
 
+    # Use the provided pipeline if available
+    client: Redis | Pipeline = self.client
+    if pipe is not None:
+      client = pipe
+
     # Get caller name
     caller = get_caller_name()
 
-    return json.loads(log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger,
-      "eval hset_with_condition",
-      caller,
-      self.client.eval
-    )(
-      script, 
-      1, 
-      key, 
-      json.dumps(fields),
-      json.dumps(list(fields_to_return)),
-      json.dumps(conditions_and_actions), 
-    ))
+    try:
+      return json.loads(log_slow_queries(
+        self.slow_threshold_ms, 
+        self.logger,
+        "eval hset_with_condition",
+        caller,
+        client.evalsha
+      )(
+        sha, 
+        1, 
+        key, 
+        json.dumps(fields),
+        json.dumps(list(fields_to_return)),
+        json.dumps(conditions_and_actions), 
+      ))
+    except NoScriptError as e:
+      self.sha.pop("hset_with_condition")
+      raise e
 
-  def incr_with_expiry(self, key: str, incr: int, duration: timedelta) -> int:
-    """
-    Redis INCRBY operation with an expiry. The key is incremented by the given value, 
-    and the key's expiry is updated after incrementing.
-
-    Parameters:
-    - key: The Redis key to increment.
-    - incr: The amount by which to increment the key's value.
-    - duration: Expiry time to be set for the key.
-
-    Returns:
-    - The new value after incrementing.
-    """
-     
-    script = """
-    local result = redis.call("INCRBY", KEYS[1], ARGV[1])
-    redis.call("EXPIRE", KEYS[1], ARGV[2])
-    return result
-    """
-
-    caller = get_caller_name()
-
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger,
-      "eval incr_with_expiry",
-      caller,
-      self.client.eval
-    )(script, 1, key, incr, duration.seconds)
-
-  def pop(self, key: str) -> bytes:
+  def pop(self, key: str, pipe: Optional[Pipeline]=None) -> bytes | None:
     """
     Simulate Redis Pop operation using Get and Del.
 
@@ -399,24 +412,38 @@ class RedisServicer:
     Returns:
     - Return the value (or nil if the key didn't exist)
     """
-     
-    script = """
-    local result = redis.call("GET", KEYS[1])
+    
+    sha = self.sha.get("pop")
+    if not sha:
+      script = """
+        local result = redis.call("GET", KEYS[1])
 
-    -- If the key exists, delete it
-    if result then
-      redis.call("DEL", KEYS[1])
-    end
+        -- If the key exists, delete it
+        if result then
+          redis.call("DEL", KEYS[1])
+        end
 
-    return result
-    """
+        return result
+      """
+      sha = self.client.script_load(script)
+      if sha is not None:
+        self.sha["pop"] = sha
+
+    # Use the provided pipeline if available
+    client: Redis | Pipeline = self.client
+    if pipe is not None:
+      client = pipe
 
     caller = get_caller_name()
 
-    return log_slow_queries(
-      self.slow_threshold_ms, 
-      self.logger,
-      "eval pop",
-      caller,
-      self.client.eval
-    )(script, 1, key)
+    try:
+      return log_slow_queries(
+        self.slow_threshold_ms, 
+        self.logger,
+        "eval pop",
+        caller,
+        client.evalsha
+      )(sha, 1, key)
+    except NoScriptError as e:
+      self.sha.pop("pop")
+      raise e

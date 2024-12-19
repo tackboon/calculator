@@ -4,6 +4,7 @@ import src.app.user.constant as constant
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from redis import Redis
+from redis.client import Pipeline
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from typing import cast, Optional, Tuple, Union
@@ -181,8 +182,12 @@ class SessionRepo:
 
     key, duration = self._get_login_attempts_cache_info(user_id)
 
+    def fn(pipe: Pipeline) -> None:
+      pipe.incrby(key, 1), 
+      pipe.expire(key, duration)
+
     casted_rdb = cast(RedisServicer, self.rdb)
-    return casted_rdb.incr_with_expiry(key, 1, duration)
+    return casted_rdb.exec_with_pipeline(fn)[0]
 
   def remove_login_attempts(self, user_id: int):
     """
@@ -275,7 +280,7 @@ class SessionRepo:
     casted_rdb = cast(RedisServicer, self.rdb)
     res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
     
-    return res["is_success"][0] == 1
+    return res["is_successes"][0] == 1
 
   def save_otp_session(self, typ: int, identifier: str, code: str) -> Tuple[bool, int]:
     """
@@ -306,7 +311,7 @@ class SessionRepo:
 
     casted_rdb = cast(RedisServicer, self.rdb)
     res = casted_rdb.hset_with_condition(key, conditions_and_actions, set())
-    if res["is_success"][0] == 1:
+    if res["is_successes"][0] == 1:
       expiry = int((now + duration).timestamp())
       return True, expiry
 

@@ -14,7 +14,7 @@ function* resetPassword({ payload: { password, token, exp } }: ResetPassword) {
     );
   }
 
-  const req: ResetPasswordRequest = { new_password: password };
+  const req: ResetPasswordRequest = { password: password };
   const headers = {
     Authorization: `Bearer ${token}`,
   };

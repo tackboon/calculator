@@ -48,7 +48,7 @@ class RefreshTokenRequestSchema(BaseRequestSchema):
   set_cookie = fields.Bool(required=False, missing=False)
 
 class ResetPasswordRequestSchema(BaseRequestSchema):
-  new_password = fields.Str(required=True, load_only=True, validates=password_validator)
+  password = fields.Str(required=True, load_only=True, validates=password_validator)
 
 
 class RemoveAllSessionsRequestSchema(BaseRequestSchema):

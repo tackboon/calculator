@@ -231,7 +231,7 @@ export interface ResetPasswordRequest {
      * @type {string}
      * @memberof ResetPasswordRequest
      */
-    'new_password': string;
+    'password': string;
 }
 /**
  * 
