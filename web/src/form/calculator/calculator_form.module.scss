@@ -1,0 +1,132 @@
+.form-wrapper {
+  margin: 24px;
+  margin-bottom: 3rem;
+  width: 100%;
+  max-width: 1024px;
+
+  .description {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+    text-align: center;
+
+    @media (min-width: 600px) {
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+    }
+  }
+
+  .toggle-wrapper {
+    width: 100%;
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+
+    label {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+
+    input {
+      padding: 0.8rem;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.3s ease;
+
+      &:focus {
+        border-color: #007bff;
+      }
+    }
+  }
+
+  .error {
+    font-size: 0.9rem;
+    padding: 5px 0 10px 0;
+    color: #ff0000;
+    min-height: 1rem;
+    line-height: 1;
+  }
+
+  .form-btn {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    @media (min-width: 600px) {
+      margin-top: 2rem;
+    }
+
+    .reset-btn,
+    .submit-btn {
+      flex: 1;
+      padding: 0.8rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+
+    .reset-btn {
+      background-color: #6c757d;
+
+      &:hover {
+        background-color: #5a6268;
+      }
+    }
+
+    .submit-btn {
+      background-color: #007bff;
+
+      &:hover {
+        background-color: #0056b3;
+      }
+    }
+  }
+
+  .result {
+    width: auto;
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    text-align: center;
+
+    @media (min-width: 600px) {
+      margin-top: 4rem;
+      margin-bottom: 2rem;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #333;
+      margin: 0.5rem 0;
+      font-weight: 700;
+    }
+
+    span {
+      color: #008000;
+
+      &.loss {
+        color: #ff0000;
+      }
+    }
+  }
+}

@@ -317,6 +317,10 @@ class RedisServicer:
               if current_value > tonumber(value) then
                 return 0
               end
+            elseif operator == "!!" then
+              if current_values[field] == nil then
+                return 0
+              end
             end
           end
 

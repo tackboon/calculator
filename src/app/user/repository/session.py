@@ -263,7 +263,7 @@ class SessionRepo:
     conditions_and_actions: list[ConditionAction] = [
       {
         "conditions": [
-          {"field": "issued_at", "operator": ">", "value": "0"}
+          {"field": "issued_at", "operator": "!!", "value": ""}
         ],
         "success_actions": [],
         "failure_actions": []
