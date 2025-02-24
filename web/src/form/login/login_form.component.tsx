@@ -2,16 +2,17 @@ import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./login_form.module.scss";
-import Button from "../../component/button/button.component";
-import Input from "../../component/input/input.component";
+import Button from "../../component/common/button/button.component";
+import Input from "../../component/common/input/input.component";
 import {
-  ValidateEmail,
-  ValidateOTP,
-  ValidatePassword,
+  validateEmail,
+  validateOTP,
+  validatePassword,
 } from "../../common/validation/auth.validation";
-import Link from "../../component/link/link.component";
+import Link from "../../component/common/link/link.component";
 import toast from "react-hot-toast";
 import { getLastGetRegisterOTPTimeFromCookie } from "../../common/storage/cookie";
+import Checkbox from "../../component/common/checkbox/checkbox.component";
 
 type FormProps = {
   apiError: string;
@@ -53,7 +54,7 @@ const LoginForm: FC<FormProps> = ({
   // Send OTP handler
   const handleSendOTP = () => {
     if (otpHandler) {
-      const errorMsg = ValidateEmail(email);
+      const errorMsg = validateEmail(email);
       if (errorMsg !== "") {
         toast.error(<b>Failed to send email. Invalid email address.</b>);
         return;
@@ -79,14 +80,14 @@ const LoginForm: FC<FormProps> = ({
 
     try {
       // Validate email
-      errorMsg = ValidateEmail(email);
+      errorMsg = validateEmail(email);
       if (errorMsg !== "") {
         setErrorMessage(errorMsg);
         return;
       }
 
       // Validate password
-      errorMsg = ValidatePassword(password);
+      errorMsg = validatePassword(password);
       if (errorMsg !== "") {
         setErrorMessage(errorMsg);
         return;
@@ -100,7 +101,7 @@ const LoginForm: FC<FormProps> = ({
         }
 
         // Validate otp code
-        errorMsg = ValidateOTP(otp);
+        errorMsg = validateOTP(otp);
         if (errorMsg !== "") {
           setErrorMessage(errorMsg);
           return;
@@ -200,6 +201,18 @@ const LoginForm: FC<FormProps> = ({
         <p className={styles["error"]}>
           {errorMessage === "" ? apiError : errorMessage}
         </p>
+
+        {isRegister && (
+          <div className={styles["form-group"]}>
+            <div className={styles["checkbox-wrapper"]}>
+              <Checkbox isCheck={true} color="green" disabled />
+              <div>
+                By proceeding to register, I agree to the{" "}
+                <Link>Terms and Conditions</Link>.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles["form-footer"]}>

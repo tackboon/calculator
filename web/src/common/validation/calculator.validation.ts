@@ -1,19 +1,14 @@
-export const ValidatePrice = (
-  field: string,
-  value: string,
-  decimal: number
-): { errorMessage: string; formattedValue: string } => {
-  let errorMessage: string = "";
-  let formattedValue: string = "";
+import { parseNumberFromString } from "../number/number";
 
-  // Price validation
-  if (!value) {
-    errorMessage = field + " is required.";
-  } else if (!/^\d+(\.\d+)?$/.test(value)) {
-    errorMessage = `Please enter a valid ${field.toLowerCase()}.`;
-  } else {
-    formattedValue = parseFloat(value).toFixed(decimal);
-  }
+export const checkMinMax = (
+  input: string,
+  min?: number,
+  max?: number
+): boolean => {
+  const val = parseNumberFromString(input);
+  if (isNaN(val)) return false;
+  if (min !== undefined && val < min) return false;
+  if (max !== undefined && val > max) return false;
 
-  return { errorMessage, formattedValue };
+  return true;
 };

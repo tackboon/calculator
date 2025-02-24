@@ -1,7 +1,7 @@
 import styles from "./auth.module.scss";
-import Container from "../../component/container/container.component";
+import Container from "../../component/common/container/container.component";
 import ResetPasswordForm from "../../form/reset_password/reset_form.component";
-import { useLoaderData, useNavigate } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 import { resetPasswordLoader } from "../../router/loader";
 import { useSelector } from "react-redux";
 import {
@@ -30,7 +30,7 @@ const ResetPasswordPage = () => {
     if (!(params instanceof Response)) {
       return callResetPassword(password, params.token, params.exp);
     }
-    throw new Error("Invalid reset password link.")
+    throw new Error("Invalid reset password link.");
   };
 
   return (

@@ -1,24 +1,26 @@
-.wrapper {
+.container {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  overflow-y: auto;
 
   .nav-bar {
     display: flex;
     align-items: center;
     background-color: #000000;
     color: #ffffff;
-    padding: 0 40px;
+    padding: 0 10px;
     height: 70px;
     z-index: 1000;
 
-    .container {
+    .child-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
       width: 100%;
       z-index: 1000;
+      padding: 20px 0;
     }
 
     .hide {
@@ -186,5 +188,9 @@
         }
       }
     }
+  }
+
+  main {
+    height: calc(100vh - 70px);
   }
 }

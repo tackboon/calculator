@@ -2,9 +2,9 @@ import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./reset_form.module.scss";
-import { ValidatePassword } from "../../common/validation/auth.validation";
-import Button from "../../component/button/button.component";
-import Input from "../../component/input/input.component";
+import { validatePassword } from "../../common/validation/auth.validation";
+import Button from "../../component/common/button/button.component";
+import Input from "../../component/common/input/input.component";
 import toast from "react-hot-toast";
 
 type FormProps = {
@@ -41,7 +41,7 @@ const ResetPasswordForm: FC<FormProps> = ({
     let errorMsg = "";
 
     // Validate password
-    errorMsg = ValidatePassword(password);
+    errorMsg = validatePassword(password);
     if (errorMsg !== "") {
       setErrorMessage(errorMsg);
       setIsDisabled(false);

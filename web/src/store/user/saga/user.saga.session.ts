@@ -2,7 +2,7 @@ import { AxiosResponse } from "axios";
 import { call, put, select, takeLeading } from "typed-redux-saga/macro";
 
 import { api } from "../../../service/openapi";
-import { loginFinished, checkSessionFinished } from "../user.action";
+import { loginFinished, checkSessionFinished, logout } from "../user.action";
 import { getRefreshTokenStatus } from "./user.saga.promise";
 import { selectCurrentUser } from "../user.selector";
 import { BaseResponse } from "../../../openapi";
@@ -46,7 +46,7 @@ function* checkSession() {
 
 function* checkSessionFlow() {
   try {
-    const res: UserData | undefined = yield call(checkSession);
+    const res: UserData | null = yield call(checkSession);
     if (res) {
       yield put(loginFinished(res, ""));
     }
@@ -56,6 +56,7 @@ function* checkSessionFlow() {
     } else {
       console.error("Failed to check session:", e);
     }
+    yield put(logout());
   } finally {
     yield put(checkSessionFinished());
   }

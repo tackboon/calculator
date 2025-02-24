@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 
 import styles from "./auth.module.scss";
-import Container from "../../component/container/container.component";
+import Container from "../../component/common/container/container.component";
 import LoginForm from "../../form/login/login_form.component";
 import { login, loginCancel } from "../../store/user/user.action";
 import {

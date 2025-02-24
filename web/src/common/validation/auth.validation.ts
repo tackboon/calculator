@@ -1,4 +1,4 @@
-export const ValidateEmail = (email: string): string => {
+export const validateEmail = (email: string): string => {
   let errorMessage: string = "";
 
   // Email validation
@@ -11,7 +11,7 @@ export const ValidateEmail = (email: string): string => {
   return errorMessage;
 };
 
-export const ValidatePassword = (password: string): string => {
+export const validatePassword = (password: string): string => {
   let errorMessage: string = "";
 
   // Password validation
@@ -26,7 +26,7 @@ export const ValidatePassword = (password: string): string => {
   return errorMessage;
 };
 
-export const ValidateOTP = (otp: string): string => {
+export const validateOTP = (otp: string): string => {
   let errorMessage: string = "";
 
   // Password validation

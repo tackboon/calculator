@@ -2,10 +2,10 @@ import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./forgot_form.module.scss";
-import { ValidateEmail } from "../../common/validation/auth.validation";
-import Button from "../../component/button/button.component";
-import Input from "../../component/input/input.component";
-import Link from "../../component/link/link.component";
+import { validateEmail } from "../../common/validation/auth.validation";
+import Button from "../../component/common/button/button.component";
+import Input from "../../component/common/input/input.component";
+import Link from "../../component/common/link/link.component";
 import { getLastForgotPasswordTimeFromCookie } from "../../common/storage/cookie";
 import toast from "react-hot-toast";
 
@@ -31,7 +31,7 @@ const ForgotPasswordForm: FC<FormProps> = ({ submitHandler, apiLoading }) => {
     let errorMsg = "";
 
     // Validate email
-    errorMsg = ValidateEmail(email);
+    errorMsg = validateEmail(email);
     if (errorMsg !== "") {
       setErrorMessage(errorMsg);
       return;

@@ -1,5 +1,5 @@
 import styles from "./auth.module.scss";
-import Container from "../../component/container/container.component";
+import Container from "../../component/common/container/container.component";
 import ForgotPasswordForm from "../../form/forgot_password/forgot_form.component";
 import { useDispatch, useSelector } from "react-redux";
 import {

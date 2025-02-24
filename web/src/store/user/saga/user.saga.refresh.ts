@@ -67,12 +67,12 @@ export function* refreshToken() {
 
 function* refreshTokenFlow() {
   try {
-    const { res } = yield race({
+    const { res }: { res: USER_STATUS_VALUES } = yield race({
       res: call(refreshToken),
       cancel: take(USER_ACTION_TYPES.LOGOUT),
     });
 
-    yield put(refreshTokenFinished(res ? res : USER_STATUS_VALUES.FAILED));
+    yield put(refreshTokenFinished(res));
   } catch (e) {
     if (e instanceof CustomError) {
       console.error("Failed to refresh token:", e.statusCode);

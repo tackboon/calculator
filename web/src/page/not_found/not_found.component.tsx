@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 import styles from "./not_found.module.scss";
-import Button from "../../component/button/button.component";
+import Button from "../../component/common/button/button.component";
 
 const NotFoundPage = () => {
   const navigate = useNavigate();

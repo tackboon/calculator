@@ -2,8 +2,14 @@
   color: #007bff;
   cursor: pointer;
   text-decoration: underline;
+  user-select: none;
 
   &:hover {
     color: #3f92eb;
+  }
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.7;
   }
 }
