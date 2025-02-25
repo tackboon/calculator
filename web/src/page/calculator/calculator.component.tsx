@@ -37,12 +37,8 @@ const CalculatorPage = () => {
               <TabContent name="Position Sizing">
                 <ForexPositionSizeForm />
               </TabContent>
-              <TabContent name="Price-Percentage">
-                <PricePercentageForm />
-              </TabContent>
-              <TabContent name="Risk & Profit">
-                <RiskAndProfitForm />
-              </TabContent>
+              <TabContent name="Price-Percentage">Pip Calculator</TabContent>
+              <TabContent name="Risk & Profit">Leverage Calculator</TabContent>
             </TabLayout>
           </div>
         </TabContent>

@@ -7,6 +7,8 @@ from src.service.email import SendEmailService
 from src.service.ip import IP2LocationServicer
 from src.service.redis import RedisServicer
 from src.service.sql_alchemy import SQLAlchemyServicer
+from src.service.frankfurter import FrankFurtherServicer
+from src.service.gold_api import GoldAPIServicer
 
 
 # Initialize logger
@@ -25,6 +27,12 @@ email_service = SendEmailService(
   config.reset_password_link, 
   config.send_grid_token, 
   config.sender_email
+)
+frank_further_service = FrankFurtherServicer(
+  os.path.join(config.log_base_dir, os.path.basename("frank_further.log")) if config.log_base_dir != "" else "",
+)
+gold_api_service = GoldAPIServicer(
+  os.path.join(config.log_base_dir, os.path.basename("gold-api.log")) if config.log_base_dir != "" else "",
 )
 ip_service = IP2LocationServicer("IP2LOCATION-LITE-DB11.BIN", "IP2LOCATION-LITE-DB11.IPV6.BIN")
 redis_service = RedisServicer()
