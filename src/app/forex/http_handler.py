@@ -6,7 +6,9 @@ from flask.views import MethodView
 
 from src.app.forex.manager import ForexService 
 from src.common.response import make_response_body
-from src.app.forex.constant import DEFAULT_CURRENCIES, DEFAULT_COMMODITIES
+from src.app.forex.constant import (
+  DEFAULT_CURRENCIES, DEFAULT_COMMODITIES, DEFAULT_CURRENCY_PAIRS, DEFAULT_COMMODITY_PAIRS
+)
 
 
 def create_forex_blueprint(forex_service: ForexService) -> Blueprint:
@@ -18,7 +20,8 @@ def create_forex_blueprint(forex_service: ForexService) -> Blueprint:
     def get(self):
       resp_data = {
         "currencies": DEFAULT_CURRENCIES,
-        "commodities": DEFAULT_COMMODITIES
+        "currency_pairs": DEFAULT_CURRENCY_PAIRS,
+        "commodity_pairs": DEFAULT_COMMODITY_PAIRS
       }
       return make_response_body(200, "", resp_data), 200
     
