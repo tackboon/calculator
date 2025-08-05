@@ -10,10 +10,6 @@ import {
   selectForexSupportedAssets,
   selectForexSupportedCurrencies,
 } from "../../../../store/forex/forex.selector";
-import {
-  getCommodityRates,
-  getCurrencyRates,
-} from "../../../../store/forex/forex.action";
 import NumberInput from "../../../../component/common/input/number_input.component";
 import Switch from "../../../../component/common/switch/switch.component";
 import SelectBox from "../../../../component/common/select_box/select_box.component";
@@ -27,15 +23,16 @@ import { parseNumberFromString } from "../../../../common/number/number";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
 import {
   calculateCrossHeight,
-  calculateProfitPriceFromPip,
   calculateResult,
-  calculateStopPriceFromPip,
   validatePositionSizeInput,
 } from "./utils.component";
 import {
   ERROR_FIELD_POSITION_SIZE,
+  FeeTyp,
   ForexPositionSizeInputType,
   PositionSizeResultType,
+  ProfitGoalTyp,
+  StopLossTyp,
 } from "./position_size.type";
 import LeverageSelectBox from "../../../../component/forex/leverage_select_box/leverage.component";
 import CurrencySelectBox from "../../../../component/forex/currency_select_box/currency.component";
@@ -114,20 +111,14 @@ const ForexPositionSizeForm = () => {
       let baseStep = 0.0001;
       if (prevCurrency !== baseQuote.quote && prevCurrency !== baseQuote.base) {
         const baseRate = baseCurrencyRate
-          ? baseCurrencyRate[prevCurrency.current].rates[baseQuote.base]
+          ? baseCurrencyRate[prevCurrency].rates[baseQuote.base]
           : 0;
         if (baseRate !== undefined) {
-          const pairData = generateCurrencyPair(
-            prevCurrency.current,
-            supportedCurrencies[prevCurrency.current].order,
-            baseQuote.base,
-            supportedCurrencies[baseQuote.base].order,
-            baseRate
-          );
+          const pairData = generateCurrencyPair(prevCurrency, baseQuote.base);
 
-          basePair = pairData.currencyPair;
-          baseRateStr = pairData.rate;
-          baseStep = pairData.stepSize;
+          basePair = pairData;
+          baseRateStr = `${baseRate}`;
+          // baseStep = pairData.stepSize;
         }
       }
 
@@ -135,24 +126,15 @@ const ForexPositionSizeForm = () => {
       let quotePair = "";
       let quoteRateStr = "0";
       let quoteStep = 0.0001;
-      if (
-        prevCurrency.current !== baseQuote.quote &&
-        prevCurrency.current !== baseQuote.base
-      ) {
+      if (prevCurrency !== baseQuote.quote && prevCurrency !== baseQuote.base) {
         const quoteRate = baseCurrencyRate
-          ? baseCurrencyRate[prevCurrency.current].rates[baseQuote.quote]
+          ? baseCurrencyRate[prevCurrency].rates[baseQuote.quote]
           : 0;
         if (quoteRate !== undefined) {
-          const pairData = generateCurrencyPair(
-            prevCurrency.current,
-            supportedCurrencies[prevCurrency.current].order,
-            baseQuote.quote,
-            supportedCurrencies[baseQuote.quote].order,
-            quoteRate
-          );
-          quotePair = pairData.currencyPair;
-          quoteRateStr = pairData.rate;
-          quoteStep = pairData.stepSize;
+          const pairData = generateCurrencyPair(prevCurrency, baseQuote.quote);
+          quotePair = pairData;
+          quoteRateStr = `${quoteRate}`;
+          // quoteStep = pairData.stepSize;
         }
       }
 
@@ -161,24 +143,18 @@ const ForexPositionSizeForm = () => {
       let usdAccRateStr = "0";
       let usdAccStep = 0.0001;
       if (
-        prevCurrency.current !== "USD" &&
+        prevCurrency !== "USD" &&
         baseQuote.quote !== "USD" &&
         baseQuote.base !== "USD"
       ) {
         let usdAccRate = baseCurrencyRate
-          ? baseCurrencyRate["USD"].rates[prevCurrency.current]
+          ? baseCurrencyRate["USD"].rates[prevCurrency]
           : 0;
         if (usdAccRate !== undefined) {
-          const pairData = generateCurrencyPair(
-            "USD",
-            supportedCurrencies["USD"].order,
-            prevCurrency.current,
-            supportedCurrencies[prevCurrency.current].order,
-            usdAccRate
-          );
-          usdAccPair = pairData.currencyPair;
-          usdAccRateStr = pairData.rate;
-          usdAccStep = pairData.stepSize;
+          const pairData = generateCurrencyPair("USD", prevCurrency);
+          usdAccPair = pairData;
+          usdAccRateStr = `${usdAccRate}`;
+          // usdAccStep = pairData.stepSize;
         }
       }
 
@@ -187,7 +163,7 @@ const ForexPositionSizeForm = () => {
       let usdQuoteRateStr = "0";
       let usdQuoteStep = 0.0001;
       if (
-        prevCurrency.current !== "USD" &&
+        prevCurrency !== "USD" &&
         baseQuote.quote !== "USD" &&
         baseQuote.base !== "USD"
       ) {
@@ -195,16 +171,10 @@ const ForexPositionSizeForm = () => {
           ? baseCurrencyRate["USD"].rates[baseQuote.quote]
           : 0;
         if (usdQuoteRate !== undefined) {
-          const pairData = generateCurrencyPair(
-            "USD",
-            supportedCurrencies["USD"].order,
-            baseQuote.quote,
-            supportedCurrencies[baseQuote.quote].order,
-            usdQuoteRate
-          );
-          usdQuotePair = pairData.currencyPair;
-          usdQuoteRateStr = pairData.rate;
-          usdQuoteStep = pairData.stepSize;
+          const pairData = generateCurrencyPair("USD", baseQuote.quote);
+          usdQuotePair = pairData;
+          usdQuoteRateStr = `${usdQuoteRate}`;
+          // usdQuoteStep = pairData.stepSize;
         }
       }
 
@@ -261,7 +231,14 @@ const ForexPositionSizeForm = () => {
         usdQuote: usdQuoteStep,
       }));
     }
-  }, [isLoading, baseCurrencyRate, baseQuote, supportedCurrencies, errorField]);
+  }, [
+    isLoading,
+    baseCurrencyRate,
+    baseQuote,
+    supportedCurrencies,
+    errorField,
+    prevCurrency,
+  ]);
 
   useEffect(() => {
     if (!isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]) {
@@ -308,15 +285,6 @@ const ForexPositionSizeForm = () => {
       }));
     }
   }, [isLoading, baseQuote, usdCommodityRate, errorField]);
-
-  useEffect(() => {
-    const stopPrice = calculateStopPriceFromPip(input);
-    setStopPrice(stopPrice);
-
-    const profitPrice = calculateProfitPriceFromPip(input);
-    setProfitGoalPrice(profitPrice);
-    console.log(profitPrice);
-  }, [input]);
 
   const handleSwitch = (idx: number) => {
     setInput({ ...input, isLong: idx === 0 });

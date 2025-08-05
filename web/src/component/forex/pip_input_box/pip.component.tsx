@@ -4,7 +4,12 @@ import styles from "./pip.module.scss";
 import NumberInput from "../../common/input/number_input.component";
 import Switch from "../../common/switch/switch.component";
 import { parseBigNumberFromString } from "../../../common/number/number";
-import { mathBigNum } from "../../../common/number/math";
+import {
+  addBig,
+  mathBigNum,
+  multiplyBig,
+  subtractBig,
+} from "../../../common/number/math";
 
 type PipInputBoxProps = {
   id: string;
@@ -43,32 +48,31 @@ const PipInputBox: FC<PipInputBoxProps> = ({
 
     try {
       const openPrice = parseBigNumberFromString(price);
-      if (mathBigNum.equal(openPrice, 0)) return "0.00";
-
-      const pip = parseBigNumberFromString();
-      if (mathBigNum.equal(pip, 0)) return input.openPrice;
-
-      if (input.isLong) {
-        let stopPrice = mathBigNum.subtract(
-          openPrice,
-          mathBigNum.multiply(pip, input.pipSize)
-        ) as BigNumber;
-        stopPrice = mathBigNum.round(stopPrice, 5);
-
-        return `${stopPrice}`;
-      } else {
-        let stopPrice = mathBigNum.add(
-          openPrice,
-          mathBigNum.multiply(pip, input.pipSize)
-        ) as BigNumber;
-        stopPrice = mathBigNum.round(stopPrice, 5);
-
-        return `${stopPrice}`;
+      if (mathBigNum.equal(openPrice, 0)) {
+        setHintPrice("");
+        onChange("0");
+        return;
       }
+
+      const pip = parseBigNumberFromString(value);
+      if (mathBigNum.equal(pip, 0)) {
+        setHintPrice(price);
+        onChange(price);
+        return;
+      }
+
+      let calulatedPrice = isIncr
+        ? addBig(openPrice, multiplyBig(pip, pipSize))
+        : subtractBig(openPrice, multiplyBig(pip, pipSize));
+
+      calulatedPrice = mathBigNum.round(calulatedPrice, 5);
+      const calculatedPriceStr = `${calulatedPrice}`;
+      setHintPrice(calculatedPriceStr);
+      onChange(calculatedPriceStr);
     } catch (err) {
-      return "";
+      return;
     }
-  }, [value, isPip, onChange]);
+  }, [value, isPip, onChange, isIncr, pipSize, price]);
 
   return (
     <>
@@ -99,6 +103,17 @@ const PipInputBox: FC<PipInputBoxProps> = ({
           {hintPrefix} {hintPrice}
         </p>
       )}
+
+      <label htmlFor={id + "-pip-size"}>Pip Size</label>
+      <NumberInput
+        id={id + "-pip-size"}
+        value={pipSize}
+        minDecimalPlace={0}
+        maxDecimalPlace={5}
+        onChangeHandler={(val) => {
+          setPipSize(parseFloat(val));
+        }}
+      />
     </>
   );
 };
