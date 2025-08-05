@@ -9,25 +9,15 @@ import styles from "../stock_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";
 import Container from "../../../../component/common/container/container.component";
 import NumberInput from "../../../../component/common/input/number_input.component";
-
-export type PricePercentageInputType = {
-  price: string;
-  percentage: string;
-};
+import {
+  ERROR_FIELD_PRICE_PERCENTAGE,
+  PricePercentageInputType,
+  PricePercentageResultType,
+} from "./price_percentage.type";
 
 const DEFAULT_INPUT: PricePercentageInputType = {
   price: "0",
   percentage: "0",
-};
-
-export enum ERROR_FIELD_PRICE_PERCENTAGE {
-  PRICE,
-  PERCENTAGE,
-}
-
-export type PricePercentageResultType = {
-  increasedPrice?: number;
-  decreasedPrice?: number;
 };
 
 const PricePercentageForm = () => {
@@ -87,7 +77,7 @@ const PricePercentageForm = () => {
             preUnit="$"
             isInvalid={errorField === ERROR_FIELD_PRICE_PERCENTAGE.PRICE}
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             value={input.price}
             onChangeHandler={(val) => setInput({ ...input, price: val })}
           />
@@ -99,7 +89,7 @@ const PricePercentageForm = () => {
             id="percentage"
             postUnit="%"
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             isInvalid={errorField === ERROR_FIELD_PRICE_PERCENTAGE.PERCENTAGE}
             value={input.percentage}
             onChangeHandler={(val) => setInput({ ...input, percentage: val })}
@@ -132,26 +122,14 @@ const PricePercentageForm = () => {
               {result.increasedPrice !== undefined && (
                 <div className={styles["row"]}>
                   <div>Increased Price:</div>
-                  <div>
-                    $
-                    {result.increasedPrice.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.increasedPrice}</div>
                 </div>
               )}
 
               {result.decreasedPrice !== undefined && (
                 <div className={styles["row"]}>
                   <div>Decreased Price:</div>
-                  <div>
-                    $
-                    {result.decreasedPrice.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.decreasedPrice}</div>
                 </div>
               )}
             </div>

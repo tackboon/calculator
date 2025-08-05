@@ -9,16 +9,11 @@ import Container from "../../../../component/common/container/container.componen
 import Switch from "../../../../component/common/switch/switch.component";
 import NumberInput from "../../../../component/common/input/number_input.component";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
-
-export type ProfitLossInputType = {
-  entryPrice: string;
-  exitPrice: string;
-  quantity: string;
-  isLong: boolean;
-  includeTradingFee: boolean;
-  estTradingFee: string;
-  minTradingFee: string;
-};
+import {
+  ERROR_FIELD_PROFIT_LOSS,
+  ProfitLossInputType,
+  ProfitLossResultType,
+} from "./profit_loss.type";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -28,27 +23,6 @@ const DEFAULT_INPUT: ProfitLossInputType = {
   includeTradingFee: false,
   estTradingFee: "0",
   minTradingFee: "0",
-};
-
-export enum ERROR_FIELD_PROFIT_LOSS {
-  ENTRY_PRICE,
-  EXIT_PRICE,
-  QUANTITY,
-  EST_TRADING_FEE,
-  MIN_TRADING_FEE,
-}
-
-export type ProfitLossResultType = {
-  totalEntryAmount: number;
-  totalExitAmount: number;
-  grossGained: number;
-  grossPercentage?: number;
-  netGained?: number;
-  netPercentage?: number;
-  estimatedEntryFee?: number;
-  estimatedExitFee?: number;
-  isLong: boolean;
-  includeTradingFee: boolean;
 };
 
 const ProfitLossForm = () => {
@@ -110,8 +84,8 @@ const ProfitLossForm = () => {
         This calculator helps you calculate the profit or loss from your trades.
         It takes your entry price, exit price, and quantity of assets to compute
         the total gain or loss along with the percentage change. You can use
-        this calculator to evaluate your trades, determine if revenue covers costs,
-        or plan for future trades.
+        this calculator to evaluate your trades, determine if revenue covers
+        costs, or plan for future trades.
       </p>
 
       <div className={styles["switch-wrapper"]}>
@@ -133,7 +107,7 @@ const ProfitLossForm = () => {
             preUnit="$"
             isInvalid={errorField === ERROR_FIELD_PROFIT_LOSS.ENTRY_PRICE}
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             value={input.entryPrice}
             onChangeHandler={(val: string) =>
               setInput({
@@ -165,7 +139,7 @@ const ProfitLossForm = () => {
             preUnit="$"
             isInvalid={errorField === ERROR_FIELD_PROFIT_LOSS.EXIT_PRICE}
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             value={input.exitPrice}
             onChangeHandler={(val) => {
               setInput({ ...input, exitPrice: val });
@@ -210,7 +184,7 @@ const ProfitLossForm = () => {
                     errorField === ERROR_FIELD_PROFIT_LOSS.EST_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, estTradingFee: val })
@@ -229,7 +203,7 @@ const ProfitLossForm = () => {
                     errorField === ERROR_FIELD_PROFIT_LOSS.MIN_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, minTradingFee: val })
@@ -265,51 +239,24 @@ const ProfitLossForm = () => {
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
                 <div>Entry Amount:</div>
-                <div>
-                  $
-                  {result.totalEntryAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.totalEntryAmount}</div>
               </div>
               <div className={styles["row"]}>
                 <div>Closing Amount:</div>
-                <div>
-                  $
-                  {result.totalExitAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.totalExitAmount}</div>
               </div>
 
               {result.estimatedEntryFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Entry Fee:</div>
-                  <div>
-                    $
-                    {Math.abs(result.estimatedEntryFee).toLocaleString(
-                      "en-US",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      }
-                    )}
-                  </div>
+                  <div>${result.estimatedEntryFee}</div>
                 </div>
               )}
 
               {result.estimatedExitFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Closing Fee:</div>
-                  <div>
-                    $
-                    {Math.abs(result.estimatedExitFee).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.estimatedExitFee}</div>
                 </div>
               )}
 
@@ -317,60 +264,65 @@ const ProfitLossForm = () => {
               <div className={styles["row"]}>
                 <div>
                   {result.includeTradingFee ? "Gross" : "Total"}{" "}
-                  {result.grossGained >= 0 ? "Gain" : "Loss"}:
+                  {result.grossGained[0] !== "-" ? "Gain" : "Loss"}:
                 </div>
                 <div>
                   $
-                  {Math.abs(result.grossGained).toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
+                  {result.grossGained[0] === "-"
+                    ? result.grossGained.slice(1)
+                    : result.grossGained}
                 </div>
               </div>
 
               <div className={styles["row"]}>
                 <div>
                   {result.includeTradingFee ? "Gross " : ""}
-                  {result.grossGained >= 0 ? "Gain" : "Loss"} (%):
+                  {result.grossGained[0] !== "-" ? "Gain" : "Loss"} (%):
                 </div>
-                <div className={result.grossGained >= 0 ? "" : styles["loss"]}>
-                  {result.grossPercentage
-                    ? Math.abs(result.grossPercentage).toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })
-                    : "0.00"}
+                <div
+                  className={
+                    result.grossGained[0] !== "-" ? "" : styles["loss"]
+                  }
+                >
+                  {result.grossPercentage[0] === "-"
+                    ? result.grossPercentage.slice(1)
+                    : result.grossPercentage}
                   %
                 </div>
               </div>
 
               {result.netGained !== undefined && (
                 <div className={styles["row"]}>
-                  <div>Net {result.netGained >= 0 ? "Gain" : "Loss"}:</div>
+                  <div>
+                    Net {result.netGained[0] !== "-" ? "Gain" : "Loss"}:
+                  </div>
                   <div>
                     $
-                    {Math.abs(result.netGained).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
+                    {result.netGained[0] === "-"
+                      ? result.netGained.slice(1)
+                      : result.netGained}
                   </div>
                 </div>
               )}
 
-              {result.netGained !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Net {result.netGained >= 0 ? "Gain" : "Loss"} (%):</div>
-                  <div className={result.netGained >= 0 ? "" : styles["loss"]}>
-                    {result.netPercentage
-                      ? Math.abs(result.netPercentage).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 4,
-                        })
-                      : "0.00"}
-                    %
+              {result.netGained !== undefined &&
+                result.netPercentage !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>
+                      Net {result.netGained[0] !== "-" ? "Gain" : "Loss"} (%):
+                    </div>
+                    <div
+                      className={
+                        result.netGained[0] !== "-" ? "" : styles["loss"]
+                      }
+                    >
+                      {result.netPercentage[0] === "-"
+                        ? result.netPercentage.slice(1)
+                        : result.netPercentage}
+                      %
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </Container>
         )}

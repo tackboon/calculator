@@ -62,7 +62,7 @@ class SendEmailService:
     }
 
     # Send POST request to SendGrid API
-    response = requests.post(self.basic_url, headers=self.headers, data=json.dumps(data))
+    response = requests.post(self.basic_url, headers=self.headers, data=json.dumps(data), timeout=10)
 
     # Handle response
     if response.status_code == 202:

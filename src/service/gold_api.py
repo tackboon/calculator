@@ -39,7 +39,7 @@ class GoldAPIServicer:
     url = f"{self.basic_url}/price/{symbol}"
 
     # Send Get request with parameters
-    response = requests.get(url)
+    response = requests.get(url, timeout=10) # 10s timeout
 
     # Handle response
     if response.status_code == 200:

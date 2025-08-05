@@ -49,6 +49,31 @@ export interface BaseResponse {
 /**
  * 
  * @export
+ * @interface BaseResponse1
+ */
+export interface BaseResponse1 {
+    /**
+     * 
+     * @type {number}
+     * @memberof BaseResponse1
+     */
+    'code'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof BaseResponse1
+     */
+    'message'?: string;
+    /**
+     * 
+     * @type {object}
+     * @memberof BaseResponse1
+     */
+    'data'?: object;
+}
+/**
+ * 
+ * @export
  * @interface EmailRequest
  */
 export interface EmailRequest {
@@ -861,6 +886,232 @@ export class AuthApi extends BaseAPI {
      */
     public appApiV1AuthSendResetPasswordLinkPost(emailRequest: EmailRequest, options?: AxiosRequestConfig) {
         return AuthApiFp(this.configuration).appApiV1AuthSendResetPasswordLinkPost(emailRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * ForexApi - axios parameter creator
+ * @export
+ */
+export const ForexApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexAssetsGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/app/api/v1/forex/assets`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {Array<string>} symbol 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexCommoditiesGet: async (symbol: Array<string>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'symbol' is not null or undefined
+            assertParamExists('appApiV1ForexCommoditiesGet', 'symbol', symbol)
+            const localVarPath = `/app/api/v1/forex/commodities`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (symbol) {
+                localVarQueryParameter['symbol'] = symbol;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {Array<string>} base 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexCurrenciesGet: async (base: Array<string>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'base' is not null or undefined
+            assertParamExists('appApiV1ForexCurrenciesGet', 'base', base)
+            const localVarPath = `/app/api/v1/forex/currencies`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (base) {
+                localVarQueryParameter['base'] = base;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * ForexApi - functional programming interface
+ * @export
+ */
+export const ForexApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ForexApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async appApiV1ForexAssetsGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse1>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1ForexAssetsGet(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @param {Array<string>} symbol 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async appApiV1ForexCommoditiesGet(symbol: Array<string>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse1>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1ForexCommoditiesGet(symbol, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @param {Array<string>} base 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async appApiV1ForexCurrenciesGet(base: Array<string>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BaseResponse1>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.appApiV1ForexCurrenciesGet(base, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * ForexApi - factory interface
+ * @export
+ */
+export const ForexApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ForexApiFp(configuration)
+    return {
+        /**
+         * 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexAssetsGet(options?: any): AxiosPromise<BaseResponse1> {
+            return localVarFp.appApiV1ForexAssetsGet(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {Array<string>} symbol 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexCommoditiesGet(symbol: Array<string>, options?: any): AxiosPromise<BaseResponse1> {
+            return localVarFp.appApiV1ForexCommoditiesGet(symbol, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {Array<string>} base 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        appApiV1ForexCurrenciesGet(base: Array<string>, options?: any): AxiosPromise<BaseResponse1> {
+            return localVarFp.appApiV1ForexCurrenciesGet(base, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * ForexApi - object-oriented interface
+ * @export
+ * @class ForexApi
+ * @extends {BaseAPI}
+ */
+export class ForexApi extends BaseAPI {
+    /**
+     * 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ForexApi
+     */
+    public appApiV1ForexAssetsGet(options?: AxiosRequestConfig) {
+        return ForexApiFp(this.configuration).appApiV1ForexAssetsGet(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {Array<string>} symbol 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ForexApi
+     */
+    public appApiV1ForexCommoditiesGet(symbol: Array<string>, options?: AxiosRequestConfig) {
+        return ForexApiFp(this.configuration).appApiV1ForexCommoditiesGet(symbol, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {Array<string>} base 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ForexApi
+     */
+    public appApiV1ForexCurrenciesGet(base: Array<string>, options?: AxiosRequestConfig) {
+        return ForexApiFp(this.configuration).appApiV1ForexCurrenciesGet(base, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

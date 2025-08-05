@@ -177,7 +177,7 @@ class AuthServicer:
         jwt_info = verify_jwt_in_request(
             optional, fresh, refresh, locations, verify_type, skip_revocation_check
         )
-
+                
         try:
           if jwt_info is not None:
             jwt_header, jwt_data = jwt_info

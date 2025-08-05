@@ -31,11 +31,14 @@ def create_forex_blueprint(forex_service: ForexService) -> Blueprint:
     @forex_bp.arguments(schema.GetCommodityPriceRequestSchema, location="query")
     @forex_bp.response(200, schema.BaseResponseSchema)
     def get(self, params: dict):
-      symbol = str(params["symbol"]).upper()
-      if symbol not in DEFAULT_COMMODITIES:
-         raise common_error.UnprocessableEntityError("Invalid symbol.")
+      symbols: list[str] = params["symbol"]
+      for i, symbol in enumerate(symbols):
+        symbols[i] = symbol.upper()
+        if symbols[i] not in DEFAULT_COMMODITIES:
+          raise common_error.UnprocessableEntityError("Invalid symbol.")
 
-      resp_data = forex_service.get_commodity_price(symbol)
+      prices = forex_service.get_commodity_price(symbols)
+      resp_data = {"prices": prices}
       return make_response_body(200, "", resp_data), 200
     
 
@@ -44,11 +47,14 @@ def create_forex_blueprint(forex_service: ForexService) -> Blueprint:
     @forex_bp.arguments(schema.GetCurrencyRateRequestSchema, location="query")
     @forex_bp.response(200, schema.BaseResponseSchema)
     def get(self, params: dict):
-      base = str(params["base"]).upper()
-      if base not in DEFAULT_CURRENCIES:
-         raise common_error.UnprocessableEntityError("Invalid currency.")
+      bases: list[str] = params["base"]
+      for i, base in enumerate(bases):
+        bases[i] = base.upper()
+        if bases[i] not in DEFAULT_CURRENCIES:
+          raise common_error.UnprocessableEntityError("Invalid currency.")
       
-      resp_data = forex_service.get_currency_rate(base)
+      rates = forex_service.get_currency_rate(bases)
+      resp_data = {"rates": rates}
       return make_response_body(200, "", resp_data), 200
 
   return forex_bp

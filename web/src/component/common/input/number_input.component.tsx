@@ -1,8 +1,11 @@
 import React, { FC, InputHTMLAttributes, useRef } from "react";
-import { evaluate } from "mathjs";
 
 import styles from "./input.module.scss";
-import { parseNumberFromString } from "../../../common/number/number";
+import {
+  convertToLocaleString,
+  parseBigNumberFromString,
+} from "../../../common/number/number";
+import { mathBigNum } from "../../../common/number/math";
 
 type NumberInputProps = {
   preUnit?: string;
@@ -21,16 +24,13 @@ const evalInput = (
   if (input === "") return "0";
 
   try {
-    const res = evaluate(input.replace(/,/g, ""));
-    if (res) {
-      let numVal = parseFloat(res);
-      if (isNaN(numVal)) return res;
+    // Fix multiple dot entries (1.2.34 => 1.234)
+    input = input.replace(/(\d*\.\d*)\./g, "$1");
 
-      const rounded = numVal.toLocaleString("en-US", {
-        minimumFractionDigits: minDecimalPlace,
-        maximumFractionDigits: maxDecimalPlace,
-      });
-      return parseFloat(rounded) === 0 ? "0" : rounded;
+    // Evaluate equation
+    const res = mathBigNum.evaluate(input.replace(/,/g, ""));
+    if (res) {
+      return convertToLocaleString(res, minDecimalPlace, maxDecimalPlace);
     } else if (res === 0) {
       return "0";
     }
@@ -90,24 +90,28 @@ const NumberInput: FC<NumberInputProps> = ({
     } else {
       inputVal = inputRef.current.value;
     }
-
-    let numVal = parseNumberFromString(inputVal);
-    if (isNaN(numVal)) return;
+    if (inputVal === "") return;
 
     if (step) {
       // Ensure step is a number
-      const stepValue = typeof step === "string" ? parseFloat(step) : step;
+      let stepValue = typeof step === "string" ? parseFloat(step) : step;
       if (isNaN(stepValue) && stepValue === 0) return;
 
-      numVal = isIncr ? (numVal += stepValue) : (numVal -= stepValue);
+      if (!isIncr) stepValue = stepValue * -1;
+      inputVal = mathBigNum
+        .add(
+          parseBigNumberFromString(inputVal),
+          mathBigNum.bignumber(stepValue)
+        )
+        .toFixed();
     }
 
     // Apply rounding if decimalPlace is defined
-    const rounded = numVal.toLocaleString("en-US", {
-      minimumFractionDigits: minDecimalPlace,
-      maximumFractionDigits: maxDecimalPlace,
-    });
-    inputVal = parseFloat(rounded) === 0 ? "0" : rounded;
+    inputVal = convertToLocaleString(
+      inputVal,
+      minDecimalPlace,
+      maxDecimalPlace
+    );
 
     inputRef.current.value = inputVal;
     if (onChangeHandler) onChangeHandler(inputVal);

@@ -15,5 +15,5 @@ export const RequiredAuthRoute: FC<GuardProps> = ({ children }) => {
 
 export const RequiredGuestRoute: FC<GuardProps> = ({ children }) => {
   const currentUser = useSelector(selectCurrentUser);
-  return currentUser ? <Navigate to="/portfolio" /> : <>{children}</>;
+  return currentUser ? <Navigate to="/calculator" /> : <>{children}</>;
 };

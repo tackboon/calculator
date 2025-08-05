@@ -3,7 +3,7 @@ import json
 from typing import Union
 from redis import Redis
 from typing import Optional
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from dataclasses import asdict
 
 from src.extensions import app_logger
@@ -83,7 +83,11 @@ class CurrencyRepo:
     Construct currency rate cache key and cache duration.
     """
 
-    return f"forex:currency:{base}", timedelta(days=1)  
+    now = datetime.now()
+    next_midnight = datetime.combine(now.date() + timedelta(days=1), time(0, 0))
+    cache_duration = next_midnight - now
+
+    return f"forex:currency:{base}", cache_duration
   
   def _get_commodity_price_cache_info(self, symbol: str) -> tuple[str, timedelta]:
     """

@@ -10,7 +10,7 @@
     margin-bottom: 1.5rem;
     text-align: center;
 
-    @media (min-width: 600px) {
+    @media (min-width: 768px) {
       font-size: 1.2rem;
       margin-bottom: 40px;
     }
@@ -59,7 +59,7 @@
     justify-content: space-between;
     gap: 1rem;
 
-    @media (min-width: 600px) {
+    @media (min-width: 768px) {
       margin-top: 2rem;
     }
 
@@ -93,6 +93,32 @@
   gap: 10px;
 }
 
+.hint {
+  margin-top: 5px;
+  margin-left: 5px;
+  color: #696969;
+}
+
+.cross-rate-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .exchange-rate-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+
+    .exchange-rate-label {
+      font-size: 0.9rem;
+      padding-left: 12px;
+      width: 5rem;
+      font-weight: 500;
+    }
+  }
+}
+
 .result-container {
   margin-top: 2.5rem;
   background-color: #f9f9f9;
@@ -107,7 +133,7 @@
   overflow-x: auto;
   white-space: nowrap;
 
-  @media (min-width: 600px) {
+  @media (min-width: 768px) {
     margin-top: 4rem;
     margin-bottom: 2rem;
     padding: 2rem;
@@ -134,7 +160,7 @@
         width: 14.6rem;
         font-weight: 600;
 
-        @media (min-width: 600px) {
+        @media (min-width: 768px) {
           width: 18rem;
         }
       }

@@ -9,7 +9,7 @@ import ForexPositionSizeForm from "../../form/calculator/forex/position_size/pos
 const CalculatorPage = () => {
   return (
     <div className={styles["container"]}>
-      <TabLayout minChildWidth={90} maxChildWidth={140}>
+      <TabLayout minChildWidth={90} maxChildWidth={168}>
         <TabContent name="Stock">
           <div className={styles["child-container"]}>
             <TabLayout minChildWidth={93} maxChildWidth={155}>
@@ -30,15 +30,15 @@ const CalculatorPage = () => {
         </TabContent>
         <TabContent name="Forex">
           <div className={styles["child-container"]}>
-            <TabLayout minChildWidth={93} maxChildWidth={155}>
+            <TabLayout minChildWidth={93} maxChildWidth={168}>
               <TabContent name="Profit / Loss">
                 <ProfitLossForm />
               </TabContent>
               <TabContent name="Position Sizing">
                 <ForexPositionSizeForm />
               </TabContent>
-              <TabContent name="Price-Percentage">Pip Calculator</TabContent>
-              <TabContent name="Risk & Profit">Leverage Calculator</TabContent>
+              <TabContent name="Pip Calculator">Pip Calculator</TabContent>
+              <TabContent name="Margin Calculator">Margin Calculator</TabContent>
             </TabLayout>
           </div>
         </TabContent>

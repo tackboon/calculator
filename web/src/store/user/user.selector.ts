@@ -5,10 +5,9 @@ import { UserState } from "./user.reducer";
 
 export const selectUserReducer = (state: RootState): UserState => state.user;
 
-export const selectCurrentUser = createSelector(
-  selectUserReducer,
-  (user) => user.currentUser
-);
+export const selectCurrentUser = createSelector(selectUserReducer, (user) => {
+  return user.currentUser;
+});
 
 export const selectUserError = createSelector(
   selectUserReducer,

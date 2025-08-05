@@ -1,9 +1,8 @@
-import { parseNumberFromString } from "../../../common/number/number";
+import { BigNumber } from "mathjs";
+import { mathBigNum } from "../../../common/number/math";
+import { parseBigNumberFromString } from "../../../common/number/number";
 import { checkMinMax } from "../../../common/validation/calculator.validation";
-import {
-  ERROR_FIELD_STOCK_ORDER,
-  StockOrderInputType,
-} from "./order.component";
+import { ERROR_FIELD_STOCK_ORDER, StockOrderInputType } from "./order.type";
 
 export const validateOrderInput = (
   input: StockOrderInputType
@@ -22,12 +21,12 @@ export const validateOrderInput = (
     };
   }
 
-  let stopLossMin = 0;
-  let stopLossMax;
+  let stopLossMin = mathBigNum.bignumber(0);
+  let stopLossMax: BigNumber | undefined;
   if (input.isLong) {
-    stopLossMax = parseNumberFromString(input.entryPrice);
+    stopLossMax = parseBigNumberFromString(input.entryPrice);
   } else {
-    stopLossMin = parseNumberFromString(input.entryPrice);
+    stopLossMin = parseBigNumberFromString(input.entryPrice);
   }
 
   if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
@@ -38,12 +37,12 @@ export const validateOrderInput = (
   }
 
   if (input.includeProfitGoal) {
-    let profitGoalMin = 0;
-    let profitGoalMax;
+    let profitGoalMin = mathBigNum.bignumber(0);
+    let profitGoalMax: BigNumber | undefined;
     if (input.isLong) {
-      profitGoalMin = parseNumberFromString(input.entryPrice);
+      profitGoalMin = parseBigNumberFromString(input.entryPrice);
     } else {
-      profitGoalMax = parseNumberFromString(input.entryPrice);
+      profitGoalMax = parseBigNumberFromString(input.entryPrice);
     }
 
     if (!checkMinMax(input.profitGoal, profitGoalMin, profitGoalMax)) {

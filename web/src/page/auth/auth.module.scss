@@ -6,12 +6,12 @@
   min-height: calc(100vh - 70px);
 
   .container {
-    max-width: 600px;
+    max-width: 767px;
     margin: 20px 0;
     padding: 20px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 767px) {
     background-color: #ffffff;
 
     .container {

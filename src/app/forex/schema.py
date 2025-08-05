@@ -15,11 +15,11 @@ class BaseRequestSchema(Schema):
 
 
 class GetCurrencyRateRequestSchema(BaseRequestSchema):
-  base = fields.Str(required=True)
+  base = fields.List(fields.Str(), required=True)
 
 
 class GetCommodityPriceRequestSchema(BaseRequestSchema):
-  symbol = fields.Str(required=True)
+  symbol = fields.List(fields.Str(), required=True)
 
 
 # Create response schema

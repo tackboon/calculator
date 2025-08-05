@@ -6,15 +6,11 @@ import NumberInput from "../../common/input/number_input.component";
 import Checkbox from "../../common/checkbox/checkbox.component";
 import SelectBox from "../../common/select_box/select_box.component";
 import TrashbinIcon from "../../common/icon/trashbin.component";
-
-export type StockOrderInputType = {
-  entryPrice: string;
-  quantity: string;
-  stopLoss: string;
-  profitGoal: string;
-  isLong: boolean;
-  includeProfitGoal: boolean;
-};
+import {
+  ERROR_FIELD_STOCK_ORDER,
+  StockOrderInputType,
+  StockOrderType,
+} from "./order.type";
 
 export const DEFAULT_STOCK_ORDER_INPUT: StockOrderInputType = {
   entryPrice: "0",
@@ -23,21 +19,6 @@ export const DEFAULT_STOCK_ORDER_INPUT: StockOrderInputType = {
   profitGoal: "0",
   isLong: true,
   includeProfitGoal: false,
-};
-
-export enum ERROR_FIELD_STOCK_ORDER {
-  ENTRY_PRICE,
-  QUANTITY,
-  STOP_LOSS,
-  PROFIT_TARGET,
-}
-
-type StockOrderType = {
-  name: string;
-  idx: number;
-  onInputChange: (inputData: StockOrderInputType) => void;
-  deleteHandler: () => void;
-  errorField: ERROR_FIELD_STOCK_ORDER | null;
 };
 
 const Order: FC<StockOrderType> = ({
@@ -94,7 +75,7 @@ const Order: FC<StockOrderType> = ({
           preUnit="$"
           isInvalid={errorField === ERROR_FIELD_STOCK_ORDER.ENTRY_PRICE}
           minDecimalPlace={2}
-          maxDecimalPlace={4}
+          maxDecimalPlace={5}
           value={input.entryPrice}
           onChangeHandler={(val) => setInput({ ...input, entryPrice: val })}
         />
@@ -119,7 +100,7 @@ const Order: FC<StockOrderType> = ({
           preUnit={"$"}
           isInvalid={errorField === ERROR_FIELD_STOCK_ORDER.STOP_LOSS}
           minDecimalPlace={2}
-          maxDecimalPlace={4}
+          maxDecimalPlace={5}
           value={input.stopLoss}
           onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
         />
@@ -150,7 +131,7 @@ const Order: FC<StockOrderType> = ({
               preUnit={"$"}
               isInvalid={errorField === ERROR_FIELD_STOCK_ORDER.PROFIT_TARGET}
               minDecimalPlace={2}
-              maxDecimalPlace={4}
+              maxDecimalPlace={5}
               value={input.profitGoal}
               onChangeHandler={(val) => setInput({ ...input, profitGoal: val })}
             />

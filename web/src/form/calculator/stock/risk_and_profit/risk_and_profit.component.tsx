@@ -1,68 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
-import { StockOrderInputType } from "../../../../component/order/stock/order.component";
-
 import styles from "../stock_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";
 import Link from "../../../../component/common/link/link.component";
 import NumberInput from "../../../../component/common/input/number_input.component";
-import OrderList from "../../../../component/order/stock/order_list.component";
+import OrderList from "../../../../component/stock/order/order_list.component";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
 import { calculateResult, validateRiskAndProfitInput } from "./utils.component";
 import Container from "../../../../component/common/container/container.component";
-
-export type RiskAndProfitInputType = {
-  portfolioCapital: string;
-  includeTradingFee: boolean;
-  estTradingFee: string;
-  minTradingFee: string;
-};
+import {
+  ERROR_FIELD_RISK_AND_PROFIT,
+  RiskAndProfitInputType,
+  RiskAndProfitResultType,
+} from "./risk_and_profit.type";
+import { StockOrderInputType } from "../../../../component/stock/order/order.type";
 
 const DEFAULT_INPUT: RiskAndProfitInputType = {
   portfolioCapital: "0",
   includeTradingFee: false,
   estTradingFee: "0",
   minTradingFee: "0",
-};
-
-export enum ERROR_FIELD_RISK_AND_PROFIT {
-  PORTFOLIO_CAPITAL,
-  EST_TRADING_FEE,
-  MIN_TRADING_FEE,
-}
-
-export type OrderResultType = {
-  isLong: boolean;
-  entryAmount: number;
-  entryPrice: number;
-  stopLossPrice: number;
-  stopLossPercent: number;
-  profitPrice?: number;
-  profitPercent?: number;
-  riskAmount: number;
-  profitAmount?: number;
-  entryFee?: number;
-  stopLossFee?: number;
-  profitFee?: number;
-  portfolioRisk: number;
-  portfolioProfit?: number;
-  riskRewardRatio?: string;
-  quantity: number;
-};
-
-export type RiskAndProfitResultType = {
-  totalEntryAmount: number;
-  totalRiskAmount: number;
-  totalProfitAmount: number;
-  portfolioRisk: number;
-  portfolioProfit?: number;
-  riskRewardRatio?: string;
-  includeTradingFee: boolean;
-  orders: OrderResultType[];
-  totalShort: number;
-  totalLong: number;
-  hasProfitGoal: boolean;
 };
 
 const RiskAndProfitForm = () => {
@@ -147,7 +105,7 @@ const RiskAndProfitForm = () => {
               errorField === ERROR_FIELD_RISK_AND_PROFIT.PORTFOLIO_CAPITAL
             }
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             value={input.portfolioCapital}
             onChangeHandler={(val) =>
               setInput({ ...input, portfolioCapital: val })
@@ -209,7 +167,7 @@ const RiskAndProfitForm = () => {
                     errorField === ERROR_FIELD_RISK_AND_PROFIT.EST_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, estTradingFee: val })
@@ -228,7 +186,7 @@ const RiskAndProfitForm = () => {
                     errorField === ERROR_FIELD_RISK_AND_PROFIT.MIN_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, minTradingFee: val })
@@ -264,59 +222,29 @@ const RiskAndProfitForm = () => {
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
                 <div>Total Entry Amount:</div>
-                <div>
-                  $
-                  {result.totalEntryAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.totalEntryAmount}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Total Risk Amount:</div>
-                <div>
-                  $
-                  {result.totalRiskAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.totalRiskAmount}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Portfolio Risk (%):</div>
-                <div>
-                  {result.portfolioRisk.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                  %
-                </div>
+                <div>{result.portfolioRisk}%</div>
               </div>
 
               {result.hasProfitGoal && (
                 <>
                   <div className={styles["row"]}>
                     <div>Total Potential Profit:</div>
-                    <div>
-                      $
-                      {result.totalProfitAmount.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })}
-                    </div>
+                    <div>${result.totalProfitAmount}</div>
                   </div>
 
                   <div className={styles["row"]}>
                     <div>Potential Portfolio Return (%):</div>
-                    <div>
-                      {result.portfolioRisk.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })}
-                      %
-                    </div>
+                    <div>{result.portfolioProfit}%</div>
                   </div>
                 </>
               )}
@@ -342,7 +270,7 @@ const RiskAndProfitForm = () => {
 
               {result.orders.map((order, idx) => {
                 return (
-                  <>
+                  <div key={`res-${idx}`}>
                     <br />
                     <div key={`order-result-${idx}`}>
                       <h3>Order #{idx + 1}</h3>
@@ -354,60 +282,30 @@ const RiskAndProfitForm = () => {
 
                       <div className={styles["row"]}>
                         <div>Open Price:</div>
-                        <div>
-                          $
-                          {order.entryPrice.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
-                          })}
-                        </div>
+                        <div>${order.entryPrice}</div>
                       </div>
 
                       <div className={styles["row"]}>
                         <div>Stop Price:</div>
-                        <div>
-                          $
-                          {order.stopLossPrice.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
-                          })}
-                        </div>
+                        <div>${order.stopLossPrice}</div>
                       </div>
 
                       <div className={styles["row"]}>
                         <div>Stop Loss (%):</div>
-                        <div>
-                          {order.stopLossPercent.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
-                          })}
-                          %
-                        </div>
+                        <div>{order.stopLossPercent}%</div>
                       </div>
 
                       {order.profitPrice !== undefined && (
                         <div className={styles["row"]}>
                           <div>Profit Price:</div>
-                          <div>
-                            $
-                            {order.profitPrice.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 4,
-                            })}
-                          </div>
+                          <div>${order.profitPrice}</div>
                         </div>
                       )}
 
                       {order.profitPercent !== undefined && (
                         <div className={styles["row"]}>
                           <div>Profit (%):</div>
-                          <div>
-                            {order.profitPercent.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 4,
-                            })}
-                            %
-                          </div>
+                          <div>{order.profitPercent}%</div>
                         </div>
                       )}
 
@@ -416,45 +314,16 @@ const RiskAndProfitForm = () => {
                         <div>{order.quantity}</div>
                       </div>
 
-                      {order.entryFee !== undefined && (
-                        <>
-                          <br />
-                          <div className={styles["row"]}>
-                            <div>Opening Fee:</div>
-                            <div>
-                              $
-                              {order.entryFee.toLocaleString("en-US", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 4,
-                              })}
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      <br />
+                      <div className={styles["row"]}>
+                        <div>Risk Amount:</div>
+                        <div>{order.riskAmount}</div>
+                      </div>
 
-                      {order.stopLossFee !== undefined && (
+                      {order.profitAmount !== undefined && (
                         <div className={styles["row"]}>
-                          <div>Stop Loss Execution Fee:</div>
-                          <div>
-                            $
-                            {order.stopLossFee.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 4,
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {order.profitFee !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Profit-Taking Fee:</div>
-                          <div>
-                            $
-                            {order.profitFee.toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 4,
-                            })}
-                          </div>
+                          <div>Potential Profit:</div>
+                          <div>{order.profitAmount}</div>
                         </div>
                       )}
 
@@ -464,8 +333,32 @@ const RiskAndProfitForm = () => {
                           <div>{order.riskRewardRatio}</div>
                         </div>
                       )}
+
+                      {order.entryFee !== undefined && (
+                        <>
+                          <br />
+                          <div className={styles["row"]}>
+                            <div>Opening Fee:</div>
+                            <div>${order.entryFee}</div>
+                          </div>
+                        </>
+                      )}
+
+                      {order.stopLossFee !== undefined && (
+                        <div className={styles["row"]}>
+                          <div>Stop Loss Execution Fee:</div>
+                          <div>${order.stopLossFee}</div>
+                        </div>
+                      )}
+
+                      {order.profitFee !== undefined && (
+                        <div className={styles["row"]}>
+                          <div>Profit-Taking Fee:</div>
+                          <div>${order.profitFee}</div>
+                        </div>
+                      )}
                     </div>
-                  </>
+                  </div>
                 );
               })}
             </div>

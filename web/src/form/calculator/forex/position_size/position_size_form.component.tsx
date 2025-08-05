@@ -1,718 +1,962 @@
-// import { FormEvent, useEffect, useRef, useState } from "react";
-// import { useSpring, animated } from "@react-spring/web";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useSpring, animated } from "@react-spring/web";
 
-// import { calculateResult, validatePositionSizeInput } from "./utils.component";
-// import { parseNumberFromString } from "../../../../common/number/number";
+import styles from "../forex_calculator_form.module.scss";
+import {
+  selectForexCommodityRates,
+  selectForexCurrencyRates,
+  selectForexIsLoading,
+  selectForexSupportedAssets,
+  selectForexSupportedCurrencies,
+} from "../../../../store/forex/forex.selector";
+import {
+  getCommodityRates,
+  getCurrencyRates,
+} from "../../../../store/forex/forex.action";
+import NumberInput from "../../../../component/common/input/number_input.component";
+import Switch from "../../../../component/common/switch/switch.component";
+import SelectBox from "../../../../component/common/select_box/select_box.component";
+import Button from "../../../../component/common/button/button.component";
+import {
+  generateCurrencyPair,
+  getBaseAndQuote,
+} from "../../../../common/forex/forex";
+import { FOREX_LOADING_TYPES } from "../../../../store/forex/forex.types";
+import { parseNumberFromString } from "../../../../common/number/number";
+import Checkbox from "../../../../component/common/checkbox/checkbox.component";
+import {
+  calculateCrossHeight,
+  calculateProfitPriceFromPip,
+  calculateResult,
+  calculateStopPriceFromPip,
+  validatePositionSizeInput,
+} from "./utils.component";
+import {
+  ERROR_FIELD_POSITION_SIZE,
+  FeeTyp,
+  ForexPositionSizeInputType,
+  PositionSizeResultType,
+  ProfitGoalTyp,
+  StopLossTyp,
+} from "./position_size.type";
+import LeverageSelectBox from "../../../../component/forex/leverage_select_box/leverage.component";
+import CurrencySelectBox from "../../../../component/forex/currency_select_box/currency.component";
+import PairSelectBox from "../../../../component/forex/pair_select_box/pair.component";
+import useCurrencyRates from "../hook/useCurrencyRates";
 
-// import styles from "../forex_calculator_form.module.scss";
-// import Switch from "../../../../component/common/switch/switch.component";
-// import Button from "../../../../component/common/button/button.component";
-// import Container from "../../../../component/common/container/container.component";
-// import NumberInput from "../../../../component/common/input/number_input.component";
-// import SelectBox from "../../../../component/common/select_box/select_box.component";
-// import Checkbox from "../../../../component/common/checkbox/checkbox.component";
-
-// export enum UnitType {
-//   STANDARD_LOT,
-//   MINI_LOT,
-//   MICRO_LOT,
-//   NANO_LOT,
-// }
-
-// export enum ProfitGoalTyp {
-//   PIP_BASED,
-//   PRICE_BASED,
-//   PORTFOLIO_BASED,
-// }
-
-// export enum StopLossTyp {
-//   PIP,
-//   PRICE,
-//   PERCENT,
-// }
-
-// export type ForexPositionSizeInputType = {
-//   portfolioCapital: string;
-//   maxPortfolioRisk: string;
-//   accCurrencyRate: string;
-//   openPrice: string;
-//   unitType: UnitType;
-//   pipPrecision: string;
-//   stopLoss: string;
-//   stopLossTyp: StopLossTyp;
-//   includeProfitGoal: boolean;
-//   profitGoalTyp: ProfitGoalTyp;
-//   profitGoal: string;
-//   profitGoalUnit: "$" | "%";
-//   isLong: boolean;
-//   includeTradingFee: boolean;
-//   estTradingFee: string;
-//   minTradingFee: string;
-// };
-
-// const DEFAULT_INPUT: ForexPositionSizeInputType = {
-//   portfolioCapital: "0",
-//   maxPortfolioRisk: "0",
-//   accCurrencyRate: "1",
-//   openPrice: "0",
-//   unitType: UnitType.STANDARD_LOT,
-//   pipPrecision: "0.0001",
-//   stopLoss: "0",
-//   stopLossTyp: StopLossTyp.PIP,
-//   includeProfitGoal: false,
-//   profitGoal: "0",
-//   profitGoalTyp: ProfitGoalTyp.PRICE_BASED,
-//   profitGoalUnit: "%",
-//   isLong: true,
-//   includeTradingFee: false,
-//   estTradingFee: "0",
-//   minTradingFee: "0",
-// };
-
-// export enum ERROR_FIELD_POSITION_SIZE {
-//   PORTFOLIO_CAPITAL,
-//   MAX_PORTFOLIO_RISK,
-//   ACC_CURRENCY_RATE,
-//   PIP_PRECISION,
-//   STOP_LOSS,
-//   PROFIT_TARGET,
-//   OPEN_PRICE,
-//   EST_TRADING_FEE,
-//   MIN_TRADING_FEE,
-// }
-
-// export type PositionSizeResultType = {
-//   isLong: boolean;
-//   includeTradingFee: boolean;
-//   includeProfitGoal: boolean;
-//   entryPrice: number;
-//   stopPrice: number;
-//   stopPercent: number;
-//   profitPrice?: number;
-//   profitPercent?: number;
-//   quantity: string;
-//   tradingAmount: number;
-//   riskAmount: number;
-//   portfolioRisk: number;
-//   profitAmount?: number;
-//   portfolioProfit?: number;
-//   riskRewardRatio?: string;
-//   breakEvenWinRate?: number;
-//   estimatedEntryFee?: number;
-//   estimatedStopFee?: number;
-//   estimatedProfitFee?: number;
-// };
-
-// const ForexPositionSizeForm = () => {
-//   const [errorMessage, setErrorMessage] = useState("");
-//   const [errorField, setErrorField] =
-//     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
-//   const [input, setInput] = useState<ForexPositionSizeInputType>(DEFAULT_INPUT);
-
-//   const [result, setResult] = useState<PositionSizeResultType | null>(null);
-//   const resultRef = useRef<HTMLDivElement>(null);
-
-//   // Scroll to result after it is updated
-//   useEffect(() => {
-//     if (result && resultRef.current) {
-//       resultRef.current.scrollIntoView({ behavior: "smooth" });
-//     }
-//   }, [result]);
-
-//   // Form submission handler
-//   const handleSubmit = (e: FormEvent) => {
-//     e.preventDefault();
-
-//     // Handle validation
-//     const { err, field } = validatePositionSizeInput(input);
-//     setErrorMessage(err);
-//     setErrorField(field);
-//     if (err !== "") return;
-
-//     // Handle calculation
-//     setResult(calculateResult(input));
-//   };
-
-//   const handleReset = (e: FormEvent) => {
-//     e.preventDefault();
-
-//     setErrorMessage("");
-//     setInput({
-//       ...DEFAULT_INPUT,
-//       isLong: input.isLong,
-//       stopLossTyp: input.stopLossTyp,
-//       includeProfitGoal: input.includeProfitGoal,
-//       profitGoalTyp: input.profitGoalTyp,
-//       profitGoalUnit: input.profitGoalUnit,
-//       unitType: input.unitType,
-//       includeTradingFee: input.includeTradingFee,
-//     });
-//     setErrorField(null);
-//     setResult(null);
-//   };
-
-//   const handleSwitch = (idx: number) => {
-//     setInput({ ...input, isLong: idx === 0 });
-//   };
-
-//   const profitGoalStyles = useSpring({
-//     height: input.includeProfitGoal ? 200 : 0,
-//     opacity: input.includeProfitGoal ? 1 : 0,
-//     overflow: "hidden",
-//   });
-
-//   const tradingFeeStyles = useSpring({
-//     height: input.includeTradingFee ? 200 : 0,
-//     opacity: input.includeTradingFee ? 1 : 0,
-//     overflow: "hidden",
-//   });
-
-//   return (
-//     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
-//       <p className={styles["description"]}>
-//         This calculator helps you to determine the optimal position size and
-//         stop-loss price for your trades. By inputting parameters such as total
-//         capital, maximum allowable loss, stop-loss percentage, profit ratio, and
-//         trade-in price, the calculator computes position size, stop price, and
-//         profit target for you.
-//       </p>
-
-//       <div className={styles["switch-wrapper"]}>
-//         <Switch
-//           height={33}
-//           borderRadius={20}
-//           childWidth={161}
-//           names={["Long", "Short"]}
-//           defaultIndex={0}
-//           onSwitch={handleSwitch}
-//         />
-//       </div>
-
-//       <div>
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="portfolio-capital">Portfolio Capital</label>
-//           <NumberInput
-//             id="portfolio-capital"
-//             preUnit="$"
-//             isInvalid={
-//               errorField === ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL
-//             }
-//             minDecimalPlace={2}
-//             maxDecimalPlace={4}
-//             value={input.portfolioCapital}
-//             onChangeHandler={(val) =>
-//               setInput({ ...input, portfolioCapital: val })
-//             }
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="max-portfolio-risk">Max Portfolio Risk (%)</label>
-//           <NumberInput
-//             step="0.1"
-//             id="max-portfolio-risk"
-//             minDecimalPlace={2}
-//             maxDecimalPlace={4}
-//             postUnit="%"
-//             isInvalid={
-//               errorField === ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK
-//             }
-//             value={input.maxPortfolioRisk}
-//             onChangeHandler={(val) =>
-//               setInput({ ...input, maxPortfolioRisk: val })
-//             }
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="acc-convertion-rate">
-//             Account Currency Exchange Rate
-//           </label>
-//           <NumberInput
-//             id="acc-convertion-rate"
-//             preUnit="$"
-//             minDecimalPlace={2}
-//             maxDecimalPlace={5}
-//             isInvalid={
-//               errorField === ERROR_FIELD_POSITION_SIZE.ACC_CURRENCY_RATE
-//             }
-//             value={input.accCurrencyRate}
-//             onChangeHandler={(val) =>
-//               setInput({ ...input, accCurrencyRate: val })
-//             }
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="entry-price">Open Price</label>
-//           <NumberInput
-//             id="entry-price"
-//             preUnit="$"
-//             minDecimalPlace={2}
-//             maxDecimalPlace={4}
-//             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
-//             value={input.openPrice}
-//             onChangeHandler={(val) => setInput({ ...input, openPrice: val })}
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="unit-type">Unit Type</label>
-//           <SelectBox
-//             name="unit-type"
-//             options={["Standard Lot", "Mini Lot", "Micro Lot", "Nano Lot"]}
-//             defaultIndex={UnitType.STANDARD_LOT}
-//             onChangeHandler={(idx) => setInput({ ...input, unitType: idx })}
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="pip-precision">Pip Precision</label>
-//           <NumberInput
-//             id="pip-precision"
-//             preUnit="$"
-//             minDecimalPlace={2}
-//             maxDecimalPlace={5}
-//             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.PIP_PRECISION}
-//             value={input.pipPrecision}
-//             onChangeHandler={(val) => setInput({ ...input, pipPrecision: val })}
-//           />
-//         </div>
-
-//         <div className={styles["form-group"]}>
-//           <label htmlFor="stop-loss">Stop Loss</label>
-//           <div className={styles["input-with-switch"]}>
-//             <NumberInput
-//               id="stop-loss"
-//               preUnit={input.stopLossTyp === StopLossTyp.PRICE ? "$" : ""}
-//               postUnit={
-//                 input.stopLossTyp === StopLossTyp.PIP
-//                   ? "pip"
-//                   : StopLossTyp.PERCENT
-//                   ? "%"
-//                   : ""
-//               }
-//               isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
-//               minDecimalPlace={2}
-//               maxDecimalPlace={4}
-//               value={input.stopLoss}
-//               onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
-//             />
-//             <Switch
-//               height={46}
-//               borderRadius={5}
-//               names={["PIP", "$", "%"]}
-//               defaultIndex={input.stopLossTyp}
-//               childWidth={50}
-//               onSwitch={(idx: number) => {
-//                 setInput({
-//                   ...input,
-//                   stopLossTyp: idx,
-//                   stopLoss:
-//                     input.stopLoss === "0"
-//                       ? input.stopLoss
-//                       : parseNumberFromString(input.stopLoss).toLocaleString(
-//                           "en-US",
-//                           {
-//                             minimumFractionDigits: 2,
-//                             maximumFractionDigits: 4,
-//                           }
-//                         ),
-//                 });
-//               }}
-//             />
-//           </div>
-//         </div>
-
-//         <div
-//           className={styles["form-group"]}
-//           style={{
-//             marginTop: "2rem",
-//             marginBottom: input.includeProfitGoal ? "1.5rem" : "0.6rem",
-//           }}
-//         >
-//           <div className={styles["checkbox-wrapper"]}>
-//             <Checkbox
-//               isCheck={input.includeProfitGoal}
-//               onCheck={() =>
-//                 setInput({
-//                   ...input,
-//                   includeProfitGoal: !input.includeProfitGoal,
-//                   profitGoal: DEFAULT_INPUT.profitGoal,
-//                   profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
-//                 })
-//               }
-//             />
-//             <span>Include Profit Goal</span>
-//           </div>
-//         </div>
-
-//         <animated.div style={profitGoalStyles}>
-//           {input.includeProfitGoal && (
-//             <>
-//               <div className={styles["form-group"]}>
-//                 <label htmlFor="profit-strategy">Profit Strategy</label>
-//                 <SelectBox
-//                   name="profit-strategy"
-//                   options={["Pip-Based", "Price-Based", "Portfolio-Based"]}
-//                   defaultIndex={ProfitGoalTyp.PRICE_BASED}
-//                   onChangeHandler={(idx) => {
-//                     setInput({ ...input, profitGoalTyp: idx, profitGoal: "0" });
-//                     if (
-//                       errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
-//                     ) {
-//                       setErrorField(null);
-//                       setErrorMessage("");
-//                     }
-//                   }}
-//                 />
-//               </div>
-
-//               <div className={styles["form-group"]}>
-//                 <label htmlFor="profit-goal">
-//                   {input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
-//                     ? "Min Portfolio Profit (%)"
-//                     : "Profit Target"}
-//                 </label>
-//                 <div className={styles["input-with-switch"]}>
-//                   <NumberInput
-//                     id="profit-goal"
-//                     step={0.1}
-//                     preUnit={input.profitGoalUnit === "$" ? "$" : ""}
-//                     postUnit={
-//                       input.profitGoalTyp === ProfitGoalTyp.PIP_BASED
-//                         ? "pip"
-//                         : input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
-//                         ? input.profitGoalUnit === "%"
-//                           ? "%"
-//                           : ""
-//                         : "%"
-//                     }
-//                     isInvalid={
-//                       errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
-//                     }
-//                     minDecimalPlace={2}
-//                     maxDecimalPlace={4}
-//                     value={input.profitGoal}
-//                     onChangeHandler={(val) =>
-//                       setInput({ ...input, profitGoal: val })
-//                     }
-//                   />
-//                   {input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED && (
-//                     <Switch
-//                       height={46}
-//                       borderRadius={5}
-//                       names={["$", "%"]}
-//                       defaultIndex={input.profitGoalUnit === "$" ? 0 : 1}
-//                       childWidth={50}
-//                       onSwitch={(idx: number) => {
-//                         setInput({
-//                           ...input,
-//                           profitGoalUnit: idx === 0 ? "$" : "%",
-//                           profitGoal:
-//                             input.profitGoal === "0"
-//                               ? input.profitGoal
-//                               : parseNumberFromString(
-//                                   input.profitGoal
-//                                 ).toLocaleString("en-US", {
-//                                   minimumFractionDigits: 2,
-//                                   maximumFractionDigits: 4,
-//                                 }),
-//                         });
-//                       }}
-//                     />
-//                   )}
-//                 </div>
-//               </div>
-//             </>
-//           )}
-//         </animated.div>
-
-//         <div
-//           className={styles["form-group"]}
-//           style={{
-//             marginBottom: input.includeTradingFee ? "1.5rem" : "0.6rem",
-//           }}
-//         >
-//           <div className={styles["checkbox-wrapper"]}>
-//             <Checkbox
-//               isCheck={input.includeTradingFee}
-//               onCheck={() =>
-//                 setInput({
-//                   ...input,
-//                   includeTradingFee: !input.includeTradingFee,
-//                   estTradingFee: DEFAULT_INPUT.estTradingFee,
-//                   minTradingFee: DEFAULT_INPUT.minTradingFee,
-//                 })
-//               }
-//             />
-//             <span>Include Trading Fee</span>
-//           </div>
-//         </div>
-
-//         <animated.div style={tradingFeeStyles}>
-//           {input.includeTradingFee && (
-//             <>
-//               <div className={styles["form-group"]}>
-//                 <label htmlFor="trading-fee">
-//                   Estimated Trading Fee Per Order
-//                 </label>
-//                 <NumberInput
-//                   id="trading-fee"
-//                   postUnit="%"
-//                   isInvalid={
-//                     errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
-//                   }
-//                   minDecimalPlace={2}
-//                   maxDecimalPlace={4}
-//                   value={input.estTradingFee}
-//                   onChangeHandler={(val) =>
-//                     setInput({ ...input, estTradingFee: val })
-//                   }
-//                 />
-//               </div>
-
-//               <div className={styles["form-group"]}>
-//                 <label htmlFor="min-trading-fee">
-//                   Minimum Trading Fee Per Order
-//                 </label>
-//                 <NumberInput
-//                   id="min-trading-fee"
-//                   preUnit="$"
-//                   isInvalid={
-//                     errorField === ERROR_FIELD_POSITION_SIZE.MIN_TRADING_FEE
-//                   }
-//                   minDecimalPlace={2}
-//                   maxDecimalPlace={4}
-//                   value={input.minTradingFee}
-//                   onChangeHandler={(val) =>
-//                     setInput({ ...input, minTradingFee: val })
-//                   }
-//                 />
-//               </div>
-//             </>
-//           )}
-//         </animated.div>
-
-//         <p className={styles["error"]}>{errorMessage}</p>
-//       </div>
-
-//       <div className={styles["form-btn"]}>
-//         <Button
-//           className={styles["reset-btn"]}
-//           type="reset"
-//           tabIndex={-1}
-//           onClick={handleReset}
-//         >
-//           Reset
-//         </Button>
-//         <Button className={styles["submit-btn"]} type="submit">
-//           Calculate
-//         </Button>
-//       </div>
-
-//       <div ref={resultRef}>
-//         {result && (
-//           <Container
-//             className={`${styles["result-container"]} ${styles["position-size"]}`}
-//           >
-//             <div className={styles["result-wrapper"]}>
-//               <div className={styles["row"]}>
-//                 <div>Open Price:</div>
-//                 <div>
-//                   $
-//                   {result.entryPrice.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                 </div>
-//               </div>
-
-//               <div className={styles["row"]}>
-//                 <div>Stop Price:</div>
-//                 <div>
-//                   $
-//                   {result.stopPrice.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                 </div>
-//               </div>
-
-//               <div className={styles["row"]}>
-//                 <div>Stop Loss (%):</div>
-//                 <div>
-//                   {result.stopPercent.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                   %
-//                 </div>
-//               </div>
-
-//               {result.profitPrice !== undefined && (
-//                 <>
-//                   <div className={styles["row"]}>
-//                     <div>Profit Price:</div>
-//                     <div>
-//                       $
-//                       {result.profitPrice.toLocaleString("en-US", {
-//                         minimumFractionDigits: 2,
-//                         maximumFractionDigits: 4,
-//                       })}
-//                     </div>
-//                   </div>
-
-//                   <div className={styles["row"]}>
-//                     <div>Profit (%):</div>
-//                     <div>
-//                       {result.profitPercent?.toLocaleString("en-US", {
-//                         minimumFractionDigits: 2,
-//                         maximumFractionDigits: 4,
-//                       })}
-//                       %
-//                     </div>
-//                   </div>
-//                 </>
-//               )}
-
-//               <div className={styles["row"]}>
-//                 <div>Quantity:</div>
-//                 <div>{result.quantity}</div>
-//               </div>
-
-//               <br />
-
-//               <div className={styles["row"]}>
-//                 <div>Entry Amount:</div>
-//                 <div>
-//                   $
-//                   {result.tradingAmount.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                 </div>
-//               </div>
-
-//               <div className={styles["row"]}>
-//                 <div>Risk Amount:</div>
-//                 <div>
-//                   $
-//                   {result.riskAmount.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                 </div>
-//               </div>
-
-//               <div className={styles["row"]}>
-//                 <div>Portfolio Risk (%):</div>
-//                 <div>
-//                   {result.portfolioRisk.toLocaleString("en-US", {
-//                     minimumFractionDigits: 2,
-//                     maximumFractionDigits: 4,
-//                   })}
-//                   %
-//                 </div>
-//               </div>
-
-//               {result.profitAmount !== undefined && (
-//                 <div className={styles["row"]}>
-//                   <div>Potential Profit:</div>
-//                   <div>
-//                     $
-//                     {result.profitAmount.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                   </div>
-//                 </div>
-//               )}
-
-//               {result.portfolioProfit !== undefined && (
-//                 <div className={styles["row"]}>
-//                   <div>Potential Portfolio Return (%):</div>
-//                   <div>
-//                     {result.portfolioProfit.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                     %
-//                   </div>
-//                 </div>
-//               )}
-
-//               {result.estimatedEntryFee !== undefined && (
-//                 <div className={styles["row"]}>
-//                   <div>Opening Fee:</div>
-//                   <div>
-//                     $
-//                     {result.estimatedEntryFee.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                   </div>
-//                 </div>
-//               )}
-
-//               {result.estimatedStopFee !== undefined && (
-//                 <div className={styles["row"]}>
-//                   <div>Stop Loss Execution Fee:</div>
-//                   <div>
-//                     $
-//                     {result.estimatedStopFee.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                   </div>
-//                 </div>
-//               )}
-
-//               {result.estimatedProfitFee !== undefined && (
-//                 <div className={styles["row"]}>
-//                   <div>Profit-Taking Fee:</div>
-//                   <div>
-//                     $
-//                     {result.estimatedProfitFee.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                   </div>
-//                 </div>
-//               )}
-
-//               {result.riskRewardRatio && (
-//                 <>
-//                   <br />
-//                   <div className={styles["row"]}>
-//                     <div>Risk/Reward Ratio:</div>
-//                     <div>{result.riskRewardRatio}</div>
-//                   </div>
-//                 </>
-//               )}
-
-//               {result.breakEvenWinRate && (
-//                 <div className={styles["row"]}>
-//                   <div>Breakeven Win Rate:</div>
-//                   <div>
-//                     {result.breakEvenWinRate.toLocaleString("en-US", {
-//                       minimumFractionDigits: 2,
-//                       maximumFractionDigits: 4,
-//                     })}
-//                     %
-//                   </div>
-//                 </div>
-//               )}
-//             </div>
-//           </Container>
-//         )}
-//       </div>
-//     </form>
-//   );
-// };
+const DEFAULT_INPUT: ForexPositionSizeInputType = {
+  portfolioCapital: "0",
+  maxPortfolioRisk: "0",
+  accBaseCurrency: "USD",
+  currencyPair: "EUR/USD",
+  contractSize: "100,000",
+  usdAccPair: "",
+  usdAccCrossRate: "1.00",
+  usdBasePair: "",
+  usdBaseCrossRate: "1.00",
+  usdQuotePair: "",
+  usdQuoteCrossRate: "1.00",
+  basePair: "",
+  baseCrossRate: "1.00",
+  quotePair: "",
+  quoteCrossRate: "1.00",
+  openPrice: "0",
+  stopLoss: "0",
+  stopLossTyp: StopLossTyp.PRICE_BASED,
+  includeProfitGoal: false,
+  profitGoal: "0",
+  profitGoalTyp: ProfitGoalTyp.PRICE_BASED,
+  isLong: true,
+  includeTradingFee: false,
+  feeTyp: FeeTyp.COMMISSION_PER_LOT,
+  estTradingFee: "0",
+  swapFee: "0",
+  leverage: 100,
+  pipSize: 0.0001,
+};
 
 const ForexPositionSizeForm = () => {
-  return <div>Position size</div>;
+  const dispatch = useDispatch();
+  const supportedAssets = useSelector(selectForexSupportedAssets);
+  const supportedCurrencies = useSelector(selectForexSupportedCurrencies);
+  const baseCurrencyRate = useSelector(selectForexCurrencyRates);
+  const usdCommodityRate = useSelector(selectForexCommodityRates);
+  const isLoading = useSelector(selectForexIsLoading);
+
+  const [errorMessage, setErrorMessage] = useState("");
+  const [errorField, setErrorField] =
+    useState<ERROR_FIELD_POSITION_SIZE | null>(null);
+  const [input, setInput] = useState<ForexPositionSizeInputType>(DEFAULT_INPUT);
+  const [baseQuote, setBaseQuote] = useState({ base: "EUR", quote: "USD" });
+  const [stepSize, setStepSize] = useState({
+    usdAcc: 0.0001,
+    usdBase: 0.0001,
+    usdQuote: 0.0001,
+    base: 0.0001,
+    quote: 0.0001,
+  });
+  const [stopPrice, setStopPrice] = useState("");
+  const [profitGoalPrice, setProfitGoalPrice] = useState("");
+
+  const [result, setResult] = useState<PositionSizeResultType | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  const prevCurrency = useCurrencyRates(input.accBaseCurrency);
+
+  useEffect(() => {
+    // Get commodity rates
+    const symbols = ["XAU", "XAG"];
+    dispatch(getCommodityRates(symbols));
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]) {
+      // Get cross rate for account currency and base currency
+      let basePair = "";
+      let baseRateStr = "0";
+      let baseStep = 0.0001;
+      if (
+        prevCurrency !== baseQuote.quote &&
+        prevCurrency !== baseQuote.base
+      ) {
+        const baseRate = baseCurrencyRate
+          ? baseCurrencyRate[prevCurrency.current].rates[baseQuote.base]
+          : 0;
+        if (baseRate !== undefined) {
+          const pairData = generateCurrencyPair(
+            prevCurrency.current,
+            supportedCurrencies[prevCurrency.current].order,
+            baseQuote.base,
+            supportedCurrencies[baseQuote.base].order,
+            baseRate
+          );
+
+          basePair = pairData.currencyPair;
+          baseRateStr = pairData.rate;
+          baseStep = pairData.stepSize;
+        }
+      }
+
+      // Get cross rate for account currency and quote currency
+      let quotePair = "";
+      let quoteRateStr = "0";
+      let quoteStep = 0.0001;
+      if (
+        prevCurrency.current !== baseQuote.quote &&
+        prevCurrency.current !== baseQuote.base
+      ) {
+        const quoteRate = baseCurrencyRate
+          ? baseCurrencyRate[prevCurrency.current].rates[baseQuote.quote]
+          : 0;
+        if (quoteRate !== undefined) {
+          const pairData = generateCurrencyPair(
+            prevCurrency.current,
+            supportedCurrencies[prevCurrency.current].order,
+            baseQuote.quote,
+            supportedCurrencies[baseQuote.quote].order,
+            quoteRate
+          );
+          quotePair = pairData.currencyPair;
+          quoteRateStr = pairData.rate;
+          quoteStep = pairData.stepSize;
+        }
+      }
+
+      // Get cross rate for account currency and usd currency
+      let usdAccPair = "";
+      let usdAccRateStr = "0";
+      let usdAccStep = 0.0001;
+      if (
+        prevCurrency.current !== "USD" &&
+        baseQuote.quote !== "USD" &&
+        baseQuote.base !== "USD"
+      ) {
+        let usdAccRate = baseCurrencyRate
+          ? baseCurrencyRate["USD"].rates[prevCurrency.current]
+          : 0;
+        if (usdAccRate !== undefined) {
+          const pairData = generateCurrencyPair(
+            "USD",
+            supportedCurrencies["USD"].order,
+            prevCurrency.current,
+            supportedCurrencies[prevCurrency.current].order,
+            usdAccRate
+          );
+          usdAccPair = pairData.currencyPair;
+          usdAccRateStr = pairData.rate;
+          usdAccStep = pairData.stepSize;
+        }
+      }
+
+      // Get cross rate for quote currency and usd currency
+      let usdQuotePair = "";
+      let usdQuoteRateStr = "0";
+      let usdQuoteStep = 0.0001;
+      if (
+        prevCurrency.current !== "USD" &&
+        baseQuote.quote !== "USD" &&
+        baseQuote.base !== "USD"
+      ) {
+        let usdQuoteRate = baseCurrencyRate
+          ? baseCurrencyRate["USD"].rates[baseQuote.quote]
+          : 0;
+        if (usdQuoteRate !== undefined) {
+          const pairData = generateCurrencyPair(
+            "USD",
+            supportedCurrencies["USD"].order,
+            baseQuote.quote,
+            supportedCurrencies[baseQuote.quote].order,
+            usdQuoteRate
+          );
+          usdQuotePair = pairData.currencyPair;
+          usdQuoteRateStr = pairData.rate;
+          usdQuoteStep = pairData.stepSize;
+        }
+      }
+
+      setInput((prev) => {
+        const updated = { ...prev };
+
+        if (usdAccPair !== prev.usdAccPair) {
+          updated.usdAccPair = usdAccPair;
+          updated.usdAccCrossRate = usdAccRateStr;
+
+          if (errorField === ERROR_FIELD_POSITION_SIZE.USD_ACC_CROSS_RATE) {
+            setErrorField(null);
+            setErrorMessage("");
+          }
+        }
+
+        if (usdQuotePair !== prev.usdQuotePair) {
+          updated.usdQuotePair = usdQuotePair;
+          updated.usdQuoteCrossRate = usdQuoteRateStr;
+
+          if (errorField === ERROR_FIELD_POSITION_SIZE.USD_QUOTE_CROSS_RATE) {
+            setErrorField(null);
+            setErrorMessage("");
+          }
+        }
+
+        if (basePair !== prev.basePair) {
+          updated.basePair = basePair;
+          updated.baseCrossRate = baseRateStr;
+
+          if (errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE) {
+            setErrorField(null);
+            setErrorMessage("");
+          }
+        }
+
+        if (quotePair !== prev.quotePair) {
+          updated.quotePair = quotePair;
+          updated.quoteCrossRate = quoteRateStr;
+
+          if (errorField === ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE) {
+            setErrorField(null);
+            setErrorMessage("");
+          }
+        }
+
+        return updated;
+      });
+      setStepSize((prev) => ({
+        ...prev,
+        base: baseStep,
+        quote: quoteStep,
+        usdAcc: usdAccStep,
+        usdQuote: usdQuoteStep,
+      }));
+    }
+  }, [isLoading, baseCurrencyRate, baseQuote, supportedCurrencies, errorField]);
+
+  useEffect(() => {
+    if (!isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]) {
+      // Get cross rate for base and usd currency
+      let usdBasePair = "";
+      let usdBaseRateStr = "0";
+      let usdBaseStep = 0.0001;
+      if (baseQuote.base[0] === "X" && baseQuote.quote !== "USD") {
+        let usdBaseRate = usdCommodityRate
+          ? usdCommodityRate[baseQuote.base].price
+          : 0;
+        if (usdBaseRate !== undefined) {
+          let maxPrecision = 5;
+          if (usdBaseRate > 50) {
+            usdBaseStep = 0.01;
+            maxPrecision = 3;
+          }
+          usdBasePair = `${baseQuote.base}USD`;
+          usdBaseRateStr = `${usdBaseRate.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: maxPrecision,
+          })}`;
+        }
+      }
+
+      setInput((prev) => {
+        const updated = { ...prev };
+
+        if (prev.usdBasePair !== usdBasePair) {
+          updated.usdBasePair = usdBasePair;
+          updated.usdBaseCrossRate = usdBaseRateStr;
+
+          if (errorField === ERROR_FIELD_POSITION_SIZE.USD_BASE_CROSS_RATE) {
+            setErrorField(null);
+            setErrorMessage("");
+          }
+        }
+
+        return updated;
+      });
+      setStepSize((prev) => ({
+        ...prev,
+        usdBase: usdBaseStep,
+      }));
+    }
+  }, [isLoading, baseQuote, usdCommodityRate, errorField]);
+
+  useEffect(() => {
+    const stopPrice = calculateStopPriceFromPip(input);
+    setStopPrice(stopPrice);
+
+    const profitPrice = calculateProfitPriceFromPip(input);
+    setProfitGoalPrice(profitPrice);
+    console.log(profitPrice);
+  }, [input]);
+
+  const handleSwitch = (idx: number) => {
+    setInput({ ...input, isLong: idx === 0 });
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    // Handle validation
+    const { err, field } = validatePositionSizeInput(input);
+    setErrorMessage(err);
+    setErrorField(field);
+    if (err !== "") return;
+
+    // Handle calculation
+    console.log(input);
+    calculateResult(input);
+    // setResult(calculateResult(input));
+  };
+
+  const handleReset = (e: FormEvent) => {
+    e.preventDefault();
+
+    setErrorMessage("");
+    setInput({
+      ...DEFAULT_INPUT,
+      isLong: input.isLong,
+      accBaseCurrency: input.accBaseCurrency,
+      currencyPair: input.currencyPair,
+      includeProfitGoal: input.includeProfitGoal,
+      profitGoalTyp: input.profitGoalTyp,
+      includeTradingFee: input.includeTradingFee,
+      feeTyp: input.feeTyp,
+      leverage: input.leverage,
+      usdAccPair: input.usdAccPair,
+      usdAccCrossRate: input.usdAccCrossRate,
+      usdQuotePair: input.usdQuotePair,
+      usdQuoteCrossRate: input.usdQuoteCrossRate,
+      basePair: input.basePair,
+      baseCrossRate: input.baseCrossRate,
+      quotePair: input.quotePair,
+      quoteCrossRate: input.quoteCrossRate,
+    });
+    setErrorField(null);
+    setResult(null);
+  };
+
+  const crossRateStyles = useSpring({
+    height: calculateCrossHeight(input),
+    opacity: input.quotePair === "" ? 0 : 1,
+    overflow: "hidden",
+  });
+
+  const profitGoalStyles = useSpring({
+    height: input.includeProfitGoal ? 220 : 0,
+    opacity: input.includeProfitGoal ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const tradingFeeStyles = useSpring({
+    height: input.includeTradingFee ? 300 : 0,
+    opacity: input.includeTradingFee ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  return (
+    <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
+      <p className={styles["description"]}>
+        This calculator helps you to determine the optimal position size and
+        stop-loss price for your trades. By inputting parameters such as total
+        capital, maximum allowable loss, stop-loss percentage, profit ratio, and
+        trade-in price, the calculator computes position size, stop price, and
+        profit target for you.
+      </p>
+
+      <div className={styles["switch-wrapper"]}>
+        <Switch
+          height={33}
+          borderRadius={20}
+          childWidth={161}
+          names={["Long", "Short"]}
+          defaultIndex={0}
+          onSwitch={handleSwitch}
+        />
+      </div>
+
+      <div>
+        <div className={styles["form-group"]}>
+          <label htmlFor="portfolio-capital">Portfolio Capital</label>
+          <NumberInput
+            id="portfolio-capital"
+            preUnit="$"
+            isInvalid={
+              errorField === ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL
+            }
+            minDecimalPlace={2}
+            maxDecimalPlace={5}
+            value={input.portfolioCapital}
+            onChangeHandler={(val) =>
+              setInput({ ...input, portfolioCapital: val })
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="max-portfolio-risk">Max Portfolio Risk (%)</label>
+          <NumberInput
+            step="0.1"
+            id="max-portfolio-risk"
+            minDecimalPlace={2}
+            maxDecimalPlace={5}
+            postUnit="%"
+            isInvalid={
+              errorField === ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK
+            }
+            value={input.maxPortfolioRisk}
+            onChangeHandler={(val) =>
+              setInput({ ...input, maxPortfolioRisk: val })
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="acc-base-currency">Account Currency</label>
+          <CurrencySelectBox
+            name="acc-base-currency"
+            defaultIndex={29}
+            supportedCurrencies={supportedCurrencies}
+            onChange={(currency) => {
+              setInput({
+                ...input,
+                accBaseCurrency: currency,
+              });
+            }}
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="currency-pair">Currency Pair</label>
+          <PairSelectBox
+            name="currency-pair"
+            defaultIndex={24}
+            supportedAssets={supportedAssets}
+            onChange={(pair) => {
+              setInput(() => {
+                setBaseQuote(getBaseAndQuote(pair));
+                const pairInfo = supportedAssets[pair];
+
+                return {
+                  ...input,
+                  pipSize: pairInfo.pip,
+                  contractSize: pairInfo.lot,
+                  currencyPair: pair,
+                  stopLossTyp:
+                    pairInfo.pip === 0
+                      ? StopLossTyp.PRICE_BASED
+                      : input.stopLossTyp,
+                  profitGoalTyp:
+                    input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
+                      ? input.profitGoalTyp
+                      : pairInfo.pip === 0
+                      ? ProfitGoalTyp.PRICE_BASED
+                      : input.profitGoalTyp,
+                };
+              });
+            }}
+          />
+        </div>
+
+        <animated.div style={crossRateStyles}>
+          {input.quotePair !== "" && (
+            <div className={styles["form-group"]}>
+              <label>Cross Rate</label>
+              <div className={styles["cross-rate-container"]}>
+                {input.usdBasePair !== "" && (
+                  <div className={styles["exchange-rate-container"]}>
+                    <div className={styles["exchange-rate-label"]}>
+                      {input.usdBasePair + ":"}
+                    </div>
+                    <NumberInput
+                      step={stepSize.usdBase}
+                      id="usd-base-cross-rate"
+                      minDecimalPlace={2}
+                      maxDecimalPlace={5}
+                      isInvalid={
+                        errorField ===
+                        ERROR_FIELD_POSITION_SIZE.USD_BASE_CROSS_RATE
+                      }
+                      value={
+                        isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]
+                          ? "0"
+                          : input.usdBaseCrossRate || "0"
+                      }
+                      onChangeHandler={(val) =>
+                        setInput({ ...input, usdBaseCrossRate: val })
+                      }
+                      disabled={
+                        isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]
+                      }
+                    />
+                  </div>
+                )}
+
+                {input.usdAccPair !== "" &&
+                  ((input.includeTradingFee &&
+                    input.feeTyp === FeeTyp.COMMISSION_PER_100K) ||
+                    input.usdBasePair !== "") && (
+                    <div className={styles["exchange-rate-container"]}>
+                      <div className={styles["exchange-rate-label"]}>
+                        {input.usdAccPair + ":"}
+                      </div>
+                      <NumberInput
+                        step={stepSize.usdAcc}
+                        id="usd-acc-cross-rate"
+                        minDecimalPlace={2}
+                        maxDecimalPlace={5}
+                        isInvalid={
+                          errorField ===
+                          ERROR_FIELD_POSITION_SIZE.USD_ACC_CROSS_RATE
+                        }
+                        value={
+                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                            ? "0"
+                            : input.usdAccCrossRate || "0"
+                        }
+                        onChangeHandler={(val) =>
+                          setInput({ ...input, usdAccCrossRate: val })
+                        }
+                        disabled={
+                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                        }
+                      />
+                    </div>
+                  )}
+
+                {input.usdQuotePair !== "" &&
+                  input.includeTradingFee &&
+                  input.feeTyp === FeeTyp.COMMISSION_PER_100K && (
+                    <div className={styles["exchange-rate-container"]}>
+                      <div className={styles["exchange-rate-label"]}>
+                        {input.usdQuotePair + ":"}
+                      </div>
+                      <NumberInput
+                        step={stepSize.usdQuote}
+                        id="usd-quote-cross-rate"
+                        minDecimalPlace={2}
+                        maxDecimalPlace={5}
+                        isInvalid={
+                          errorField ===
+                          ERROR_FIELD_POSITION_SIZE.USD_QUOTE_CROSS_RATE
+                        }
+                        value={
+                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                            ? "0"
+                            : input.usdQuoteCrossRate || "0"
+                        }
+                        onChangeHandler={(val) =>
+                          setInput({ ...input, usdQuoteCrossRate: val })
+                        }
+                        disabled={
+                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                        }
+                      />
+                    </div>
+                  )}
+
+                {input.basePair !== "" && (
+                  <div className={styles["exchange-rate-container"]}>
+                    <div className={styles["exchange-rate-label"]}>
+                      {input.basePair + ":"}
+                    </div>
+                    <NumberInput
+                      step={stepSize.base}
+                      id="base-cross-rate"
+                      minDecimalPlace={2}
+                      maxDecimalPlace={5}
+                      isInvalid={
+                        errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
+                      }
+                      value={
+                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                          ? "0"
+                          : input.baseCrossRate || "0"
+                      }
+                      onChangeHandler={(val) =>
+                        setInput({ ...input, baseCrossRate: val })
+                      }
+                      disabled={
+                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                      }
+                    />
+                  </div>
+                )}
+
+                {input.quotePair !== "" && (
+                  <div className={styles["exchange-rate-container"]}>
+                    <div className={styles["exchange-rate-label"]}>
+                      {input.quotePair + ":"}
+                    </div>
+                    <NumberInput
+                      step={stepSize.quote}
+                      id="quote-cross-rate"
+                      minDecimalPlace={2}
+                      maxDecimalPlace={5}
+                      isInvalid={
+                        errorField ===
+                        ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
+                      }
+                      value={
+                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                          ? "0"
+                          : input.quoteCrossRate || "0"
+                      }
+                      onChangeHandler={(val) =>
+                        setInput({ ...input, quoteCrossRate: val })
+                      }
+                      disabled={
+                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </animated.div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="leverage">Leverage for Margin</label>
+          <LeverageSelectBox
+            name="leverage"
+            defaultIndex={9}
+            onChange={(leverage) => {
+              setInput(() => {
+                return {
+                  ...input,
+                  leverage,
+                };
+              });
+            }}
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="contract-size">
+            Contract Size ({baseQuote.base[0] === "X" ? "Ounce" : "Unit"})
+          </label>
+          <NumberInput
+            id="contract-size"
+            step={1}
+            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE}
+            minDecimalPlace={0}
+            maxDecimalPlace={0}
+            value={input.contractSize}
+            onChangeHandler={(val) => setInput({ ...input, contractSize: val })}
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="open-price">Open Price</label>
+          <NumberInput
+            id="open-price"
+            step={supportedAssets[input.currencyPair].pip}
+            preUnit="$"
+            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
+            minDecimalPlace={2}
+            maxDecimalPlace={5}
+            value={input.openPrice}
+            onChangeHandler={(val) => setInput({ ...input, openPrice: val })}
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="stop-loss">Stop Loss</label>
+          <div className={styles["input-with-switch"]}>
+            <NumberInput
+              id="stop-loss"
+              preUnit={input.stopLossTyp === StopLossTyp.PRICE_BASED ? "$" : ""}
+              postUnit={
+                input.stopLossTyp === StopLossTyp.PIP_BASED ? "PIP" : ""
+              }
+              isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
+              minDecimalPlace={2}
+              maxDecimalPlace={5}
+              value={input.stopLoss}
+              onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
+            />
+            {input.pipSize > 0 && (
+              <Switch
+                height={46}
+                borderRadius={5}
+                names={["$", "PIP"]}
+                defaultIndex={
+                  input.stopLossTyp === StopLossTyp.PRICE_BASED ? 0 : 1
+                }
+                childWidth={50}
+                onSwitch={(idx: number) => {
+                  setInput({
+                    ...input,
+                    stopLossTyp:
+                      idx === 0
+                        ? StopLossTyp.PRICE_BASED
+                        : StopLossTyp.PIP_BASED,
+                  });
+                }}
+              />
+            )}
+          </div>
+          {stopPrice && (
+            <p className={styles["hint"]}>Stop Loss Price: $ {stopPrice}</p>
+          )}
+        </div>
+
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginTop: "2rem",
+            marginBottom: input.includeProfitGoal ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              isCheck={input.includeProfitGoal}
+              onCheck={() =>
+                setInput({
+                  ...input,
+                  includeProfitGoal: !input.includeProfitGoal,
+                  profitGoal: DEFAULT_INPUT.profitGoal,
+                  profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
+                })
+              }
+            />
+            <span>Include Profit Goal</span>
+          </div>
+        </div>
+
+        <animated.div style={profitGoalStyles}>
+          {input.includeProfitGoal && (
+            <>
+              <div className={styles["form-group"]}>
+                <label htmlFor="profit-strategy">Profit Strategy</label>
+                <SelectBox
+                  name="profit-strategy"
+                  options={["Price-Based", "Portfolio-Based"]}
+                  defaultIndex={ProfitGoalTyp.PRICE_BASED}
+                  onChangeHandler={(idx) => {
+                    setInput({ ...input, profitGoalTyp: idx, profitGoal: "0" });
+                    if (
+                      errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
+                    ) {
+                      setErrorField(null);
+                      setErrorMessage("");
+                    }
+                  }}
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="profit-goal">
+                  {input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
+                    ? "Min Portfolio Profit (%)"
+                    : "Profit Target"}
+                </label>
+                <div className={styles["input-with-switch"]}>
+                  <NumberInput
+                    id="profit-goal"
+                    step={1}
+                    preUnit={
+                      input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
+                        ? "$"
+                        : ""
+                    }
+                    postUnit={
+                      input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
+                        ? "%"
+                        : input.profitGoalTyp === ProfitGoalTyp.PIP_BASED
+                        ? "PIP"
+                        : ""
+                    }
+                    isInvalid={
+                      errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
+                    }
+                    minDecimalPlace={2}
+                    maxDecimalPlace={5}
+                    value={input.profitGoal}
+                    onChangeHandler={(val) =>
+                      setInput({ ...input, profitGoal: val })
+                    }
+                  />
+                  {input.profitGoalTyp !== ProfitGoalTyp.PORTFOLIO_BASED &&
+                    input.pipSize > 0 && (
+                      <Switch
+                        height={46}
+                        borderRadius={5}
+                        names={["$", "PIP"]}
+                        defaultIndex={
+                          input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
+                            ? 0
+                            : 1
+                        }
+                        childWidth={50}
+                        onSwitch={(idx: number) => {
+                          setInput({
+                            ...input,
+                            profitGoalTyp:
+                              idx === 0
+                                ? ProfitGoalTyp.PRICE_BASED
+                                : ProfitGoalTyp.PIP_BASED,
+                          });
+                        }}
+                      />
+                    )}
+                </div>
+                {profitGoalPrice && (
+                  <p className={styles["hint"]}>
+                    Profit Goal Price: $ {profitGoalPrice}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </animated.div>
+
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includeTradingFee ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              isCheck={input.includeTradingFee}
+              onCheck={() => {
+                setInput({
+                  ...input,
+                  includeTradingFee: !input.includeTradingFee,
+                  feeTyp: DEFAULT_INPUT.feeTyp,
+                  estTradingFee: "0",
+                  swapFee: "0",
+                });
+              }}
+            />
+            <span>Include Commission Fee</span>
+          </div>
+        </div>
+
+        <animated.div style={tradingFeeStyles}>
+          {input.includeTradingFee && (
+            <>
+              <div className={styles["form-group"]}>
+                <label htmlFor="fee-type">Fee Type</label>
+                <SelectBox
+                  name="fee-type"
+                  options={[
+                    "Commission fee per lot per side",
+                    "Commission fee per $100k traded per side",
+                  ]}
+                  defaultIndex={DEFAULT_INPUT.feeTyp}
+                  onChangeHandler={(idx) => {
+                    setInput({ ...input, feeTyp: idx, estTradingFee: "0" });
+                    if (
+                      errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
+                    ) {
+                      setErrorField(null);
+                      setErrorMessage("");
+                    }
+                  }}
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="estimated-fee">
+                  Commission Fee ({input.accBaseCurrency})
+                </label>
+                <div className={styles["input-with-switch"]}>
+                  <NumberInput
+                    id="estimated-fee"
+                    step={0.1}
+                    preUnit="$"
+                    isInvalid={
+                      errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
+                    }
+                    minDecimalPlace={2}
+                    maxDecimalPlace={5}
+                    value={input.estTradingFee}
+                    onChangeHandler={(val) =>
+                      setInput({ ...input, estTradingFee: val })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="estimated-fee">
+                  Total Swap {input.isLong ? "Long" : "Short"} (
+                  {baseQuote.quote})
+                </label>
+                <div className={styles["input-with-switch"]}>
+                  <NumberInput
+                    id="swap-fee"
+                    step={0.1}
+                    preUnit="$"
+                    minDecimalPlace={2}
+                    maxDecimalPlace={5}
+                    value={input.swapFee}
+                    onChangeHandler={(val) =>
+                      setInput({ ...input, swapFee: val })
+                    }
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </animated.div>
+
+        <p className={styles["error"]}>{errorMessage}</p>
+      </div>
+
+      <div className={styles["form-btn"]}>
+        <Button
+          className={styles["reset-btn"]}
+          type="reset"
+          tabIndex={-1}
+          onClick={handleReset}
+        >
+          Reset
+        </Button>
+        <Button className={styles["submit-btn"]} type="submit">
+          Calculate
+        </Button>
+      </div>
+    </form>
+  );
 };
 
 export default ForexPositionSizeForm;

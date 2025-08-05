@@ -1,17 +1,23 @@
-import { parseNumberFromString } from "../../../../common/number/number";
+import { BigNumber } from "mathjs";
+import { mathBigNum } from "../../../../common/number/math";
+import {
+  convertToLocaleString,
+  parseBigNumberFromString,
+  parseNumberFromString,
+} from "../../../../common/number/number";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import {
   ERROR_FIELD_PROFIT_LOSS,
   ProfitLossInputType,
   ProfitLossResultType,
-} from "./profit_loss_form.component";
+} from "./profit_loss.type";
 
 export const validateProfitLossInput = (
   input: ProfitLossInputType
 ): { err: string; field: ERROR_FIELD_PROFIT_LOSS | null } => {
   if (!checkMinMax(input.entryPrice, 0)) {
     return {
-      err: "Please enter a valid entry price.",
+      err: "Please enter a valid open price.",
       field: ERROR_FIELD_PROFIT_LOSS.ENTRY_PRICE,
     };
   }
@@ -25,7 +31,7 @@ export const validateProfitLossInput = (
 
   if (!checkMinMax(input.exitPrice, 0)) {
     return {
-      err: "Please enter a valid exit price.",
+      err: "Please enter a valid close price.",
       field: ERROR_FIELD_PROFIT_LOSS.EXIT_PRICE,
     };
   }
@@ -53,66 +59,122 @@ export const calculateResult = (
   input: ProfitLossInputType
 ): ProfitLossResultType => {
   // Parse inputs
-  const entryPrice = parseNumberFromString(input.entryPrice);
-  const exitPrice = parseNumberFromString(input.exitPrice);
-  const quantity = parseNumberFromString(input.quantity);
+  const entryPrice = parseBigNumberFromString(input.entryPrice);
+  const exitPrice = parseBigNumberFromString(input.exitPrice);
+  const quantity = parseBigNumberFromString(input.quantity);
   const estTradingFee = parseNumberFromString(input.estTradingFee);
-  const minTradingFee = parseNumberFromString(input.minTradingFee);
+  const estFeeRate = estTradingFee / 100;
+  const minTradingFee = parseBigNumberFromString(input.minTradingFee);
 
   /* 
   Handle calculation
   */
 
-  // total entry & exit price
-  const totalEntryPrice = parseFloat((entryPrice * quantity).toFixed(4));
-  const totalExitPrice = parseFloat((exitPrice * quantity).toFixed(4));
+  // Calculate total entry & exit price
+  // totalEntryAmount = entryPrice * quantity
+  const totalEntryAmount = mathBigNum.multiply(
+    entryPrice,
+    quantity
+  ) as BigNumber;
+  const totalEntryAmountStr = convertToLocaleString(
+    totalEntryAmount.toString(),
+    2,
+    5
+  );
 
-  // total fee
-  let estimatedEntryFee;
-  let estimatedExitFee;
-  if (input.includeTradingFee) {
-    const estFeeRate = estTradingFee / 100;
-    estimatedEntryFee = totalEntryPrice * estFeeRate;
-    if (estimatedEntryFee < minTradingFee) {
-      estimatedEntryFee = minTradingFee;
-    }
-    estimatedEntryFee = parseFloat(estimatedEntryFee.toFixed(4));
+  // Calculate total exit amount
+  // totalExitAmount = exitPrice * quantity
+  const totalExitAmount = mathBigNum.multiply(exitPrice, quantity) as BigNumber;
+  const totalExitAmountStr = convertToLocaleString(
+    totalExitAmount.toString(),
+    2,
+    5
+  );
 
-    estimatedExitFee = totalExitPrice * estFeeRate;
-    if (estimatedExitFee < minTradingFee) {
-      estimatedExitFee = minTradingFee;
-    }
-    estimatedExitFee = parseFloat(estimatedExitFee.toFixed(4));
+  // Calculate gain and loss
+  // grossGained = isLong ? totalExitAmount - totalEntryAmount: totalEntryAmount - totalExitAmount
+  const grossGained = input.isLong
+    ? mathBigNum.subtract(totalExitAmount, totalEntryAmount)
+    : mathBigNum.subtract(totalEntryAmount, totalExitAmount);
+  const grossGainedStr = convertToLocaleString(grossGained.toString(), 2, 5);
+
+  // Calculate gross gained percentage
+  let grossPercentageStr = "0";
+  if (!mathBigNum.equal(totalEntryAmount, 0)) {
+    // grossGainedPercentage = (grossGained / totalEntryAmount) * 100
+    let grossPercentage = mathBigNum.multiply(
+      mathBigNum.divide(grossGained, totalEntryAmount),
+      100
+    ) as BigNumber;
+    grossPercentageStr = convertToLocaleString(
+      grossPercentage.toString(),
+      2,
+      5
+    );
   }
 
-  // gain/loss
-  let grossGained = input.isLong
-    ? totalExitPrice - totalEntryPrice
-    : totalEntryPrice - totalExitPrice;
-  let netGained;
-  if (estimatedEntryFee !== undefined && estimatedExitFee !== undefined)
-    netGained = grossGained - estimatedEntryFee - estimatedExitFee;
+  // Calculate fees
+  let totalEntryFeeStr: string | undefined;
+  let totalExitFeeStr: string | undefined;
+  let netGainedStr: string | undefined;
+  let netPercentageStr: string | undefined;
+  if (input.includeTradingFee) {
+    // Calculate total entry fee
+    // totalEntryFee = totalEntryAmount * estFeeRate
+    let totalEntryFee = mathBigNum.multiply(
+      totalEntryAmount,
+      estFeeRate
+    ) as BigNumber;
+    totalEntryFee = mathBigNum.round(totalEntryFee, 5);
+    if (mathBigNum.smaller(totalEntryFee, minTradingFee)) {
+      totalEntryFee = minTradingFee;
+    }
+    totalEntryFeeStr = convertToLocaleString(totalEntryFee.toString(), 2, 5);
 
-  // gain/loss percentage
-  let grossPercentage;
-  let netPercentage;
-  if (entryPrice > 0) {
-    grossPercentage =
-      grossGained === 0 ? 0 : (grossGained / totalEntryPrice) * 100;
+    // Calculate total exit fee
+    // totalExitFee = totalExitAmount * estFeeRate
+    let totalExitFee = mathBigNum.multiply(
+      totalExitAmount,
+      estFeeRate
+    ) as BigNumber;
+    totalExitFee = mathBigNum.round(totalExitFee, 5);
+    if (mathBigNum.smaller(totalExitFee, minTradingFee)) {
+      totalExitFee = minTradingFee;
+    }
+    totalExitFeeStr = convertToLocaleString(totalExitFee.toString(), 2, 5);
 
-    if (netGained !== undefined)
-      netPercentage = netGained === 0 ? 0 : (netGained / totalEntryPrice) * 100;
+    // Calculate net gained
+    // netGained = grossGained - totalEntryFee - totalExitFee
+    let netGained = mathBigNum.subtract(
+      mathBigNum.subtract(grossGained, totalEntryFee),
+      totalExitFee
+    );
+
+    // Calculate net gained percentage
+    netPercentageStr = "0";
+    if (!mathBigNum.equal(totalEntryAmount, 0)) {
+      // netGainedPercentage = (Math.abs(netGained) / totalEntryAmount) * 100
+      let netPercentage = mathBigNum.multiply(
+        mathBigNum.divide(netGained, totalEntryAmount),
+        100
+      ) as BigNumber;
+      netPercentage = mathBigNum.round(netPercentage, 5);
+      netPercentageStr = convertToLocaleString(netPercentage.toString(), 2, 5);
+    }
+
+    netGained = mathBigNum.round(netGained, 5);
+    netGainedStr = convertToLocaleString(netGained.toString(), 2, 5);
   }
 
   return {
-    totalEntryAmount: totalEntryPrice,
-    totalExitAmount: totalExitPrice,
-    grossGained,
-    grossPercentage,
-    netGained,
-    netPercentage,
-    estimatedEntryFee,
-    estimatedExitFee,
+    totalEntryAmount: totalEntryAmountStr,
+    totalExitAmount: totalExitAmountStr,
+    grossGained: grossGainedStr,
+    grossPercentage: grossPercentageStr,
+    netGained: netGainedStr,
+    netPercentage: netPercentageStr,
+    estimatedEntryFee: totalEntryFeeStr,
+    estimatedExitFee: totalExitFeeStr,
     isLong: input.isLong,
     includeTradingFee: input.includeTradingFee,
   };

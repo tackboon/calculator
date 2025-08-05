@@ -1,6 +1,12 @@
 import axios from "axios";
 
-import { AuthApi, BaseResponse, Configuration, JournalsApi } from "../openapi";
+import {
+  AuthApi,
+  BaseResponse,
+  Configuration,
+  ForexApi,
+  JournalsApi,
+} from "../openapi";
 import { store } from "../store/store";
 import { logout } from "../store/user/user.action";
 import { getAuthCSRFTokenFromCookie } from "../common/storage/cookie";
@@ -54,12 +60,14 @@ customAxios.interceptors.response.use(
 class OpenAPI {
   AuthAPI: AuthApi;
   JournalAPI: JournalsApi;
+  ForexAPI: ForexApi;
 
   constructor() {
     const conf = new Configuration();
 
     this.AuthAPI = new AuthApi(conf, API_HOST, customAxios);
     this.JournalAPI = new JournalsApi(conf, API_HOST, customAxios);
+    this.ForexAPI = new ForexApi(conf, API_HOST, customAxios);
   }
 }
 

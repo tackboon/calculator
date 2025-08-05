@@ -7,7 +7,6 @@ from flask_smorest import Api
 from request_id import RequestId
 
 from src.app.user import init_internal_auth_app, init_auth_app
-from src.app.journal import init_journal_app
 from src.app.forex import init_forex_app
 from src.app.user.repository import Repository as AuthRepo
 from src.config import config
@@ -93,10 +92,6 @@ def create_app():
       api.register_blueprint(
         init_auth_app(config, db_service, redis_service, ip_service, email_service), 
         url_prefix="/app/api/v1/auth"
-      )
-      api.register_blueprint(
-        init_journal_app(config, db_service, redis_service), 
-        url_prefix="/app/api/v1/journals"
       )
       api.register_blueprint(
         init_forex_app(config, redis_service, frank_further_service, gold_api_service),

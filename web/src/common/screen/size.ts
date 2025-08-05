@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 
 export const useCheckIsSmallView = () => {
   // State to track whether the view is small view
-  const [isSmallView, setIsSmallView] = useState(window.innerWidth <= 600);
+  const [isSmallView, setIsSmallView] = useState(window.innerWidth <= 767);
 
   useEffect(() => {
     // Handle window resize
     const handleResize = () => {
-      if (window.innerWidth <= 600 && !isSmallView) {
+      if (window.innerWidth <= 767 && !isSmallView) {
         setIsSmallView(true);
-      } else if (window.innerWidth > 600 && isSmallView) {
+      } else if (window.innerWidth > 767 && isSmallView) {
         setIsSmallView(false);
       }
     };

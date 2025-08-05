@@ -11,34 +11,13 @@ import Container from "../../../../component/common/container/container.componen
 import NumberInput from "../../../../component/common/input/number_input.component";
 import SelectBox from "../../../../component/common/select_box/select_box.component";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
-
-export enum UnitType {
-  FRACTIONAL,
-  UNIT,
-  LOT,
-}
-
-export enum ProfitGoalTyp {
-  PRICED_BASED,
-  PORTFOLIO_BASED,
-}
-
-export type PositionSizeInputType = {
-  portfolioCapital: string;
-  maxPortfolioRisk: string;
-  entryPrice: string;
-  unitType: UnitType;
-  stopLoss: string;
-  stopLossTyp: "$" | "%";
-  includeProfitGoal: boolean;
-  profitGoalTyp: ProfitGoalTyp;
-  profitGoal: string;
-  profitGoalUnit: "$" | "%";
-  isLong: boolean;
-  includeTradingFee: boolean;
-  estTradingFee: string;
-  minTradingFee: string;
-};
+import {
+  ERROR_FIELD_POSITION_SIZE,
+  PositionSizeInputType,
+  PositionSizeResultType,
+  ProfitGoalTyp,
+  UnitType,
+} from "./position_size.type";
 
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
@@ -55,38 +34,6 @@ const DEFAULT_INPUT: PositionSizeInputType = {
   includeTradingFee: false,
   estTradingFee: "0",
   minTradingFee: "0",
-};
-
-export enum ERROR_FIELD_POSITION_SIZE {
-  PORTFOLIO_CAPITAL,
-  MAX_PORTFOLIO_RISK,
-  STOP_LOSS,
-  PROFIT_TARGET,
-  ENTRY_PRICE,
-  EST_TRADING_FEE,
-  MIN_TRADING_FEE,
-}
-
-export type PositionSizeResultType = {
-  isLong: boolean;
-  includeTradingFee: boolean;
-  includeProfitGoal: boolean;
-  entryPrice: number;
-  stopPrice: number;
-  stopPercent: number;
-  profitPrice?: number;
-  profitPercent?: number;
-  quantity: string;
-  tradingAmount: number;
-  riskAmount: number;
-  portfolioRisk: number;
-  profitAmount?: number;
-  portfolioProfit?: number;
-  riskRewardRatio?: string;
-  breakEvenWinRate?: number;
-  estimatedEntryFee?: number;
-  estimatedStopFee?: number;
-  estimatedProfitFee?: number;
 };
 
 const PositionSizeForm = () => {
@@ -184,7 +131,7 @@ const PositionSizeForm = () => {
               errorField === ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL
             }
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             value={input.portfolioCapital}
             onChangeHandler={(val) =>
               setInput({ ...input, portfolioCapital: val })
@@ -198,7 +145,7 @@ const PositionSizeForm = () => {
             step="0.1"
             id="max-portfolio-risk"
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             postUnit="%"
             isInvalid={
               errorField === ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK
@@ -216,7 +163,7 @@ const PositionSizeForm = () => {
             id="entry-price"
             preUnit="$"
             minDecimalPlace={2}
-            maxDecimalPlace={4}
+            maxDecimalPlace={5}
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE}
             value={input.entryPrice}
             onChangeHandler={(val) => setInput({ ...input, entryPrice: val })}
@@ -242,7 +189,7 @@ const PositionSizeForm = () => {
               postUnit={input.stopLossTyp === "%" ? "%" : ""}
               isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
               minDecimalPlace={2}
-              maxDecimalPlace={4}
+              maxDecimalPlace={5}
               value={input.stopLoss}
               onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
             />
@@ -263,7 +210,7 @@ const PositionSizeForm = () => {
                           "en-US",
                           {
                             minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
+                            maximumFractionDigits: 5,
                           }
                         ),
                 });
@@ -338,7 +285,7 @@ const PositionSizeForm = () => {
                       errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                     }
                     minDecimalPlace={2}
-                    maxDecimalPlace={4}
+                    maxDecimalPlace={5}
                     value={input.profitGoal}
                     onChangeHandler={(val) =>
                       setInput({ ...input, profitGoal: val })
@@ -362,7 +309,7 @@ const PositionSizeForm = () => {
                                   input.profitGoal
                                 ).toLocaleString("en-US", {
                                   minimumFractionDigits: 2,
-                                  maximumFractionDigits: 4,
+                                  maximumFractionDigits: 5,
                                 }),
                         });
                       }}
@@ -410,7 +357,7 @@ const PositionSizeForm = () => {
                     errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, estTradingFee: val })
@@ -429,7 +376,7 @@ const PositionSizeForm = () => {
                     errorField === ERROR_FIELD_POSITION_SIZE.MIN_TRADING_FEE
                   }
                   minDecimalPlace={2}
-                  maxDecimalPlace={4}
+                  maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
                     setInput({ ...input, minTradingFee: val })
@@ -465,59 +412,29 @@ const PositionSizeForm = () => {
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
                 <div>Open Price:</div>
-                <div>
-                  $
-                  {result.entryPrice.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.entryPrice}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Stop Price:</div>
-                <div>
-                  $
-                  {result.stopPrice.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.stopPrice}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Stop Loss (%):</div>
-                <div>
-                  {result.stopPercent.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                  %
-                </div>
+                <div>{result.stopPercent}%</div>
               </div>
 
               {result.profitPrice !== undefined && (
                 <>
                   <div className={styles["row"]}>
                     <div>Profit Price:</div>
-                    <div>
-                      $
-                      {result.profitPrice.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })}
-                    </div>
+                    <div>${result.profitPrice}</div>
                   </div>
 
                   <div className={styles["row"]}>
                     <div>Profit (%):</div>
-                    <div>
-                      {result.profitPercent?.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })}
-                      %
-                    </div>
+                    <div>{result.profitPercent}%</div>
                   </div>
                 </>
               )}
@@ -531,99 +448,51 @@ const PositionSizeForm = () => {
 
               <div className={styles["row"]}>
                 <div>Entry Amount:</div>
-                <div>
-                  $
-                  {result.tradingAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.tradingAmount}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Risk Amount:</div>
-                <div>
-                  $
-                  {result.riskAmount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                </div>
+                <div>${result.riskAmount}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Portfolio Risk (%):</div>
-                <div>
-                  {result.portfolioRisk.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
-                  %
-                </div>
+                <div>{result.portfolioRisk}%</div>
               </div>
 
               {result.profitAmount !== undefined && (
                 <div className={styles["row"]}>
                   <div>Potential Profit:</div>
-                  <div>
-                    $
-                    {result.profitAmount.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.profitAmount}</div>
                 </div>
               )}
 
               {result.portfolioProfit !== undefined && (
                 <div className={styles["row"]}>
                   <div>Potential Portfolio Return (%):</div>
-                  <div>
-                    {result.portfolioProfit.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                    %
-                  </div>
+                  <div>{result.portfolioProfit}%</div>
                 </div>
               )}
 
               {result.estimatedEntryFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Opening Fee:</div>
-                  <div>
-                    $
-                    {result.estimatedEntryFee.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.estimatedEntryFee}</div>
                 </div>
               )}
 
               {result.estimatedStopFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Stop Loss Execution Fee:</div>
-                  <div>
-                    $
-                    {result.estimatedStopFee.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.estimatedStopFee}</div>
                 </div>
               )}
 
               {result.estimatedProfitFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Profit-Taking Fee:</div>
-                  <div>
-                    $
-                    {result.estimatedProfitFee.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </div>
+                  <div>${result.estimatedProfitFee}</div>
                 </div>
               )}
 
@@ -640,13 +509,7 @@ const PositionSizeForm = () => {
               {result.breakEvenWinRate && (
                 <div className={styles["row"]}>
                   <div>Breakeven Win Rate:</div>
-                  <div>
-                    {result.breakEvenWinRate.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                    %
-                  </div>
+                  <div>{result.breakEvenWinRate}%</div>
                 </div>
               )}
             </div>

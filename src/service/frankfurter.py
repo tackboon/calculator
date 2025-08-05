@@ -41,7 +41,7 @@ class FrankFurtherServicer:
     }
 
     # Send Get request with parameters
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params, timeout=10) # 10s timeout
 
     # Handle response
     if response.status_code == 200:

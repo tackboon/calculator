@@ -6,9 +6,7 @@ import LoginPage from "../page/auth/login.component";
 import RegisterPage from "../page/auth/register.component";
 import CalculatorPage from "../page/calculator/calculator.component";
 import ForgotPasswordPage from "../page/auth/forgot.component";
-import StockJournalPage from "../page/journal/stock_journal.component";
 import NotFoundPage from "../page/not_found/not_found.component";
-import PortfolioPage from "../page/portfolio/portfolio.component";
 import ResetPasswordPage from "../page/auth/reset.component";
 import { resetPasswordLoader, sessionLoader } from "./loader";
 
@@ -25,24 +23,6 @@ const router = createBrowserRouter([
         path: "/calculator",
         element: <CalculatorPage />,
         loader: () => sessionLoader(false),
-      },
-      {
-        path: "/journal",
-        element: (
-          <RequiredAuthRoute>
-            <StockJournalPage />
-          </RequiredAuthRoute>
-        ),
-        loader: () => sessionLoader(true),
-      },
-      {
-        path: "/portfolio",
-        element: (
-          <RequiredAuthRoute>
-            <PortfolioPage />
-          </RequiredAuthRoute>
-        ),
-        loader: () => sessionLoader(true),
       },
       {
         path: "/login",

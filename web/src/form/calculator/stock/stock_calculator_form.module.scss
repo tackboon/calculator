@@ -10,7 +10,7 @@
     margin-bottom: 1.5rem;
     text-align: center;
 
-    @media (min-width: 600px) {
+    @media (min-width: 768px) {
       font-size: 1.2rem;
       margin-bottom: 40px;
     }
@@ -59,7 +59,7 @@
     justify-content: space-between;
     gap: 1rem;
 
-    @media (min-width: 600px) {
+    @media (min-width: 768px) {
       margin-top: 2rem;
     }
 
@@ -107,7 +107,7 @@
   overflow-x: auto;
   white-space: nowrap;
 
-  @media (min-width: 600px) {
+  @media (min-width: 768px) {
     margin-top: 4rem;
     margin-bottom: 2rem;
     padding: 2rem;
@@ -134,7 +134,7 @@
         width: 14.6rem;
         font-weight: 600;
 
-        @media (min-width: 600px) {
+        @media (min-width: 768px) {
           width: 18rem;
         }
       }
