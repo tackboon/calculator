@@ -9,7 +9,6 @@ const useCurrencyRates = (accBaseCurrency: string) => {
   useEffect(() => {
     if (prevCurrency.current !== accBaseCurrency) {
       prevCurrency.current = accBaseCurrency;
-
       const bases =
         accBaseCurrency === "USD" ? ["USD"] : ["USD", accBaseCurrency];
 

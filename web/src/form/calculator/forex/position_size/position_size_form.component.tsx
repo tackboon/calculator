@@ -34,16 +34,14 @@ import {
 } from "./utils.component";
 import {
   ERROR_FIELD_POSITION_SIZE,
-  FeeTyp,
   ForexPositionSizeInputType,
   PositionSizeResultType,
-  ProfitGoalTyp,
-  StopLossTyp,
 } from "./position_size.type";
 import LeverageSelectBox from "../../../../component/forex/leverage_select_box/leverage.component";
 import CurrencySelectBox from "../../../../component/forex/currency_select_box/currency.component";
 import PairSelectBox from "../../../../component/forex/pair_select_box/pair.component";
 import useCurrencyRates from "../hook/useCurrencyRates";
+import useCommodityRates from "../hook/useCommodityRates";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -102,13 +100,11 @@ const ForexPositionSizeForm = () => {
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
+  // Get currency rates
   const prevCurrency = useCurrencyRates(input.accBaseCurrency);
 
-  useEffect(() => {
-    // Get commodity rates
-    const symbols = ["XAU", "XAG"];
-    dispatch(getCommodityRates(symbols));
-  }, [dispatch]);
+  // Get commodity rates
+  useCommodityRates();
 
   useEffect(() => {
     if (!isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]) {
@@ -116,10 +112,7 @@ const ForexPositionSizeForm = () => {
       let basePair = "";
       let baseRateStr = "0";
       let baseStep = 0.0001;
-      if (
-        prevCurrency !== baseQuote.quote &&
-        prevCurrency !== baseQuote.base
-      ) {
+      if (prevCurrency !== baseQuote.quote && prevCurrency !== baseQuote.base) {
         const baseRate = baseCurrencyRate
           ? baseCurrencyRate[prevCurrency.current].rates[baseQuote.base]
           : 0;
