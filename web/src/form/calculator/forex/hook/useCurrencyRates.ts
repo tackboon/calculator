@@ -3,12 +3,12 @@ import { useDispatch } from "react-redux";
 import { getCurrencyRates } from "../../../../store/forex/forex.action";
 
 const useCurrencyRates = (accBaseCurrency: string) => {
-  const prevCurrency = useRef("");
+  const currCurrency = useRef("");
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (prevCurrency.current !== accBaseCurrency) {
-      prevCurrency.current = accBaseCurrency;
+    if (currCurrency.current !== accBaseCurrency) {
+      currCurrency.current = accBaseCurrency;
       const bases =
         accBaseCurrency === "USD" ? ["USD"] : ["USD", accBaseCurrency];
 
@@ -16,7 +16,7 @@ const useCurrencyRates = (accBaseCurrency: string) => {
     }
   }, [accBaseCurrency, dispatch]);
 
-  return prevCurrency.current;
+  return currCurrency.current;
 };
 
 export default useCurrencyRates;

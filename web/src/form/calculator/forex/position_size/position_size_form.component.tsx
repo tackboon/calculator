@@ -14,10 +14,7 @@ import NumberInput from "../../../../component/common/input/number_input.compone
 import Switch from "../../../../component/common/switch/switch.component";
 import SelectBox from "../../../../component/common/select_box/select_box.component";
 import Button from "../../../../component/common/button/button.component";
-import {
-  generateCurrencyPair,
-  getBaseAndQuote,
-} from "../../../../common/forex/forex";
+import { getBaseAndQuote } from "../../../../common/forex/forex";
 import { FOREX_LOADING_TYPES } from "../../../../store/forex/forex.types";
 import { parseNumberFromString } from "../../../../common/number/number";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
@@ -32,13 +29,14 @@ import {
   ForexPositionSizeInputType,
   PositionSizeResultType,
   ProfitGoalTyp,
-  StopLossTyp,
 } from "./position_size.type";
 import LeverageSelectBox from "../../../../component/forex/leverage_select_box/leverage.component";
 import CurrencySelectBox from "../../../../component/forex/currency_select_box/currency.component";
 import PairSelectBox from "../../../../component/forex/pair_select_box/pair.component";
 import useCurrencyRates from "../hook/useCurrencyRates";
 import useCommodityRates from "../hook/useCommodityRates";
+import CrossRateInput from "../../../../component/forex/cross_rate_input_box/cross.component";
+import PipInputBox from "../../../../component/forex/pip_input_box/pip.component";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -46,19 +44,12 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   accBaseCurrency: "USD",
   currencyPair: "EUR/USD",
   contractSize: "100,000",
-  usdAccPair: "",
-  usdAccCrossRate: "1.00",
-  usdBasePair: "",
-  usdBaseCrossRate: "1.00",
-  usdQuotePair: "",
-  usdQuoteCrossRate: "1.00",
   basePair: "",
   baseCrossRate: "1.00",
   quotePair: "",
   quoteCrossRate: "1.00",
   openPrice: "0",
   stopLoss: "0",
-  stopLossTyp: StopLossTyp.PRICE_BASED,
   includeProfitGoal: false,
   profitGoal: "0",
   profitGoalTyp: ProfitGoalTyp.PRICE_BASED,
@@ -72,7 +63,6 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
 };
 
 const ForexPositionSizeForm = () => {
-  const dispatch = useDispatch();
   const supportedAssets = useSelector(selectForexSupportedAssets);
   const supportedCurrencies = useSelector(selectForexSupportedCurrencies);
   const baseCurrencyRate = useSelector(selectForexCurrencyRates);
@@ -83,30 +73,17 @@ const ForexPositionSizeForm = () => {
   const [errorField, setErrorField] =
     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
   const [input, setInput] = useState<ForexPositionSizeInputType>(DEFAULT_INPUT);
-  const [baseQuote, setBaseQuote] = useState({ base: "EUR", quote: "USD" });
-  const [stepSize, setStepSize] = useState({
-    usdAcc: 0.0001,
-    usdBase: 0.0001,
-    usdQuote: 0.0001,
-    base: 0.0001,
-    quote: 0.0001,
-  });
-  const [stopPrice, setStopPrice] = useState("");
-  const [profitGoalPrice, setProfitGoalPrice] = useState("");
 
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
-  // Get currency rates
-  const prevCurrency = useCurrencyRates(input.accBaseCurrency);
+  // Fetch currency rates
+  const currCurrency = useCurrencyRates(input.accBaseCurrency);
 
-  // Get commodity rates
+  // Fetch commodity rates
   useCommodityRates();
 
-  const handleSwitch = (idx: number) => {
-    setInput({ ...input, isLong: idx === 0 });
-  };
-
+  // Submit handler
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
@@ -136,10 +113,6 @@ const ForexPositionSizeForm = () => {
       includeTradingFee: input.includeTradingFee,
       feeTyp: input.feeTyp,
       leverage: input.leverage,
-      usdAccPair: input.usdAccPair,
-      usdAccCrossRate: input.usdAccCrossRate,
-      usdQuotePair: input.usdQuotePair,
-      usdQuoteCrossRate: input.usdQuoteCrossRate,
       basePair: input.basePair,
       baseCrossRate: input.baseCrossRate,
       quotePair: input.quotePair,
@@ -184,7 +157,7 @@ const ForexPositionSizeForm = () => {
           childWidth={161}
           names={["Long", "Short"]}
           defaultIndex={0}
-          onSwitch={handleSwitch}
+          onSwitch={(idx: number) => setInput({ ...input, isLong: idx === 0 })}
         />
       </div>
 
@@ -209,7 +182,7 @@ const ForexPositionSizeForm = () => {
         <div className={styles["form-group"]}>
           <label htmlFor="max-portfolio-risk">Max Portfolio Risk (%)</label>
           <NumberInput
-            step="0.1"
+            step={0.1}
             id="max-portfolio-risk"
             minDecimalPlace={2}
             maxDecimalPlace={5}
@@ -247,24 +220,12 @@ const ForexPositionSizeForm = () => {
             supportedAssets={supportedAssets}
             onChange={(pair) => {
               setInput(() => {
-                setBaseQuote(getBaseAndQuote(pair));
                 const pairInfo = supportedAssets[pair];
-
                 return {
                   ...input,
                   pipSize: pairInfo.pip,
                   contractSize: pairInfo.lot,
                   currencyPair: pair,
-                  stopLossTyp:
-                    pairInfo.pip === 0
-                      ? StopLossTyp.PRICE_BASED
-                      : input.stopLossTyp,
-                  profitGoalTyp:
-                    input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
-                      ? input.profitGoalTyp
-                      : pairInfo.pip === 0
-                      ? ProfitGoalTyp.PRICE_BASED
-                      : input.profitGoalTyp,
                 };
               });
             }}
@@ -274,156 +235,47 @@ const ForexPositionSizeForm = () => {
         <animated.div style={crossRateStyles}>
           {input.quotePair !== "" && (
             <div className={styles["form-group"]}>
-              <label>Cross Rate</label>
               <div className={styles["cross-rate-container"]}>
-                {input.usdBasePair !== "" && (
-                  <div className={styles["exchange-rate-container"]}>
-                    <div className={styles["exchange-rate-label"]}>
-                      {input.usdBasePair + ":"}
-                    </div>
-                    <NumberInput
-                      step={stepSize.usdBase}
-                      id="usd-base-cross-rate"
-                      minDecimalPlace={2}
-                      maxDecimalPlace={5}
-                      isInvalid={
-                        errorField ===
-                        ERROR_FIELD_POSITION_SIZE.USD_BASE_CROSS_RATE
-                      }
-                      value={
-                        isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]
-                          ? "0"
-                          : input.usdBaseCrossRate || "0"
-                      }
-                      onChangeHandler={(val) =>
-                        setInput({ ...input, usdBaseCrossRate: val })
-                      }
-                      disabled={
-                        isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE]
-                      }
-                    />
-                  </div>
-                )}
+                <label>Cross Rate</label>
+                <CrossRateInput
+                  accBaseCurrency={input.accBaseCurrency}
+                  crossTyp="BASE"
+                  isLoading={
+                    isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
+                    isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                  }
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
+                  }
+                  pair={input.currencyPair}
+                  currencyRate={baseCurrencyRate}
+                  commodityRate={usdCommodityRate}
+                  onChange={(pair, rate) =>
+                    setInput({ ...input, baseCrossRate: rate, basePair: pair })
+                  }
+                />
 
-                {input.usdAccPair !== "" &&
-                  ((input.includeTradingFee &&
-                    input.feeTyp === FeeTyp.COMMISSION_PER_100K) ||
-                    input.usdBasePair !== "") && (
-                    <div className={styles["exchange-rate-container"]}>
-                      <div className={styles["exchange-rate-label"]}>
-                        {input.usdAccPair + ":"}
-                      </div>
-                      <NumberInput
-                        step={stepSize.usdAcc}
-                        id="usd-acc-cross-rate"
-                        minDecimalPlace={2}
-                        maxDecimalPlace={5}
-                        isInvalid={
-                          errorField ===
-                          ERROR_FIELD_POSITION_SIZE.USD_ACC_CROSS_RATE
-                        }
-                        value={
-                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                            ? "0"
-                            : input.usdAccCrossRate || "0"
-                        }
-                        onChangeHandler={(val) =>
-                          setInput({ ...input, usdAccCrossRate: val })
-                        }
-                        disabled={
-                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                        }
-                      />
-                    </div>
-                  )}
-
-                {input.usdQuotePair !== "" &&
-                  input.includeTradingFee &&
-                  input.feeTyp === FeeTyp.COMMISSION_PER_100K && (
-                    <div className={styles["exchange-rate-container"]}>
-                      <div className={styles["exchange-rate-label"]}>
-                        {input.usdQuotePair + ":"}
-                      </div>
-                      <NumberInput
-                        step={stepSize.usdQuote}
-                        id="usd-quote-cross-rate"
-                        minDecimalPlace={2}
-                        maxDecimalPlace={5}
-                        isInvalid={
-                          errorField ===
-                          ERROR_FIELD_POSITION_SIZE.USD_QUOTE_CROSS_RATE
-                        }
-                        value={
-                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                            ? "0"
-                            : input.usdQuoteCrossRate || "0"
-                        }
-                        onChangeHandler={(val) =>
-                          setInput({ ...input, usdQuoteCrossRate: val })
-                        }
-                        disabled={
-                          isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                        }
-                      />
-                    </div>
-                  )}
-
-                {input.basePair !== "" && (
-                  <div className={styles["exchange-rate-container"]}>
-                    <div className={styles["exchange-rate-label"]}>
-                      {input.basePair + ":"}
-                    </div>
-                    <NumberInput
-                      step={stepSize.base}
-                      id="base-cross-rate"
-                      minDecimalPlace={2}
-                      maxDecimalPlace={5}
-                      isInvalid={
-                        errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
-                      }
-                      value={
-                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                          ? "0"
-                          : input.baseCrossRate || "0"
-                      }
-                      onChangeHandler={(val) =>
-                        setInput({ ...input, baseCrossRate: val })
-                      }
-                      disabled={
-                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                      }
-                    />
-                  </div>
-                )}
-
-                {input.quotePair !== "" && (
-                  <div className={styles["exchange-rate-container"]}>
-                    <div className={styles["exchange-rate-label"]}>
-                      {input.quotePair + ":"}
-                    </div>
-                    <NumberInput
-                      step={stepSize.quote}
-                      id="quote-cross-rate"
-                      minDecimalPlace={2}
-                      maxDecimalPlace={5}
-                      isInvalid={
-                        errorField ===
-                        ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
-                      }
-                      value={
-                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                          ? "0"
-                          : input.quoteCrossRate || "0"
-                      }
-                      onChangeHandler={(val) =>
-                        setInput({ ...input, quoteCrossRate: val })
-                      }
-                      disabled={
-                        isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                      }
-                    />
-                  </div>
-                )}
+                <CrossRateInput
+                  accBaseCurrency={input.accBaseCurrency}
+                  crossTyp="QUOTE"
+                  isLoading={
+                    isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
+                    isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                  }
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
+                  }
+                  pair={input.currencyPair}
+                  currencyRate={baseCurrencyRate}
+                  commodityRate={usdCommodityRate}
+                  onChange={(pair, rate) =>
+                    setInput({
+                      ...input,
+                      quoteCrossRate: rate,
+                      quotePair: pair,
+                    })
+                  }
+                />
               </div>
             </div>
           )}
@@ -446,9 +298,7 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="contract-size">
-            Contract Size ({baseQuote.base[0] === "X" ? "Ounce" : "Unit"})
-          </label>
+          <label htmlFor="contract-size">Contract Size (Unit)</label>
           <NumberInput
             id="contract-size"
             step={1}
@@ -464,7 +314,7 @@ const ForexPositionSizeForm = () => {
           <label htmlFor="open-price">Open Price</label>
           <NumberInput
             id="open-price"
-            step={supportedAssets[input.currencyPair].pip}
+            step={input.pipSize}
             preUnit="$"
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
             minDecimalPlace={2}
@@ -476,43 +326,18 @@ const ForexPositionSizeForm = () => {
 
         <div className={styles["form-group"]}>
           <label htmlFor="stop-loss">Stop Loss</label>
-          <div className={styles["input-with-switch"]}>
-            <NumberInput
-              id="stop-loss"
-              preUnit={input.stopLossTyp === StopLossTyp.PRICE_BASED ? "$" : ""}
-              postUnit={
-                input.stopLossTyp === StopLossTyp.PIP_BASED ? "PIP" : ""
-              }
-              isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
-              minDecimalPlace={2}
-              maxDecimalPlace={5}
-              value={input.stopLoss}
-              onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
-            />
-            {input.pipSize > 0 && (
-              <Switch
-                height={46}
-                borderRadius={5}
-                names={["$", "PIP"]}
-                defaultIndex={
-                  input.stopLossTyp === StopLossTyp.PRICE_BASED ? 0 : 1
-                }
-                childWidth={50}
-                onSwitch={(idx: number) => {
-                  setInput({
-                    ...input,
-                    stopLossTyp:
-                      idx === 0
-                        ? StopLossTyp.PRICE_BASED
-                        : StopLossTyp.PIP_BASED,
-                  });
-                }}
-              />
-            )}
-          </div>
-          {stopPrice && (
-            <p className={styles["hint"]}>Stop Loss Price: $ {stopPrice}</p>
-          )}
+          <PipInputBox
+            id="stop-loss"
+            defaultIsPip={false}
+            defaultValue={DEFAULT_INPUT.stopLoss}
+            defaultPipSize={input.pipSize}
+            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
+            hintPrefix="Stop Loss Price: $"
+            price={input.openPrice}
+            isIncr={!input.isLong}
+            // onChange={(val) => setInput({ ...input, stopLoss: val })}
+            onChange={(val) => console.log(val)}
+          />
         </div>
 
         <div
@@ -565,61 +390,20 @@ const ForexPositionSizeForm = () => {
                     ? "Min Portfolio Profit (%)"
                     : "Profit Target"}
                 </label>
-                <div className={styles["input-with-switch"]}>
-                  <NumberInput
-                    id="profit-goal"
-                    step={1}
-                    preUnit={
-                      input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
-                        ? "$"
-                        : ""
-                    }
-                    postUnit={
-                      input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED
-                        ? "%"
-                        : input.profitGoalTyp === ProfitGoalTyp.PIP_BASED
-                        ? "PIP"
-                        : ""
-                    }
-                    isInvalid={
-                      errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
-                    }
-                    minDecimalPlace={2}
-                    maxDecimalPlace={5}
-                    value={input.profitGoal}
-                    onChangeHandler={(val) =>
-                      setInput({ ...input, profitGoal: val })
-                    }
-                  />
-                  {input.profitGoalTyp !== ProfitGoalTyp.PORTFOLIO_BASED &&
-                    input.pipSize > 0 && (
-                      <Switch
-                        height={46}
-                        borderRadius={5}
-                        names={["$", "PIP"]}
-                        defaultIndex={
-                          input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
-                            ? 0
-                            : 1
-                        }
-                        childWidth={50}
-                        onSwitch={(idx: number) => {
-                          setInput({
-                            ...input,
-                            profitGoalTyp:
-                              idx === 0
-                                ? ProfitGoalTyp.PRICE_BASED
-                                : ProfitGoalTyp.PIP_BASED,
-                          });
-                        }}
-                      />
-                    )}
-                </div>
-                {profitGoalPrice && (
-                  <p className={styles["hint"]}>
-                    Profit Goal Price: $ {profitGoalPrice}
-                  </p>
-                )}
+                <PipInputBox
+                  id="profit-goal"
+                  defaultIsPip={false}
+                  defaultValue={DEFAULT_INPUT.profitGoal}
+                  defaultPipSize={input.pipSize}
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
+                  }
+                  hintPrefix="Profit Goal Price: $"
+                  price={input.openPrice}
+                  isIncr={input.isLong}
+                  // onChange={(val) => setInput({ ...input, profitGoal: val })}
+                  onChange={(val) => console.log(val)}
+                />
               </div>
             </>
           )}
@@ -697,7 +481,7 @@ const ForexPositionSizeForm = () => {
               <div className={styles["form-group"]}>
                 <label htmlFor="estimated-fee">
                   Total Swap {input.isLong ? "Long" : "Short"} (
-                  {baseQuote.quote})
+                  {getBaseAndQuote(input.currencyPair).quote})
                 </label>
                 <div className={styles["input-with-switch"]}>
                   <NumberInput

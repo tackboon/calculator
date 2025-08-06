@@ -112,26 +112,26 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     setStep(tempStep);
   }, [accBaseCurrency, commodityRate, isLoading, crossTyp, currencyRate, pair]);
 
-  useEffect(() => {
-    
-  }, [])
+  useEffect(() => {}, []);
 
   return (
-    crossPair !== "" && (
-      <div className={styles["exchange-rate-container"]}>
-        <div className={styles["exchange-rate-label"]}>{crossPair + ":"}</div>
-        <NumberInput
-          step={step}
-          id="usd-quote-cross-rate"
-          minDecimalPlace={2}
-          maxDecimalPlace={5}
-          isInvalid={isInvalid}
-          value={crossRate}
-          onChangeHandler={(val) => setCrossRate(val)}
-          disabled={isLoading}
-        />
-      </div>
-    )
+    <>
+      {crossPair !== "" && (
+        <>
+          <div className={styles["exchange-rate-label"]}>{crossPair + ":"}</div>
+          <NumberInput
+            step={step}
+            id="usd-quote-cross-rate"
+            minDecimalPlace={2}
+            maxDecimalPlace={5}
+            isInvalid={isInvalid}
+            value={crossRate}
+            onChangeHandler={(val) => setCrossRate(val)}
+            disabled={isLoading}
+          />
+        </>
+      )}
+    </>
   );
 };
 

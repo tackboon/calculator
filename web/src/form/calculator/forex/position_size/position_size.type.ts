@@ -1,12 +1,6 @@
-export enum StopLossTyp {
-  PRICE_BASED,
-  PIP_BASED,
-}
-
 export enum ProfitGoalTyp {
   PRICE_BASED,
   PORTFOLIO_BASED,
-  PIP_BASED,
 }
 
 export enum FeeTyp {
@@ -26,7 +20,6 @@ export type ForexPositionSizeInputType = {
   quoteCrossRate: string;
   openPrice: string;
   stopLoss: string;
-  stopLossTyp: StopLossTyp;
   includeProfitGoal: boolean;
   profitGoalTyp: ProfitGoalTyp;
   profitGoal: string;
@@ -36,14 +29,12 @@ export type ForexPositionSizeInputType = {
   estTradingFee: string;
   swapFee: string;
   leverage: number;
+  pipSize: number;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {
   PORTFOLIO_CAPITAL,
   MAX_PORTFOLIO_RISK,
-  USD_ACC_CROSS_RATE,
-  USD_BASE_CROSS_RATE,
-  USD_QUOTE_CROSS_RATE,
   CONTRACT_SIZE,
   BASE_CROSS_RATE,
   QUOTE_CROSS_RATE,

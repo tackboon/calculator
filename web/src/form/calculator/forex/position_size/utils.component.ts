@@ -13,7 +13,6 @@ import {
   ForexPositionSizeInputType,
   PositionSizeResultType,
   ProfitGoalTyp,
-  StopLossTyp,
 } from "./position_size.type";
 
 export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
@@ -22,94 +21,94 @@ export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
 
   if (input.basePair !== "") height = height + 55;
 
-  if (
-    input.usdAccPair !== "" &&
-    ((input.includeTradingFee && input.feeTyp === FeeTyp.COMMISSION_PER_100K) ||
-      input.usdBasePair !== "")
-  ) {
-    height = height + 55;
-  }
+  // if (
+  //   input.usdAccPair !== "" &&
+  //   ((input.includeTradingFee && input.feeTyp === FeeTyp.COMMISSION_PER_100K) ||
+  //     input.usdBasePair !== "")
+  // ) {
+  //   height = height + 55;
+  // }
 
-  if (
-    input.usdQuotePair !== "" &&
-    input.includeTradingFee &&
-    input.feeTyp === FeeTyp.COMMISSION_PER_100K
-  ) {
-    height = height + 55;
-  }
+  // if (
+  //   input.usdQuotePair !== "" &&
+  //   input.includeTradingFee &&
+  //   input.feeTyp === FeeTyp.COMMISSION_PER_100K
+  // ) {
+  //   height = height + 55;
+  // }
 
-  if (input.usdBasePair !== "") height = height + 55;
+  // if (input.usdBasePair !== "") height = height + 55;
 
   return height;
 };
 
-export const calculateStopPriceFromPip = (
-  input: ForexPositionSizeInputType
-) => {
-  try {
-    if (input.stopLossTyp !== StopLossTyp.PIP_BASED) return "";
+// export const calculateStopPriceFromPip = (
+//   input: ForexPositionSizeInputType
+// ) => {
+//   try {
+//     if (input.stopLossTyp !== StopLossTyp.PIP_BASED) return "";
 
-    const openPrice = parseBigNumberFromString(input.openPrice);
-    if (mathBigNum.equal(openPrice, 0)) return "0.00";
+//     const openPrice = parseBigNumberFromString(input.openPrice);
+//     if (mathBigNum.equal(openPrice, 0)) return "0.00";
 
-    const pip = parseBigNumberFromString(input.stopLoss);
-    if (mathBigNum.equal(pip, 0)) return input.openPrice;
+//     const pip = parseBigNumberFromString(input.stopLoss);
+//     if (mathBigNum.equal(pip, 0)) return input.openPrice;
 
-    if (input.isLong) {
-      let stopPrice = mathBigNum.subtract(
-        openPrice,
-        mathBigNum.multiply(pip, input.pipSize)
-      ) as BigNumber;
-      stopPrice = mathBigNum.round(stopPrice, 5);
+//     if (input.isLong) {
+//       let stopPrice = mathBigNum.subtract(
+//         openPrice,
+//         mathBigNum.multiply(pip, input.pipSize)
+//       ) as BigNumber;
+//       stopPrice = mathBigNum.round(stopPrice, 5);
 
-      return `${stopPrice}`;
-    } else {
-      let stopPrice = mathBigNum.add(
-        openPrice,
-        mathBigNum.multiply(pip, input.pipSize)
-      ) as BigNumber;
-      stopPrice = mathBigNum.round(stopPrice, 5);
+//       return `${stopPrice}`;
+//     } else {
+//       let stopPrice = mathBigNum.add(
+//         openPrice,
+//         mathBigNum.multiply(pip, input.pipSize)
+//       ) as BigNumber;
+//       stopPrice = mathBigNum.round(stopPrice, 5);
 
-      return `${stopPrice}`;
-    }
-  } catch (err) {
-    return "";
-  }
-};
+//       return `${stopPrice}`;
+//     }
+//   } catch (err) {
+//     return "";
+//   }
+// };
 
-export const calculateProfitPriceFromPip = (
-  input: ForexPositionSizeInputType
-) => {
-  try {
-    if (input.profitGoalTyp !== ProfitGoalTyp.PIP_BASED) return "";
+// export const calculateProfitPriceFromPip = (
+//   input: ForexPositionSizeInputType
+// ) => {
+//   try {
+//     if (input.profitGoalTyp !== ProfitGoalTyp.PIP_BASED) return "";
 
-    const openPrice = parseBigNumberFromString(input.openPrice);
-    if (mathBigNum.equal(openPrice, 0)) return "0";
+//     const openPrice = parseBigNumberFromString(input.openPrice);
+//     if (mathBigNum.equal(openPrice, 0)) return "0";
 
-    const pip = parseBigNumberFromString(input.profitGoal);
-    if (mathBigNum.equal(pip, 0)) return input.openPrice;
+//     const pip = parseBigNumberFromString(input.profitGoal);
+//     if (mathBigNum.equal(pip, 0)) return input.openPrice;
 
-    if (input.isLong) {
-      let profitPrice = mathBigNum.add(
-        openPrice,
-        mathBigNum.multiply(pip, input.pipSize)
-      ) as BigNumber;
-      profitPrice = mathBigNum.round(profitPrice, 5);
+//     if (input.isLong) {
+//       let profitPrice = mathBigNum.add(
+//         openPrice,
+//         mathBigNum.multiply(pip, input.pipSize)
+//       ) as BigNumber;
+//       profitPrice = mathBigNum.round(profitPrice, 5);
 
-      return `${profitPrice}`;
-    } else {
-      let profitPrice = mathBigNum.subtract(
-        openPrice,
-        mathBigNum.multiply(pip, input.pipSize)
-      ) as BigNumber;
-      profitPrice = mathBigNum.round(profitPrice, 5);
+//       return `${profitPrice}`;
+//     } else {
+//       let profitPrice = mathBigNum.subtract(
+//         openPrice,
+//         mathBigNum.multiply(pip, input.pipSize)
+//       ) as BigNumber;
+//       profitPrice = mathBigNum.round(profitPrice, 5);
 
-      return `${profitPrice}`;
-    }
-  } catch (err) {
-    return "";
-  }
-};
+//       return `${profitPrice}`;
+//     }
+//   } catch (err) {
+//     return "";
+//   }
+// };
 
 export const validatePositionSizeInput = (
   input: ForexPositionSizeInputType
@@ -125,27 +124,6 @@ export const validatePositionSizeInput = (
     return {
       err: "Please enter a valid max portflio risk.",
       field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
-    };
-  }
-
-  if (input.usdAccPair !== "" && !checkMinMax(input.usdAccCrossRate, 0)) {
-    return {
-      err: "Please enter a valid cross rate.",
-      field: ERROR_FIELD_POSITION_SIZE.USD_ACC_CROSS_RATE,
-    };
-  }
-
-  if (input.usdBasePair !== "" && !checkMinMax(input.usdBaseCrossRate, 0)) {
-    return {
-      err: "Please enter a valid cross rate.",
-      field: ERROR_FIELD_POSITION_SIZE.USD_BASE_CROSS_RATE,
-    };
-  }
-
-  if (input.usdQuotePair !== "" && !checkMinMax(input.usdQuoteCrossRate, 0)) {
-    return {
-      err: "Please enter a valid cross rate.",
-      field: ERROR_FIELD_POSITION_SIZE.USD_QUOTE_CROSS_RATE,
     };
   }
 
@@ -184,13 +162,7 @@ export const validatePositionSizeInput = (
   } else {
     stopLossMin = parseBigNumberFromString(input.openPrice);
   }
-
-  let stopLoss = input.stopLoss;
-  if (input.stopLossTyp === StopLossTyp.PIP_BASED) {
-    stopLoss = calculateStopPriceFromPip(input);
-  }
-
-  if (!checkMinMax(stopLoss, stopLossMin, stopLossMax)) {
+  if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
     return {
       err: "Please enter a valid stop loss.",
       field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,
@@ -213,13 +185,7 @@ export const validatePositionSizeInput = (
       } else {
         profitGoalMax = parseBigNumberFromString(input.openPrice);
       }
-
-      let profitGoal = input.profitGoal;
-      if (input.profitGoalTyp === ProfitGoalTyp.PIP_BASED) {
-        profitGoal = calculateProfitPriceFromPip(input);
-      }
-
-      if (!checkMinMax(profitGoal, profitGoalMin, profitGoalMax)) {
+      if (!checkMinMax(input.profitGoal, profitGoalMin, profitGoalMax)) {
         return {
           err: "Please enter a valid profit target.",
           field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
@@ -249,16 +215,8 @@ export const calculateResult = (
   const maxPortfolioRiskPercent = parseNumberFromString(input.maxPortfolioRisk);
   const maxPortfolioRiskRate = maxPortfolioRiskPercent / 100;
   const openPrice = parseBigNumberFromString(input.openPrice);
-  let stopLossStr = input.stopLoss;
-  if (input.stopLossTyp === StopLossTyp.PIP_BASED) {
-    stopLossStr = calculateStopPriceFromPip(input);
-  }
-  const stopLoss = parseBigNumberFromString(stopLossStr);
-  let profitGoalStr = input.profitGoal;
-  if (input.profitGoalTyp === ProfitGoalTyp.PIP_BASED) {
-    profitGoalStr = calculateProfitPriceFromPip(input);
-  }
-  const profitGoal = parseBigNumberFromString(profitGoalStr);
+  const stopLoss = parseBigNumberFromString(input.stopLoss);
+  const profitGoal = parseBigNumberFromString(input.profitGoal);
   const contractSize = parseBigNumberFromString(input.contractSize);
   const commissionFee = parseBigNumberFromString(input.estTradingFee);
   const swapFee = parseBigNumberFromString(input.swapFee);
@@ -293,41 +251,6 @@ export const calculateResult = (
     quoteRate = quoteCrossRate;
     if (quoteRateInfo.base === input.accBaseCurrency) {
       quoteRate = mathBigNum.divide(1, quoteCrossRate) as BigNumber;
-    }
-  }
-
-  // Get USD acc rate (USDXXX)
-  let usdAccRate = mathBigNum.bignumber(1);
-  if (input.usdAccPair !== "") {
-    const usdAccRateInfo = getBaseAndQuote(input.usdAccPair);
-    const usdAccCrossRate = parseBigNumberFromString(input.usdAccCrossRate);
-    usdAccRate = usdAccCrossRate;
-    if (usdAccRateInfo.quote === "USD") {
-      usdAccRate = mathBigNum.divide(1, usdAccCrossRate) as BigNumber;
-    }
-  }
-
-  // Get USD quote rate (XXXUSD)
-  let usdQuoteRate = mathBigNum.bignumber(1);
-  if (input.usdQuotePair !== "") {
-    const usdQuoteRateInfo = getBaseAndQuote(input.usdQuotePair);
-    const usdQuoteCrossRate = parseBigNumberFromString(input.usdQuoteCrossRate);
-    usdQuoteRate = usdQuoteCrossRate;
-    if (usdQuoteRateInfo.base === "USD") {
-      usdQuoteRate = mathBigNum.divide(1, usdQuoteCrossRate) as BigNumber;
-    }
-  } else if (input.accBaseCurrency === "USD") {
-    usdQuoteRate = quoteRate;
-  }
-
-  // Get USD base rate (XXXUSD)
-  let usdBaseRate = mathBigNum.bignumber(1);
-  if (input.usdBasePair !== "") {
-    const usdBaseRateInfo = getBaseAndQuote(input.usdBasePair);
-    const usdBaseCrossRate = parseBigNumberFromString(input.usdBaseCrossRate);
-    usdBaseRate = usdBaseCrossRate;
-    if (usdBaseRateInfo.base === "USD") {
-      usdBaseRate = mathBigNum.divide(1, usdBaseCrossRate) as BigNumber;
     }
   }
 
@@ -421,98 +344,98 @@ export const calculateResult = (
         100000
       ) as BigNumber;
 
-      lotSize = calcLotSizeWithUSDBasedCommission(
-        maxLoss,
-        contractSize,
-        openPrice,
-        stopLoss,
-        quoteRate,
-        usdQuoteRate,
-        usdAccRate,
-        swapFeeInAccBase,
-        commissionFeeRate
-      );
+      // lotSize = calcLotSizeWithUSDBasedCommission(
+      //   maxLoss,
+      //   contractSize,
+      //   openPrice,
+      //   stopLoss,
+      //   quoteRate,
+      //   usdQuoteRate,
+      //   usdAccRate,
+      //   swapFeeInAccBase,
+      //   commissionFeeRate
+      // );
 
       // fee = openPrice * lotSize * contractSize * usdQuoteRate * commissionFeeRate * usdAccRate
-      let feeRate = mathBigNum.multiply(
-        mathBigNum.multiply(
-          mathBigNum.multiply(
-            mathBigNum.multiply(lotSize, contractSize),
-            usdQuoteRate
-          ),
-          commissionFeeRate
-        ),
-        usdAccRate
-      ) as BigNumber;
-      let entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
-      entryFee = mathBigNum.round(entryFee, 5);
-      let stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
-      stopFee = mathBigNum.round(stopFee, 5);
-      console.log();
+      // let feeRate = mathBigNum.multiply(
+      //   mathBigNum.multiply(
+      //     mathBigNum.multiply(
+      //       mathBigNum.multiply(lotSize, contractSize),
+      //       usdQuoteRate
+      //     ),
+      //     commissionFeeRate
+      //   ),
+      //   usdAccRate
+      // ) as BigNumber;
+      // let entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
+      // entryFee = mathBigNum.round(entryFee, 5);
+      // let stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
+      // stopFee = mathBigNum.round(stopFee, 5);
+
       /* 
       riskAmount = lotSize * contractSize * priceDiff * quoteRate + swapFeeInAccBase 
         + entryFee + stopFee
       */
-      riskAmount = mathBigNum.add(
-        mathBigNum.add(
-          mathBigNum.add(
-            mathBigNum.multiply(
-              mathBigNum.multiply(
-                mathBigNum.multiply(lotSize, contractSize),
-                priceDiff
-              ),
-              quoteRate
-            ),
-            swapFeeInAccBase
-          ),
-          entryFee
-        ),
-        stopFee
-      ) as BigNumber;
+      // riskAmount = mathBigNum.add(
+      //   mathBigNum.add(
+      //     mathBigNum.add(
+      //       mathBigNum.multiply(
+      //         mathBigNum.multiply(
+      //           mathBigNum.multiply(lotSize, contractSize),
+      //           priceDiff
+      //         ),
+      //         quoteRate
+      //       ),
+      //       swapFeeInAccBase
+      //     ),
+      //     entryFee
+      //   ),
+      //   stopFee
+      // ) as BigNumber;
 
-      while (
-        mathBigNum.larger(lotSize, 0) &&
-        mathBigNum.larger(riskAmount, maxLoss)
-      ) {
-        lotSize = mathBigNum.subtract(lotSize, 0.01) as BigNumber;
+      // while (
+      //   mathBigNum.larger(lotSize, 0) &&
+      //   mathBigNum.larger(riskAmount, maxLoss)
+      // ) {
+      //   lotSize = mathBigNum.subtract(lotSize, 0.01) as BigNumber;
 
-        // Recompute fees
-        feeRate = mathBigNum.multiply(
-          mathBigNum.multiply(
-            mathBigNum.multiply(
-              mathBigNum.multiply(lotSize, contractSize),
-              usdQuoteRate
-            ),
-            commissionFeeRate
-          ),
-          usdAccRate
-        ) as BigNumber;
-        entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
-        entryFee = mathBigNum.round(entryFee, 5);
-        stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
-        stopFee = mathBigNum.round(stopFee, 5);
+      //   // Recompute fees
+      //   feeRate = mathBigNum.multiply(
+      //     mathBigNum.multiply(
+      //       mathBigNum.multiply(
+      //         mathBigNum.multiply(lotSize, contractSize),
+      //         usdQuoteRate
+      //       ),
+      //       commissionFeeRate
+      //     ),
+      //     usdAccRate
+      //   ) as BigNumber;
+      //   entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
+      //   entryFee = mathBigNum.round(entryFee, 5);
+      //   stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
+      //   stopFee = mathBigNum.round(stopFee, 5);
 
-        // Recompute risk amount
-        riskAmount = mathBigNum.add(
-          mathBigNum.add(
-            mathBigNum.add(
-              mathBigNum.multiply(
-                mathBigNum.multiply(
-                  mathBigNum.multiply(lotSize, contractSize),
-                  priceDiff
-                ),
-                quoteRate
-              ),
-              swapFeeInAccBase
-            ),
-            entryFee
-          ),
-          stopFee
-        ) as BigNumber;
-      }
+      //   // Recompute risk amount
+      //   riskAmount = mathBigNum.add(
+      //     mathBigNum.add(
+      //       mathBigNum.add(
+      //         mathBigNum.multiply(
+      //           mathBigNum.multiply(
+      //             mathBigNum.multiply(lotSize, contractSize),
+      //             priceDiff
+      //           ),
+      //           quoteRate
+      //         ),
+      //         swapFeeInAccBase
+      //       ),
+      //       entryFee
+      //     ),
+      //     stopFee
+      //   ) as BigNumber;
+      // }
 
-      entryFeeStr = convertToLocaleString(entryFee.toString(), 2, 5);
-      stopFeeStr = convertToLocaleString(stopFee.toString(), 2, 5);
+      // entryFeeStr = convertToLocaleString(entryFee.toString(), 2, 5);
+      // stopFeeStr = convertToLocaleString(stopFee.toString(), 2, 5);
     }
   }
 
