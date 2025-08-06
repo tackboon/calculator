@@ -112,6 +112,10 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     setStep(tempStep);
   }, [accBaseCurrency, commodityRate, isLoading, crossTyp, currencyRate, pair]);
 
+  useEffect(() => {
+    
+  }, [])
+
   return (
     crossPair !== "" && (
       <div className={styles["exchange-rate-container"]}>
