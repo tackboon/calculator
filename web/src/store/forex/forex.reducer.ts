@@ -2,7 +2,9 @@ import { UnknownAction } from "@reduxjs/toolkit";
 import { initStateObj } from "../../common/redux/reducer";
 import {
   CommodityRateData,
+  CommodityRateMap,
   CurrencyRateData,
+  CurrencyRateMap,
   FOREX_LOADING_TYPES,
   SupportedAsset,
   supportedAssets,
@@ -18,8 +20,8 @@ import {
 
 export type ForexState = {
   readonly isLoading: { [key: string]: boolean };
-  readonly currencyRateData: { [key: string]: CurrencyRateData } | null;
-  readonly commodityRateData: { [key: string]: CommodityRateData } | null;
+  readonly currencyRateData: CurrencyRateMap;
+  readonly commodityRateData: CommodityRateMap;
   readonly supportedCurrencies: SupportedCurrency;
   readonly supportedAssets: SupportedAsset;
 };

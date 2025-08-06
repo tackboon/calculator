@@ -7,7 +7,6 @@ const useCurrencyRates = (accBaseCurrency: string) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    console.log("=====", accBaseCurrency)
     if (prevCurrency.current !== accBaseCurrency) {
       prevCurrency.current = accBaseCurrency;
       const bases =

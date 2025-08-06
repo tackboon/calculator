@@ -20,12 +20,6 @@ export type ForexPositionSizeInputType = {
   accBaseCurrency: string;
   currencyPair: string;
   contractSize: string;
-  usdAccPair: string;
-  usdAccCrossRate: string;
-  usdBasePair: string;
-  usdBaseCrossRate: string;
-  usdQuotePair: string;
-  usdQuoteCrossRate: string;
   basePair: string;
   baseCrossRate: string;
   quotePair: string;
@@ -42,7 +36,6 @@ export type ForexPositionSizeInputType = {
   estTradingFee: string;
   swapFee: string;
   leverage: number;
-  pipSize: number;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {

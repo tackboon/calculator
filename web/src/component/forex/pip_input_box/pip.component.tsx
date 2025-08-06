@@ -42,6 +42,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
   useEffect(() => {
     if (!isPip) {
       setHintPrice("");
+      setPipSize(defaultPipSize);
       onChange(value);
       return;
     }
@@ -72,7 +73,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
     } catch (err) {
       return;
     }
-  }, [value, isPip, onChange, isIncr, pipSize, price]);
+  }, [value, isPip, onChange, isIncr, pipSize, price, defaultPipSize]);
 
   return (
     <>
@@ -84,6 +85,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
           isInvalid={isInvalid}
           minDecimalPlace={2}
           maxDecimalPlace={5}
+          step={pipSize}
           value={value}
           onChangeHandler={(val) => setValue(val)}
         />

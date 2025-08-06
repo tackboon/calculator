@@ -84,7 +84,7 @@ export const calculateProfitPriceFromPip = (
     if (input.profitGoalTyp !== ProfitGoalTyp.PIP_BASED) return "";
 
     const openPrice = parseBigNumberFromString(input.openPrice);
-    if (mathBigNum.equal(openPrice, 0)) return "0.00";
+    if (mathBigNum.equal(openPrice, 0)) return "0";
 
     const pip = parseBigNumberFromString(input.profitGoal);
     if (mathBigNum.equal(pip, 0)) return input.openPrice;

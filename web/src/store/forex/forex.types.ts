@@ -34,15 +34,6 @@ export type SupportedCurrency = {
   [key: string]: CurrencyInfo;
 };
 
-export type AssetInfo = {
-  pip: number;
-  lot: string;
-};
-
-export type SupportedAsset = {
-  [key: string]: AssetInfo;
-};
-
 export const supportedCurrencies = {
   AUD: {
     currency: "AUD",
@@ -96,7 +87,16 @@ export const supportedCurrencies = {
   },
 };
 
-export const supportedAssets = {
+export type AssetInfo = {
+  pip: number;
+  lot: string;
+};
+
+export type SupportedAsset = {
+  [key: string]: AssetInfo;
+};
+
+export const supportedAssets: SupportedAsset = {
   "AUD/CAD": { pip: 0.0001, lot: "100,000" },
   "AUD/CHF": { pip: 0.0001, lot: "100,000" },
   "AUD/JPY": { pip: 0.01, lot: "100,000" },
@@ -169,3 +169,7 @@ export const supportedAssets = {
   "XPD/USD": { pip: 0.1, lot: "100" },
   "XPT/USD": { pip: 0.1, lot: "100" },
 };
+
+export type CurrencyRateMap = { [key: string]: CurrencyRateData } | null;
+
+export type CommodityRateMap = { [key: string]: CommodityRateData } | null;
