@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSpring, animated } from "@react-spring/web";
 
@@ -139,6 +139,16 @@ const ForexPositionSizeForm = () => {
     opacity: input.includeTradingFee ? 1 : 0,
     overflow: "hidden",
   });
+
+  const stopLossOnChange = useCallback(
+    (val: string) => setInput((prev) => ({ ...prev, stopLoss: val })),
+    []
+  );
+
+  const profitGoalOnChange = useCallback(
+    (val: string) => setInput((prev) => ({ ...prev, profitGoal: val })),
+    []
+  );
 
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
@@ -330,13 +340,12 @@ const ForexPositionSizeForm = () => {
             id="stop-loss"
             defaultIsPip={false}
             defaultValue={DEFAULT_INPUT.stopLoss}
-            defaultPipSize={input.pipSize}
+            pipSize={input.pipSize}
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
             hintPrefix="Stop Loss Price: $"
             price={input.openPrice}
             isIncr={!input.isLong}
-            // onChange={(val) => setInput({ ...input, stopLoss: val })}
-            onChange={(val) => console.log(val)}
+            onChange={stopLossOnChange}
           />
         </div>
 
@@ -394,15 +403,14 @@ const ForexPositionSizeForm = () => {
                   id="profit-goal"
                   defaultIsPip={false}
                   defaultValue={DEFAULT_INPUT.profitGoal}
-                  defaultPipSize={input.pipSize}
+                  pipSize={input.pipSize}
                   isInvalid={
                     errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                   }
                   hintPrefix="Profit Goal Price: $"
                   price={input.openPrice}
                   isIncr={input.isLong}
-                  // onChange={(val) => setInput({ ...input, profitGoal: val })}
-                  onChange={(val) => console.log(val)}
+                  onChange={profitGoalOnChange}
                 />
               </div>
             </>

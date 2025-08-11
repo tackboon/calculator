@@ -59,17 +59,17 @@ const ProfitLossForm = () => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput({
+    setInput((prev) => ({
       ...DEFAULT_INPUT,
-      isLong: input.isLong,
-      includeTradingFee: input.includeTradingFee,
-    });
+      isLong: prev.isLong,
+      includeTradingFee: prev.includeTradingFee,
+    }));
     setErrorField(null);
     setResult(null);
   };
 
   const handleSwitch = (idx: number) => {
-    setInput({ ...input, isLong: idx === 0 });
+    setInput((prev) => ({ ...prev, isLong: idx === 0 }));
   };
 
   const animationStyles = useSpring({
@@ -109,11 +109,11 @@ const ProfitLossForm = () => {
             minDecimalPlace={2}
             maxDecimalPlace={5}
             value={input.entryPrice}
-            onChangeHandler={(val: string) =>
-              setInput({
-                ...input,
+            onChangeHandler={(val) =>
+              setInput((prev) => ({
+                ...prev,
                 entryPrice: val,
-              })
+              }))
             }
           />
         </div>
@@ -126,8 +126,9 @@ const ProfitLossForm = () => {
             minDecimalPlace={0}
             maxDecimalPlace={6}
             value={input.quantity}
+            maxChars={16}
             onChangeHandler={(val) => {
-              setInput({ ...input, quantity: val });
+              setInput((prev) => ({ ...prev, quantity: val }));
             }}
           />
         </div>
@@ -142,7 +143,7 @@ const ProfitLossForm = () => {
             maxDecimalPlace={5}
             value={input.exitPrice}
             onChangeHandler={(val) => {
-              setInput({ ...input, exitPrice: val });
+              setInput((prev) => ({ ...prev, exitPrice: val }));
             }}
           />
         </div>
@@ -158,12 +159,12 @@ const ProfitLossForm = () => {
             <Checkbox
               isCheck={input.includeTradingFee}
               onCheck={() =>
-                setInput({
-                  ...input,
+                setInput((prev) => ({
+                  ...prev,
                   includeTradingFee: !input.includeTradingFee,
                   estTradingFee: DEFAULT_INPUT.estTradingFee,
                   minTradingFee: DEFAULT_INPUT.minTradingFee,
-                })
+                }))
               }
             />
             <span>Include Trading Fee</span>
@@ -187,7 +188,7 @@ const ProfitLossForm = () => {
                   maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, estTradingFee: val })
+                    setInput((prev) => ({ ...prev, estTradingFee: val }))
                   }
                 />
               </div>
@@ -206,7 +207,7 @@ const ProfitLossForm = () => {
                   maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, minTradingFee: val })
+                    setInput((prev) => ({ ...prev, minTradingFee: val }))
                   }
                 />
               </div>
@@ -238,25 +239,21 @@ const ProfitLossForm = () => {
           >
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
-                <div>Entry Amount:</div>
-                <div>${result.totalEntryAmount}</div>
-              </div>
-              <div className={styles["row"]}>
-                <div>Closing Amount:</div>
-                <div>${result.totalExitAmount}</div>
+                <div>Entry Gross Amount:</div>
+                <div>${result.grossEntryAmount}</div>
               </div>
 
-              {result.estimatedEntryFee !== undefined && (
+              {result.entryFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Entry Fee:</div>
-                  <div>${result.estimatedEntryFee}</div>
+                  <div>${result.entryFee}</div>
                 </div>
               )}
 
-              {result.estimatedExitFee !== undefined && (
+              {result.exitFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Closing Fee:</div>
-                  <div>${result.estimatedExitFee}</div>
+                  <div>${result.exitFee}</div>
                 </div>
               )}
 

@@ -17,14 +17,13 @@ export enum ERROR_FIELD_PROFIT_LOSS {
 }
 
 export type ProfitLossResultType = {
-  totalEntryAmount: string;
-  totalExitAmount: string;
+  grossEntryAmount: string;
   grossGained: string;
   grossPercentage: string;
   netGained?: string;
   netPercentage?: string;
-  estimatedEntryFee?: string;
-  estimatedExitFee?: string;
+  entryFee?: string;
+  exitFee?: string;
   isLong: boolean;
   includeTradingFee: boolean;
 };

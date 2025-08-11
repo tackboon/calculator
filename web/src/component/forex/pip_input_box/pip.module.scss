@@ -5,8 +5,10 @@
   gap: 10px;
 }
 
-.hint {
-  margin-top: 5px;
-  margin-left: 5px;
+.hint-container {
+  // margin-top: 5px;
+  // margin-left: 5px;
+  display: flex;
+  justify-content: space-between;
   color: #696969;
 }

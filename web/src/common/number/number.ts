@@ -2,27 +2,34 @@ import { BigNumber } from "mathjs";
 import { mathBigNum } from "./math";
 
 export function convertToLocaleString(
-  input: string,
-  minFractionDigits?: number,
-  maxFractionDigits?: number
+  input: string | BigNumber,
+  min = 2,
+  max = 5
 ): string {
   try {
-    let num = mathBigNum.bignumber(input);
+    let num = typeof input === "string" ? mathBigNum.bignumber(input) : input;
     if (num.isNaN() || mathBigNum.equal(num, 0)) return "0";
 
-    if (maxFractionDigits !== undefined) {
-      num = mathBigNum.round(num, maxFractionDigits);
-    }
+    const s = num.toFixed(max);
+    let [i, dRaw = ""] = s.split(".");
 
-    // Trim or pad decimal part
-    let [intPart, decPart = ""] = num.toString().split(".");
-    if (minFractionDigits !== undefined && decPart.length < minFractionDigits) {
-      decPart = decPart.padEnd(minFractionDigits, "0");
+    if (max === 0) return i;
+
+    let d = dRaw;
+
+    if (dRaw.length <= min) {
+      d = dRaw.padEnd(min, "0");
+    } else {
+      const trimmed = dRaw.replace(/0+$/, "");
+      d = trimmed.length < min ? dRaw.slice(0, min) : trimmed;
     }
 
     // Format integer part with commas (en-US)
-    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return decPart ? `${intPart}.${decPart}` : intPart;
+    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    return d.length
+      ? `${i}.${d}`
+      : `${i}${min > 0 ? "." + "0".repeat(min) : ""}`;
   } catch {
     return "";
   }

@@ -17,3 +17,5 @@ export const multiplyBig = (x: BigNumber | number, y: BigNumber | number) => {
 export const divideBig = (x: BigNumber | number, y: BigNumber | number) => {
   return mathBigNum.divide(x, y) as BigNumber;
 };
+
+export const MAX_TRILLION = mathBigNum.bignumber("999999999.99999");

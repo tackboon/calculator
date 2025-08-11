@@ -11,6 +11,8 @@ type NumberInputProps = {
   preUnit?: string;
   postUnit?: string;
   isInvalid?: boolean;
+  maxChars?: number;
+  allowPlusMinus?: boolean;
   minDecimalPlace: number;
   maxDecimalPlace: number;
   onChangeHandler?: (value: string) => void;
@@ -34,7 +36,9 @@ const evalInput = (
     } else if (res === 0) {
       return "0";
     }
-  } catch {}
+  } catch (err) {
+    return "0";
+  }
 
   return input;
 };
@@ -43,6 +47,8 @@ const NumberInput: FC<NumberInputProps> = ({
   preUnit,
   postUnit,
   isInvalid,
+  maxChars = 40,
+  allowPlusMinus = true,
   minDecimalPlace,
   maxDecimalPlace,
   value,
@@ -62,7 +68,13 @@ const NumberInput: FC<NumberInputProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Allow digits, arithmetic operators (+, -, *, /, (, )) and decimal points
-    e.target.value = e.target.value.replace(/[^0-9+\-*/().,]/g, "");
+    let val = allowPlusMinus
+      ? e.target.value.replace(/[^0-9+\-*/().,]/g, "")
+      : e.target.value.replace(/[^0-9.,]/g, "");
+
+    if (val.length > maxChars) val = val.slice(0, maxChars);
+
+    e.target.value = val;
     if (onChangeHandler) onChangeHandler(e.target.value);
     if (onChange) onChange(e);
   };
