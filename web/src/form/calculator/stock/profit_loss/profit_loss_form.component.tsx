@@ -68,10 +68,6 @@ const ProfitLossForm = () => {
     setResult(null);
   };
 
-  const handleSwitch = (idx: number) => {
-    setInput((prev) => ({ ...prev, isLong: idx === 0 }));
-  };
-
   const animationStyles = useSpring({
     height: input.includeTradingFee ? 200 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
@@ -95,7 +91,9 @@ const ProfitLossForm = () => {
           childWidth={161}
           names={["Long", "Short"]}
           defaultIndex={0}
-          onSwitch={handleSwitch}
+          onSwitch={(idx: number) => {
+            setInput((prev) => ({ ...prev, isLong: idx === 0 }));
+          }}
         />
       </div>
 
@@ -126,7 +124,6 @@ const ProfitLossForm = () => {
             minDecimalPlace={0}
             maxDecimalPlace={6}
             value={input.quantity}
-            maxChars={16}
             onChangeHandler={(val) => {
               setInput((prev) => ({ ...prev, quantity: val }));
             }}
