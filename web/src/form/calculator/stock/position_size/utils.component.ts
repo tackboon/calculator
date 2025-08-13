@@ -1,5 +1,5 @@
 import { BigNumber } from "mathjs";
-import { mathBigNum } from "../../../../common/number/math";
+import { mathBigNum, QUADRILLION } from "../../../../common/number/math";
 import {
   convertToLocaleString,
   parseBigNumberFromString,
@@ -17,21 +17,21 @@ import {
 export const validatePositionSizeInput = (
   input: PositionSizeInputType
 ): { err: string; field: ERROR_FIELD_POSITION_SIZE | null } => {
-  if (!checkMinMax(input.portfolioCapital, 0)) {
+  if (!checkMinMax(input.portfolioCapital, { min: 0 })) {
     return {
       err: "Please enter a valid portfolio capital.",
       field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,
     };
   }
 
-  if (!checkMinMax(input.maxPortfolioRisk, 0, 100)) {
+  if (!checkMinMax(input.maxPortfolioRisk, { min: 0, max: 100 })) {
     return {
       err: "Please enter a valid max portflio risk.",
       field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
     };
   }
 
-  if (!checkMinMax(input.entryPrice, 0)) {
+  if (!checkMinMax(input.entryPrice, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid open price.",
       field: ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE,
@@ -39,17 +39,18 @@ export const validatePositionSizeInput = (
   }
 
   let stopLossMin = mathBigNum.bignumber(0);
-  let stopLossMax: BigNumber | number | undefined;
+  let stopLossMax: BigNumber | number;
   if (input.stopLossTyp === "$") {
     if (input.isLong) {
       stopLossMax = parseBigNumberFromString(input.entryPrice);
     } else {
       stopLossMin = parseBigNumberFromString(input.entryPrice);
+      stopLossMax = 
     }
   } else if (input.isLong) {
     stopLossMax = 100;
   }
-  if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
+  if (!checkMinMax(input.stopLoss, { min: stopLossMin, max: stopLossMax })) {
     return {
       err: "Please enter a valid stop loss.",
       field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,

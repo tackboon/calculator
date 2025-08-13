@@ -3,8 +3,8 @@ import {
   addBig,
   divideBig,
   mathBigNum,
-  MAX_TRILLION,
   multiplyBig,
+  QUADRILLION,
   subtractBig,
 } from "../../../../common/number/math";
 import {
@@ -22,21 +22,21 @@ import {
 export const validateProfitLossInput = (
   input: ProfitLossInputType
 ): { err: string; field: ERROR_FIELD_PROFIT_LOSS | null } => {
-  if (!checkMinMax(input.entryPrice, 0, MAX_TRILLION)) {
+  if (!checkMinMax(input.entryPrice, 0, QUADRILLION)) {
     return {
       err: "Please enter a valid open price.",
       field: ERROR_FIELD_PROFIT_LOSS.ENTRY_PRICE,
     };
   }
 
-  if (!checkMinMax(input.quantity, 0, MAX_TRILLION)) {
+  if (!checkMinMax(input.quantity, 0, QUADRILLION)) {
     return {
       err: "Please enter a valid quantity.",
       field: ERROR_FIELD_PROFIT_LOSS.QUANTITY,
     };
   }
 
-  if (!checkMinMax(input.exitPrice, 0, MAX_TRILLION)) {
+  if (!checkMinMax(input.exitPrice, 0, QUADRILLION)) {
     return {
       err: "Please enter a valid close price.",
       field: ERROR_FIELD_PROFIT_LOSS.EXIT_PRICE,
@@ -51,7 +51,7 @@ export const validateProfitLossInput = (
       };
     }
 
-    if (!checkMinMax(input.minTradingFee, 0, MAX_TRILLION)) {
+    if (!checkMinMax(input.minTradingFee, 0, QUADRILLION)) {
       return {
         err: "Please enter a valid minimum trading fee.",
         field: ERROR_FIELD_PROFIT_LOSS.MIN_TRADING_FEE,

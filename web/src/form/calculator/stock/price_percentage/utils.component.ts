@@ -1,5 +1,5 @@
 import { BigNumber } from "mathjs";
-import { mathBigNum, MAX_TRILLION } from "../../../../common/number/math";
+import { mathBigNum, QUADRILLION } from "../../../../common/number/math";
 import {
   convertToLocaleString,
   parseBigNumberFromString,
@@ -14,14 +14,19 @@ import {
 export const validatePricePercentageInput = (
   input: PricePercentageInputType
 ): { err: string; field: ERROR_FIELD_PRICE_PERCENTAGE | null } => {
-  if (!checkMinMax(input.price, 0, MAX_TRILLION)) {
+  if (!checkMinMax(input.price, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid price.",
       field: ERROR_FIELD_PRICE_PERCENTAGE.PRICE,
     };
   }
 
-  if (!checkMinMax(input.percentage, MAX_TRILLION.negated(), MAX_TRILLION)) {
+  if (
+    !checkMinMax(input.percentage, {
+      minOrEqual: QUADRILLION.negated(),
+      maxOrEqual: QUADRILLION,
+    })
+  ) {
     return {
       err: "Please enter a valid percentage.",
       field: ERROR_FIELD_PRICE_PERCENTAGE.PERCENTAGE,
