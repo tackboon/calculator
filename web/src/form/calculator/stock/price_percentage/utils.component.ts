@@ -1,5 +1,12 @@
 import { BigNumber } from "mathjs";
-import { mathBigNum, QUADRILLION } from "../../../../common/number/math";
+import {
+  addBig,
+  divideBig,
+  mathBigNum,
+  multiplyBig,
+  QUADRILLION,
+  subtractBig,
+} from "../../../../common/number/math";
 import {
   convertToLocaleString,
   parseBigNumberFromString,
@@ -39,37 +46,34 @@ export const validatePricePercentageInput = (
 export const calculateResult = (
   input: PricePercentageInputType
 ): PricePercentageResultType => {
-  let increasedPriceStr: string | undefined;
-  let decreasedPriceStr: string | undefined;
+  let increasedPrice: BigNumber | undefined;
+  let decreasedPrice: BigNumber | undefined;
 
   const price = parseBigNumberFromString(input.price);
   const percentage = parseBigNumberFromString(input.percentage);
 
   if (mathBigNum.largerEq(percentage, 0)) {
     // increasedPrice = price * (1 + percentage / 100);
-    const increasedPrice = mathBigNum.multiply(
-      price,
-      mathBigNum.add(1, mathBigNum.divide(percentage, 100))
-    ) as BigNumber;
-    increasedPriceStr = convertToLocaleString(increasedPrice.toString(), 2, 5);
+    increasedPrice = multiplyBig(price, addBig(1, divideBig(percentage, 100)));
 
     // decreasedPrice = price * (1 - percentage / 100);
-    const decreasedPrice = mathBigNum.multiply(
+    decreasedPrice = multiplyBig(
       price,
-      mathBigNum.subtract(1, mathBigNum.divide(percentage, 100))
-    ) as BigNumber;
-    decreasedPriceStr = convertToLocaleString(decreasedPrice.toString(), 2, 5);
+      subtractBig(1, divideBig(percentage, 100))
+    );
   } else {
     // decreasedPrice = price * (1 + percentage / 100);
-    const decreasedPrice = mathBigNum.multiply(
-      price,
-      mathBigNum.add(1, mathBigNum.divide(percentage, 100))
-    ) as BigNumber;
-    decreasedPriceStr = convertToLocaleString(decreasedPrice.toString(), 2, 5);
+    decreasedPrice = multiplyBig(price, addBig(1, divideBig(percentage, 100)));
   }
 
   return {
-    increasedPrice: increasedPriceStr,
-    decreasedPrice: decreasedPriceStr,
+    increasedPrice:
+      increasedPrice !== undefined
+        ? convertToLocaleString(increasedPrice.toFixed(2), 2, 5)
+        : undefined,
+    decreasedPrice:
+      decreasedPrice !== undefined
+        ? convertToLocaleString(decreasedPrice.toFixed(2), 2, 5)
+        : undefined,
   };
 };

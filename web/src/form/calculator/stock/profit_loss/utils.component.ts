@@ -22,21 +22,21 @@ import {
 export const validateProfitLossInput = (
   input: ProfitLossInputType
 ): { err: string; field: ERROR_FIELD_PROFIT_LOSS | null } => {
-  if (!checkMinMax(input.entryPrice, 0, QUADRILLION)) {
+  if (!checkMinMax(input.entryPrice, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid open price.",
       field: ERROR_FIELD_PROFIT_LOSS.ENTRY_PRICE,
     };
   }
 
-  if (!checkMinMax(input.quantity, 0, QUADRILLION)) {
+  if (!checkMinMax(input.quantity, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid quantity.",
       field: ERROR_FIELD_PROFIT_LOSS.QUANTITY,
     };
   }
 
-  if (!checkMinMax(input.exitPrice, 0, QUADRILLION)) {
+  if (!checkMinMax(input.exitPrice, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid close price.",
       field: ERROR_FIELD_PROFIT_LOSS.EXIT_PRICE,
@@ -44,14 +44,16 @@ export const validateProfitLossInput = (
   }
 
   if (input.includeTradingFee) {
-    if (!checkMinMax(input.estTradingFee, 0, 100)) {
+    if (!checkMinMax(input.estTradingFee, { min: 0, max: 100 })) {
       return {
         err: "Please estimates a valid trading fee.",
         field: ERROR_FIELD_PROFIT_LOSS.EST_TRADING_FEE,
       };
     }
 
-    if (!checkMinMax(input.minTradingFee, 0, QUADRILLION)) {
+    if (
+      !checkMinMax(input.minTradingFee, { min: 0, maxOrEqual: QUADRILLION })
+    ) {
       return {
         err: "Please enter a valid minimum trading fee.",
         field: ERROR_FIELD_PROFIT_LOSS.MIN_TRADING_FEE,
@@ -93,9 +95,8 @@ export const calculateResult = (
     // Calculate total entry fee
     // entryFee = grossEntryAmount * estFeeRate
     entryFee = multiplyBig(grossEntryAmount, estFeeRate);
-    entryFee = mathBigNum.round(entryFee, 2);
     if (mathBigNum.smaller(entryFee, minTradingFee)) {
-      entryFee = mathBigNum.round(minTradingFee, 2);
+      entryFee = minTradingFee;
     }
 
     // Calculate total entry amount
@@ -104,9 +105,8 @@ export const calculateResult = (
     // Calculate total exit fee
     // exitFee = grossExitAmount * estFeeRate
     exitFee = multiplyBig(grossExitAmount, estFeeRate);
-    exitFee = mathBigNum.round(exitFee, 2);
     if (mathBigNum.smaller(exitFee, minTradingFee)) {
-      exitFee = mathBigNum.round(minTradingFee, 2);
+      exitFee = minTradingFee;
     }
   }
 

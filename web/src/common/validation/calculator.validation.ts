@@ -1,14 +1,16 @@
-import { bignumber, BigNumber } from "mathjs";
+import { BigNumber } from "mathjs";
 import { parseBigNumberFromString } from "../number/number";
+
+export type CheckMinMaxOption = {
+  min?: number | BigNumber;
+  max?: number | BigNumber;
+  minOrEqual?: number | BigNumber;
+  maxOrEqual?: number | BigNumber;
+};
 
 export const checkMinMax = (
   input: string,
-  option: {
-    min?: number | BigNumber;
-    max?: number | BigNumber;
-    minOrEqual?: number | BigNumber;
-    maxOrEqual?: number | BigNumber;
-  }
+  option: CheckMinMaxOption
 ): boolean => {
   const val = parseBigNumberFromString(input);
   if (val.isNaN()) return false;
@@ -19,7 +21,7 @@ export const checkMinMax = (
     val.lessThanOrEqualTo(option.minOrEqual)
   )
     return false;
-      if (
+  if (
     option.maxOrEqual !== undefined &&
     val.greaterThanOrEqualTo(option.maxOrEqual)
   )

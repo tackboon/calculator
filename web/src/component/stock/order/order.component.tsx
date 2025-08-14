@@ -64,7 +64,9 @@ const Order: FC<StockOrderType> = ({
         <SelectBox
           options={["Long", "Short"]}
           defaultIndex={0}
-          onChangeHandler={(idx) => setInput({ ...input, isLong: idx === 0 })}
+          onChangeHandler={(idx) =>
+            setInput((prev) => ({ ...prev, isLong: idx === 0 }))
+          }
         />
       </div>
 
@@ -77,7 +79,9 @@ const Order: FC<StockOrderType> = ({
           minDecimalPlace={2}
           maxDecimalPlace={5}
           value={input.entryPrice}
-          onChangeHandler={(val) => setInput({ ...input, entryPrice: val })}
+          onChangeHandler={(val) =>
+            setInput((prev) => ({ ...prev, entryPrice: val }))
+          }
         />
       </div>
 
@@ -89,7 +93,9 @@ const Order: FC<StockOrderType> = ({
           minDecimalPlace={0}
           maxDecimalPlace={6}
           value={input.quantity}
-          onChangeHandler={(val) => setInput({ ...input, quantity: val })}
+          onChangeHandler={(val) =>
+            setInput((prev) => ({ ...prev, quantity: val }))
+          }
         />
       </div>
 
@@ -102,7 +108,9 @@ const Order: FC<StockOrderType> = ({
           minDecimalPlace={2}
           maxDecimalPlace={5}
           value={input.stopLoss}
-          onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
+          onChangeHandler={(val) =>
+            setInput((prev) => ({ ...prev, stopLoss: val }))
+          }
         />
       </div>
 
@@ -111,11 +119,11 @@ const Order: FC<StockOrderType> = ({
           <Checkbox
             isCheck={input.includeProfitGoal}
             onCheck={() => {
-              setInput({
-                ...input,
+              setInput((prev) => ({
+                ...prev,
                 includeProfitGoal: !input.includeProfitGoal,
                 profitGoal: DEFAULT_STOCK_ORDER_INPUT.profitGoal,
-              });
+              }));
             }}
           />
           <span>Include Profit Goal</span>
@@ -133,7 +141,9 @@ const Order: FC<StockOrderType> = ({
               minDecimalPlace={2}
               maxDecimalPlace={5}
               value={input.profitGoal}
-              onChangeHandler={(val) => setInput({ ...input, profitGoal: val })}
+              onChangeHandler={(val) =>
+                setInput((prev) => ({ ...prev, profitGoal: val }))
+              }
             />
           </div>
         )}

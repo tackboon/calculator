@@ -70,10 +70,10 @@ const RiskAndProfitForm = () => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput({
+    setInput((prev) => ({
       ...DEFAULT_INPUT,
-      includeTradingFee: input.includeTradingFee,
-    });
+      includeTradingFee: prev.includeTradingFee,
+    }));
     setErrorField(null);
     setResetOrderSignal((state) => state + 1);
     setResult(null);
@@ -108,7 +108,7 @@ const RiskAndProfitForm = () => {
             maxDecimalPlace={5}
             value={input.portfolioCapital}
             onChangeHandler={(val) =>
-              setInput({ ...input, portfolioCapital: val })
+              setInput((prev) => ({ ...prev, portfolioCapital: val }))
             }
           />
         </div>
@@ -141,12 +141,12 @@ const RiskAndProfitForm = () => {
             <Checkbox
               isCheck={input.includeTradingFee}
               onCheck={() =>
-                setInput({
-                  ...input,
-                  includeTradingFee: !input.includeTradingFee,
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !prev.includeTradingFee,
                   estTradingFee: DEFAULT_INPUT.estTradingFee,
                   minTradingFee: DEFAULT_INPUT.minTradingFee,
-                })
+                }))
               }
             />
             <span>Include Trading Fee</span>
@@ -170,7 +170,7 @@ const RiskAndProfitForm = () => {
                   maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, estTradingFee: val })
+                    setInput((prev) => ({ ...prev, estTradingFee: val }))
                   }
                 />
               </div>
@@ -189,7 +189,7 @@ const RiskAndProfitForm = () => {
                   maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, minTradingFee: val })
+                    setInput((prev) => ({ ...prev, minTradingFee: val }))
                   }
                 />
               </div>

@@ -79,7 +79,9 @@ const PricePercentageForm = () => {
             minDecimalPlace={2}
             maxDecimalPlace={5}
             value={input.price}
-            onChangeHandler={(val) => setInput({ ...input, price: val })}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, price: val }))
+            }
           />
         </div>
 
@@ -92,7 +94,9 @@ const PricePercentageForm = () => {
             maxDecimalPlace={5}
             isInvalid={errorField === ERROR_FIELD_PRICE_PERCENTAGE.PERCENTAGE}
             value={input.percentage}
-            onChangeHandler={(val) => setInput({ ...input, percentage: val })}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, percentage: val }))
+            }
           />
         </div>
 

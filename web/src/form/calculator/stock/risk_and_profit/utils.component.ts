@@ -1,9 +1,15 @@
 import { BigNumber } from "mathjs";
-import { mathBigNum } from "../../../../common/number/math";
+import {
+  addBig,
+  divideBig,
+  mathBigNum,
+  multiplyBig,
+  QUADRILLION,
+  subtractBig,
+} from "../../../../common/number/math";
 import {
   convertToLocaleString,
   parseBigNumberFromString,
-  parseNumberFromString,
 } from "../../../../common/number/number";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import { StockOrderInputType } from "../../../../component/stock/order/order.type";
@@ -17,7 +23,7 @@ import {
 export const validateRiskAndProfitInput = (
   input: RiskAndProfitInputType
 ): { err: string; field: ERROR_FIELD_RISK_AND_PROFIT | null } => {
-  if (!checkMinMax(input.portfolioCapital, 0)) {
+  if (!checkMinMax(input.portfolioCapital, { min: 0 })) {
     return {
       err: "Please enter a valid portfolio capital.",
       field: ERROR_FIELD_RISK_AND_PROFIT.PORTFOLIO_CAPITAL,
@@ -25,14 +31,16 @@ export const validateRiskAndProfitInput = (
   }
 
   if (input.includeTradingFee) {
-    if (!checkMinMax(input.estTradingFee, 0, 100)) {
+    if (!checkMinMax(input.estTradingFee, { min: 0, max: 100 })) {
       return {
         err: "Please estimates a valid trading fee.",
         field: ERROR_FIELD_RISK_AND_PROFIT.EST_TRADING_FEE,
       };
     }
 
-    if (!checkMinMax(input.minTradingFee, 0)) {
+    if (
+      !checkMinMax(input.minTradingFee, { min: 0, maxOrEqual: QUADRILLION })
+    ) {
       return {
         err: "Please enter a valid minimum trading fee.",
         field: ERROR_FIELD_RISK_AND_PROFIT.MIN_TRADING_FEE,
@@ -51,9 +59,9 @@ export const calculateResult = (
 
   // Parse inputs
   const portfolioCapital = parseBigNumberFromString(input.portfolioCapital);
-  const tradingFee = parseNumberFromString(input.estTradingFee);
+  const tradingFee = parseBigNumberFromString(input.estTradingFee);
   const minTradingFee = parseBigNumberFromString(input.minTradingFee);
-  const estFeeRate = tradingFee / 100;
+  const estFeeRate = divideBig(tradingFee, 100);
 
   let totalEntryAmount = mathBigNum.bignumber(0);
   let totalRiskAmount = mathBigNum.bignumber(0);
@@ -79,21 +87,20 @@ export const calculateResult = (
 
     // Calculate entry amount
     // entryAmt = entryPrice * quantity;
-    const entryAmount = mathBigNum.multiply(entryPrice, quantity) as BigNumber;
-    const entryAmountStr = convertToLocaleString(entryAmount.toString(), 2, 5);
+    const entryAmount = multiplyBig(entryPrice, quantity);
 
     // Calculate total entry amount
     // totalEntryAmount = totalEntryAmount + entryAmount;
-    totalEntryAmount = mathBigNum.add(totalEntryAmount, entryAmount);
+    totalEntryAmount = addBig(totalEntryAmount, entryAmount);
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
     let stopLossPercent = mathBigNum.bignumber(0);
     let stopLossPercentStr = "0";
     if (!mathBigNum.equal(entryPrice, 0)) {
-      stopLossPercent = mathBigNum.multiply(
-        mathBigNum.divide(
-          mathBigNum.abs(mathBigNum.subtract(entryPrice, stopLoss)),
+      stopLossPercent = multiplyBig(
+        divideBig(
+          mathBigNum.abs(subtractBig(entryPrice, stopLoss)),
           entryPrice
         ),
         100
