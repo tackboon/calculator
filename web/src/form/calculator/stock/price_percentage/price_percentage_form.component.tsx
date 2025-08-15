@@ -27,6 +27,7 @@ const PricePercentageForm = () => {
   const [input, setInput] = useState<PricePercentageInputType>(DEFAULT_INPUT);
 
   const [result, setResult] = useState<PricePercentageResultType | null>(null);
+  const [decPrecision, setDecPrecision] = useState(2);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Scroll to result after it is updated
@@ -126,14 +127,14 @@ const PricePercentageForm = () => {
               {result.increasedPrice !== undefined && (
                 <div className={styles["row"]}>
                   <div>Increased Price:</div>
-                  <div>${result.increasedPrice}</div>
+                  <div>${result.increasedPrice.toFixed(decPrecision)}</div>
                 </div>
               )}
 
               {result.decreasedPrice !== undefined && (
                 <div className={styles["row"]}>
                   <div>Decreased Price:</div>
-                  <div>${result.decreasedPrice}</div>
+                  <div>${result.decreasedPrice.toFixed(decPrecision)}</div>
                 </div>
               )}
             </div>

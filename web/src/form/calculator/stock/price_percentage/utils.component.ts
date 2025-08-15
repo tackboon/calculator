@@ -7,10 +7,7 @@ import {
   QUADRILLION,
   subtractBig,
 } from "../../../../common/number/math";
-import {
-  convertToLocaleString,
-  parseBigNumberFromString,
-} from "../../../../common/number/number";
+import { parseBigNumberFromString } from "../../../../common/number/number";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import {
   ERROR_FIELD_PRICE_PERCENTAGE,
@@ -67,13 +64,7 @@ export const calculateResult = (
   }
 
   return {
-    increasedPrice:
-      increasedPrice !== undefined
-        ? convertToLocaleString(increasedPrice.toFixed(2), 2, 5)
-        : undefined,
-    decreasedPrice:
-      decreasedPrice !== undefined
-        ? convertToLocaleString(decreasedPrice.toFixed(2), 2, 5)
-        : undefined,
+    increasedPrice: increasedPrice,
+    decreasedPrice: decreasedPrice,
   };
 };

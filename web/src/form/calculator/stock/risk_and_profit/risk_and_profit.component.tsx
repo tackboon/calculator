@@ -15,6 +15,8 @@ import {
   RiskAndProfitResultType,
 } from "./risk_and_profit.type";
 import { StockOrderInputType } from "../../../../component/stock/order/order.type";
+import { divideBig, mathBigNum } from "../../../../common/number/math";
+import { convertToLocaleString } from "../../../../common/number/number";
 
 const DEFAULT_INPUT: RiskAndProfitInputType = {
   portfolioCapital: "0",
@@ -30,6 +32,7 @@ const RiskAndProfitForm = () => {
   const [input, setInput] = useState<RiskAndProfitInputType>(DEFAULT_INPUT);
 
   const [result, setResult] = useState<RiskAndProfitResultType | null>(null);
+  const [decPrecision, setDecPrecision] = useState(2);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const [addOrderSignal, setAddOrderSignal] = useState(0);
@@ -222,31 +225,31 @@ const RiskAndProfitForm = () => {
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
                 <div>Total Entry Amount:</div>
-                <div>${result.totalEntryAmount}</div>
+                <div>${result.totalEntryAmount.toFixed(decPrecision)}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Total Risk Amount:</div>
-                <div>${result.totalRiskAmount}</div>
+                <div>${result.totalRiskAmount.toFixed(decPrecision)}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>Portfolio Risk (%):</div>
-                <div>{result.portfolioRisk}%</div>
+                <div>{result.portfolioRisk.toFixed(decPrecision)}%</div>
               </div>
 
-              {result.hasProfitGoal && (
-                <>
-                  <div className={styles["row"]}>
-                    <div>Total Potential Profit:</div>
-                    <div>${result.totalProfitAmount}</div>
-                  </div>
+              {result.totalProfitAmount !== undefined && (
+                <div className={styles["row"]}>
+                  <div>Total Potential Profit:</div>
+                  <div>${result.totalProfitAmount.toFixed(decPrecision)}</div>
+                </div>
+              )}
 
-                  <div className={styles["row"]}>
-                    <div>Potential Portfolio Return (%):</div>
-                    <div>{result.portfolioProfit}%</div>
-                  </div>
-                </>
+              {result.portfolioProfit !== undefined && (
+                <div className={styles["row"]}>
+                  <div>Potential Portfolio Return (%):</div>
+                  <div>{result.portfolioProfit.toFixed(decPrecision)}%</div>
+                </div>
               )}
 
               <br />
@@ -261,10 +264,24 @@ const RiskAndProfitForm = () => {
                 <div>{result.totalShort}</div>
               </div>
 
-              {result.riskRewardRatio && (
+              {result.riskRewardRatio !== undefined && (
                 <div className={styles["row"]}>
                   <div>Portfolio Risk/Reward Ratio:</div>
-                  <div>{result.riskRewardRatio}</div>
+                  <div>
+                    {mathBigNum.largerEq(result.riskRewardRatio, 1)
+                      ? `${convertToLocaleString(
+                          result.riskRewardRatio.toFixed(decPrecision),
+                          0,
+                          decPrecision
+                        )}:1`
+                      : `1:${convertToLocaleString(
+                          divideBig(1, result.riskRewardRatio).toFixed(
+                            decPrecision
+                          ),
+                          0,
+                          decPrecision
+                        )}`}
+                  </div>
                 </div>
               )}
 
@@ -292,7 +309,9 @@ const RiskAndProfitForm = () => {
 
                       <div className={styles["row"]}>
                         <div>Stop Loss (%):</div>
-                        <div>{order.stopLossPercent}%</div>
+                        <div>
+                          {order.stopLossPercent.toFixed(decPrecision)}%
+                        </div>
                       </div>
 
                       {order.profitPrice !== undefined && (
@@ -305,7 +324,9 @@ const RiskAndProfitForm = () => {
                       {order.profitPercent !== undefined && (
                         <div className={styles["row"]}>
                           <div>Profit (%):</div>
-                          <div>{order.profitPercent}%</div>
+                          <div>
+                            {order.profitPercent.toFixed(decPrecision)}%
+                          </div>
                         </div>
                       )}
 
@@ -317,20 +338,34 @@ const RiskAndProfitForm = () => {
                       <br />
                       <div className={styles["row"]}>
                         <div>Risk Amount:</div>
-                        <div>{order.riskAmount}</div>
+                        <div>{order.riskAmount.toFixed(decPrecision)}</div>
                       </div>
 
                       {order.profitAmount !== undefined && (
                         <div className={styles["row"]}>
                           <div>Potential Profit:</div>
-                          <div>{order.profitAmount}</div>
+                          <div>{order.profitAmount.toFixed(decPrecision)}</div>
                         </div>
                       )}
 
                       {order.riskRewardRatio && (
                         <div className={styles["row"]}>
                           <div>Risk/Reward Ratio:</div>
-                          <div>{order.riskRewardRatio}</div>
+                          <div>
+                            {mathBigNum.largerEq(order.riskRewardRatio, 1)
+                              ? `${convertToLocaleString(
+                                  order.riskRewardRatio.toFixed(decPrecision),
+                                  0,
+                                  decPrecision
+                                )}:1`
+                              : `1:${convertToLocaleString(
+                                  divideBig(1, order.riskRewardRatio).toFixed(
+                                    decPrecision
+                                  ),
+                                  0,
+                                  decPrecision
+                                )}`}
+                          </div>
                         </div>
                       )}
 
@@ -339,7 +374,7 @@ const RiskAndProfitForm = () => {
                           <br />
                           <div className={styles["row"]}>
                             <div>Opening Fee:</div>
-                            <div>${order.entryFee}</div>
+                            <div>${order.entryFee.toFixed(decPrecision)}</div>
                           </div>
                         </>
                       )}
@@ -347,14 +382,14 @@ const RiskAndProfitForm = () => {
                       {order.stopLossFee !== undefined && (
                         <div className={styles["row"]}>
                           <div>Stop Loss Execution Fee:</div>
-                          <div>${order.stopLossFee}</div>
+                          <div>${order.stopLossFee.toFixed(decPrecision)}</div>
                         </div>
                       )}
 
                       {order.profitFee !== undefined && (
                         <div className={styles["row"]}>
                           <div>Profit-Taking Fee:</div>
-                          <div>${order.profitFee}</div>
+                          <div>${order.profitFee.toFixed(decPrecision)}</div>
                         </div>
                       )}
                     </div>

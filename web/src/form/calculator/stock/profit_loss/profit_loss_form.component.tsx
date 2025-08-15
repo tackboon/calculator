@@ -14,6 +14,7 @@ import {
   ProfitLossInputType,
   ProfitLossResultType,
 } from "./profit_loss.type";
+import { mathBigNum } from "../../../../common/number/math";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -32,6 +33,7 @@ const ProfitLossForm = () => {
   );
   const [input, setInput] = useState<ProfitLossInputType>(DEFAULT_INPUT);
   const [result, setResult] = useState<ProfitLossResultType | null>(null);
+  const [decPrecision, setDecPrecision] = useState(2);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Scroll to result after it is updated
@@ -236,21 +238,21 @@ const ProfitLossForm = () => {
           >
             <div className={styles["result-wrapper"]}>
               <div className={styles["row"]}>
-                <div>Entry Gross Amount:</div>
-                <div>${result.grossEntryAmount}</div>
+                <div>Gross Entry Amount:</div>
+                <div>${result.grossEntryAmount.toFixed(decPrecision)}</div>
               </div>
 
               {result.entryFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Entry Fee:</div>
-                  <div>${result.entryFee}</div>
+                  <div>${result.entryFee.toFixed(decPrecision)}</div>
                 </div>
               )}
 
               {result.exitFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Closing Fee:</div>
-                  <div>${result.exitFee}</div>
+                  <div>${result.exitFee.toFixed(decPrecision)}</div>
                 </div>
               )}
 
@@ -258,44 +260,39 @@ const ProfitLossForm = () => {
               <div className={styles["row"]}>
                 <div>
                   {result.includeTradingFee ? "Gross" : "Total"}{" "}
-                  {result.grossGained[0] !== "-" ? "Gain" : "Loss"}:
+                  {mathBigNum.largerEq(result.grossGained, 0) ? "Gain" : "Loss"}
+                  :
                 </div>
-                <div>
-                  $
-                  {result.grossGained[0] === "-"
-                    ? result.grossGained.slice(1)
-                    : result.grossGained}
-                </div>
+                <div>${result.grossGained.toFixed(decPrecision)}</div>
               </div>
 
               <div className={styles["row"]}>
                 <div>
                   {result.includeTradingFee ? "Gross " : ""}
-                  {result.grossGained[0] !== "-" ? "Gain" : "Loss"} (%):
+                  {mathBigNum.largerEq(result.grossGained, 0)
+                    ? "Gain"
+                    : "Loss"}{" "}
+                  (%):
                 </div>
                 <div
                   className={
-                    result.grossGained[0] !== "-" ? "" : styles["loss"]
+                    mathBigNum.largerEq(result.grossGained, 0)
+                      ? ""
+                      : styles["loss"]
                   }
                 >
-                  {result.grossPercentage[0] === "-"
-                    ? result.grossPercentage.slice(1)
-                    : result.grossPercentage}
-                  %
+                  {result.grossPercentage.toFixed(decPrecision)}%
                 </div>
               </div>
 
               {result.netGained !== undefined && (
                 <div className={styles["row"]}>
                   <div>
-                    Net {result.netGained[0] !== "-" ? "Gain" : "Loss"}:
+                    Net{" "}
+                    {mathBigNum.largerEq(result.netGained, 0) ? "Gain" : "Loss"}
+                    :
                   </div>
-                  <div>
-                    $
-                    {result.netGained[0] === "-"
-                      ? result.netGained.slice(1)
-                      : result.netGained}
-                  </div>
+                  <div>${result.netGained.toFixed(decPrecision)}</div>
                 </div>
               )}
 
@@ -303,17 +300,20 @@ const ProfitLossForm = () => {
                 result.netPercentage !== undefined && (
                   <div className={styles["row"]}>
                     <div>
-                      Net {result.netGained[0] !== "-" ? "Gain" : "Loss"} (%):
+                      Net{" "}
+                      {mathBigNum.largerEq(result.netGained, 0)
+                        ? "Gain"
+                        : "Loss"}{" "}
+                      (%):
                     </div>
                     <div
                       className={
-                        result.netGained[0] !== "-" ? "" : styles["loss"]
+                        mathBigNum.largerEq(result.netGained, 0)
+                          ? ""
+                          : styles["loss"]
                       }
                     >
-                      {result.netPercentage[0] === "-"
-                        ? result.netPercentage.slice(1)
-                        : result.netPercentage}
-                      %
+                      {result.netPercentage.toFixed(decPrecision)}%
                     </div>
                   </div>
                 )}

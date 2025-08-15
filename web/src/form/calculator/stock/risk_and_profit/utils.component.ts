@@ -68,7 +68,6 @@ export const calculateResult = (
   let totalProfitAmount = mathBigNum.bignumber(0);
   let totalLong = 0;
   let totalShort = 0;
-  let hasProfitGoal = false;
 
   for (let i = 0; i < orders.length; i++) {
     // Process input for each order
@@ -86,17 +85,17 @@ export const calculateResult = (
     }
 
     // Calculate entry amount
-    // entryAmt = entryPrice * quantity;
-    const entryAmount = multiplyBig(entryPrice, quantity);
+    // grossEntryAmt = entryPrice * quantity;
+    const grossEntryAmount = multiplyBig(entryPrice, quantity);
+    let entryA
 
     // Calculate total entry amount
     // totalEntryAmount = totalEntryAmount + entryAmount;
-    totalEntryAmount = addBig(totalEntryAmount, entryAmount);
+    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
     let stopLossPercent = mathBigNum.bignumber(0);
-    let stopLossPercentStr = "0";
     if (!mathBigNum.equal(entryPrice, 0)) {
       stopLossPercent = multiplyBig(
         divideBig(
@@ -104,107 +103,82 @@ export const calculateResult = (
           entryPrice
         ),
         100
-      ) as BigNumber;
-      stopLossPercentStr = convertToLocaleString(
-        stopLossPercent.toString(),
-        2,
-        5
       );
     }
 
     // Calculate stop loss amount
-    // exitAmount = stopLoss * quantity;
-    const exitAmount = mathBigNum.multiply(stopLoss, quantity) as BigNumber;
+    // grossExitAmount = stopLoss * quantity;
+    const grossExitAmount = multiplyBig(stopLoss, quantity);
 
     // Calculate risk amount
     // riskAmount = Math.abs(entryAmount - exitAmount);
     let riskAmount = mathBigNum.abs(
-      mathBigNum.subtract(entryAmount, exitAmount)
+      subtractBig(grossEntryAmount, grossExitAmount)
     );
 
     // Calcualte profit
-    let profitPercentStr: string | undefined;
     let profitAmount: BigNumber | undefined;
     if (includeProfitGoal) {
-      hasProfitGoal = true;
-
       // Calculate profit percent
       // profitPercent = (Math.abs(entryPrice - profitGoal) / entryPrice) * 100
       let profitPercent = mathBigNum.bignumber(0);
       if (!mathBigNum.equal(entryPrice, 0)) {
-        profitPercent = mathBigNum.multiply(
-          mathBigNum.divide(
-            mathBigNum.abs(mathBigNum.subtract(entryPrice, profitGoal)),
+        profitPercent = multiplyBig(
+          divideBig(
+            mathBigNum.abs(subtractBig(entryPrice, profitGoal)),
             entryPrice
           ),
           100
-        ) as BigNumber;
-        profitPercentStr = convertToLocaleString(
-          profitPercent.toString(),
-          2,
-          5
         );
       }
 
       // Calculate profit amount
       // profitAmount = Math.abs(entryPrice - profitGoal) * quantity
-      profitAmount = mathBigNum.multiply(
-        mathBigNum.abs(mathBigNum.subtract(entryPrice, profitGoal)),
+      profitAmount = multiplyBig(
+        mathBigNum.abs(subtractBig(entryPrice, profitGoal)),
         quantity
-      ) as BigNumber;
+      );
     }
 
     // calculate fees
-    let estimatedEntryFeeStr: string | undefined;
-    let estimatedStopFeeStr: string | undefined;
-    let estimatedProfitFeeStr: string | undefined;
+    let entryFee: BigNumber | undefined;
+    let stopFee: BigNumber | undefined;
+    let profitFee: BigNumber | undefined;
     if (input.includeTradingFee) {
       // Calculate entry fee
       // entryFee = entryAmount * estFeeRate
-      let entryFee = mathBigNum.multiply(entryAmount, estFeeRate) as BigNumber;
-      entryFee = mathBigNum.round(entryFee, 5);
+      let entryFee = multiplyBig(grossEntryAmount, estFeeRate);
       if (mathBigNum.smaller(entryFee, minTradingFee)) {
         entryFee = minTradingFee;
       }
-      estimatedEntryFeeStr = convertToLocaleString(entryFee.toString(), 2, 5);
 
       // Calculate stop fee
       // stopFee = exitAmount * estFeeRate
-      let stopFee = mathBigNum.multiply(exitAmount, estFeeRate) as BigNumber;
-      stopFee = mathBigNum.round(stopFee, 5);
+      let stopFee = multiplyBig(grossExitAmount, estFeeRate);
       if (mathBigNum.smaller(stopFee, minTradingFee)) {
         stopFee = minTradingFee;
       }
-      estimatedStopFeeStr = convertToLocaleString(stopFee.toString(), 2, 5);
+
+      // Recompute total entry amount
+      totalEntryAmount = addBig(totalEntryAmount, entryFee);
 
       // Recompute risk amount
       // riskAmount = riskAmount + entryFee + stopFee
-      riskAmount = mathBigNum.add(
-        mathBigNum.add(riskAmount, entryFee),
-        stopFee
-      );
+      riskAmount = addBig(addBig(riskAmount, entryFee), stopFee);
 
       if (profitAmount !== undefined) {
         // Calculate profit fee
         // profitFee = profitAmount * estFeeRate
-        let profitFee = mathBigNum.multiply(
-          profitAmount,
-          estFeeRate
-        ) as BigNumber;
+        let profitFee = multiplyBig(profitAmount, estFeeRate);
         profitFee = mathBigNum.round(profitFee, 5);
         if (mathBigNum.smaller(profitFee, minTradingFee)) {
           profitFee = minTradingFee;
         }
-        estimatedProfitFeeStr = convertToLocaleString(
-          profitFee.toString(),
-          2,
-          5
-        );
 
         // Recompute profit amount
         // profitAmount = profitAmount - entryFee - profitFee
-        profitAmount = mathBigNum.subtract(
-          mathBigNum.subtract(profitAmount, entryFee),
+        profitAmount = subtractBig(
+          subtractBig(profitAmount, entryFee),
           profitFee
         );
       }
@@ -212,42 +186,29 @@ export const calculateResult = (
 
     // Calculate total risk amount
     // totalRiskAmount = totalRiskAmount + riskAmount
-    totalRiskAmount = mathBigNum.add(totalRiskAmount, riskAmount);
+    totalRiskAmount = addBig(totalRiskAmount, riskAmount);
 
     // Calculate total profit amount
     if (profitAmount !== undefined) {
       // totalProfitAmount = totalProfitAmount + profitAmount
-      totalProfitAmount = mathBigNum.add(totalProfitAmount, profitAmount);
+      totalProfitAmount = addBig(totalProfitAmount, profitAmount);
     }
 
     // Calculate portfolio risk
     let portfolioRisk = mathBigNum.bignumber(0);
     if (!mathBigNum.equal(portfolioCapital, 0)) {
       // portfolioRisk = (riskAmount / portfolioCapital) * 100
-      portfolioRisk = mathBigNum.multiply(
-        mathBigNum.divide(riskAmount, portfolioCapital),
-        100
-      ) as BigNumber;
+      portfolioRisk = multiplyBig(divideBig(riskAmount, portfolioCapital), 100);
     }
-    const portfolioRiskStr = convertToLocaleString(
-      portfolioRisk.toString(),
-      2,
-      5
-    );
 
     // Calculate portfolio profit
     let portfolioProfitStr: string | undefined;
     if (profitAmount !== undefined) {
       // portfolioProfit = (profitAmount / portfolioCapital) * 100
       let portfolioProfit = mathBigNum.bignumber(0);
-      portfolioProfit = mathBigNum.multiply(
-        mathBigNum.divide(profitAmount, portfolioCapital),
+      portfolioProfit = multiplyBig(
+        divideBig(profitAmount, portfolioCapital),
         100
-      ) as BigNumber;
-      portfolioProfitStr = convertToLocaleString(
-        portfolioProfit.toString(),
-        2,
-        5
       );
     }
 
@@ -255,22 +216,16 @@ export const calculateResult = (
     let riskRewardRatio: string | undefined;
     if (profitAmount !== undefined && !mathBigNum.equal(profitAmount, 0)) {
       // ratio = riskAmount / profitAmount
-      let ratio = mathBigNum.divide(riskAmount, profitAmount) as BigNumber;
+      let ratio = divideBig(riskAmount, profitAmount);
       let roundedRatio = mathBigNum.round(ratio, 2);
 
       if (mathBigNum.largerEq(roundedRatio, 1)) {
         riskRewardRatio = `${roundedRatio}:1`;
       } else {
-        ratio = mathBigNum.divide(1, ratio) as BigNumber;
+        ratio = divideBig(1, ratio);
         ratio = mathBigNum.round(ratio, 2);
         riskRewardRatio = `1:${ratio}`;
       }
-    }
-
-    const riskAmountStr = convertToLocaleString(riskAmount.toString(), 2, 5);
-    let profitAmountStr: string | undefined;
-    if (profitAmount !== undefined) {
-      profitAmountStr = convertToLocaleString(profitAmount.toString(), 2, 5);
     }
 
     // update results
@@ -297,10 +252,10 @@ export const calculateResult = (
   // portfolioRisk = (totalRiskAmount / portfolioCapital) * 100
   let portfolioRisk = mathBigNum.bignumber(0);
   if (!mathBigNum.equal(portfolioCapital, 0)) {
-    portfolioRisk = mathBigNum.multiply(
-      mathBigNum.divide(totalRiskAmount, portfolioCapital),
+    portfolioRisk = multiplyBig(
+      divideBig(totalRiskAmount, portfolioCapital),
       100
-    ) as BigNumber;
+    );
   }
 
   let portfolioProfitStr: string | undefined;
@@ -309,30 +264,22 @@ export const calculateResult = (
     // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
     let portfolioProfit = mathBigNum.bignumber(0);
     if (!mathBigNum.equal(portfolioCapital, 0)) {
-      portfolioProfit = mathBigNum.multiply(
-        mathBigNum.divide(totalProfitAmount, portfolioCapital),
+      portfolioProfit = multiplyBig(
+        divideBig(totalProfitAmount, portfolioCapital),
         100
-      ) as BigNumber;
+      );
     }
-    portfolioProfitStr = convertToLocaleString(
-      portfolioProfit.toString(),
-      2,
-      5
-    );
 
     if (mathBigNum.larger(totalProfitAmount, 0)) {
       // ratio = totalRiskAmount / totalProfitAmount
-      let ratio = mathBigNum.divide(
-        totalRiskAmount,
-        totalProfitAmount
-      ) as BigNumber;
+      let ratio = divideBig(totalRiskAmount, totalProfitAmount);
       const roundedRatio = mathBigNum.round(ratio, 2);
 
       if (mathBigNum.largerEq(roundedRatio, 1)) {
         riskRewardRatio = `${roundedRatio}:1`;
       } else {
         riskRewardRatio = `1:${convertToLocaleString(
-          mathBigNum.divide(1, ratio).toString(),
+          divideBig(1, ratio).toFixed(2),
           0,
           2
         )}`;

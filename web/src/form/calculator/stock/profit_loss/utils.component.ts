@@ -7,11 +7,7 @@ import {
   QUADRILLION,
   subtractBig,
 } from "../../../../common/number/math";
-import {
-  convertToLocaleString,
-  parseBigNumberFromString,
-  parseNumberFromString,
-} from "../../../../common/number/number";
+import { parseBigNumberFromString } from "../../../../common/number/number";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import {
   ERROR_FIELD_PROFIT_LOSS,
@@ -71,8 +67,8 @@ export const calculateResult = (
   const entryPrice = parseBigNumberFromString(input.entryPrice);
   const exitPrice = parseBigNumberFromString(input.exitPrice);
   const quantity = parseBigNumberFromString(input.quantity);
-  const estTradingFee = parseNumberFromString(input.estTradingFee);
-  const estFeeRate = estTradingFee / 100;
+  const estTradingFee = parseBigNumberFromString(input.estTradingFee);
+  const estFeeRate = divideBig(estTradingFee, 100);
   const minTradingFee = parseBigNumberFromString(input.minTradingFee);
 
   /* 
@@ -142,25 +138,13 @@ export const calculateResult = (
   }
 
   return {
-    grossEntryAmount: convertToLocaleString(grossEntryAmount.toFixed(2), 2, 5),
-    grossGained: convertToLocaleString(grossGained.toFixed(2), 2, 5),
-    grossPercentage: convertToLocaleString(grossPercentage.toFixed(2), 2, 5),
-    netGained:
-      netGained !== undefined
-        ? convertToLocaleString(netGained.toFixed(2), 2, 5)
-        : undefined,
-    netPercentage:
-      netPercentage !== undefined
-        ? convertToLocaleString(netPercentage.toFixed(2), 2, 5)
-        : undefined,
-    entryFee:
-      entryFee !== undefined
-        ? convertToLocaleString(entryFee.toFixed(2), 2, 5)
-        : undefined,
-    exitFee:
-      exitFee !== undefined
-        ? convertToLocaleString(exitFee.toFixed(2), 2, 5)
-        : undefined,
+    grossEntryAmount: grossEntryAmount,
+    grossGained: grossGained,
+    grossPercentage: grossPercentage,
+    netGained: netGained,
+    netPercentage: netPercentage,
+    entryFee: entryFee,
+    exitFee: exitFee,
     isLong: input.isLong,
     includeTradingFee: input.includeTradingFee,
   };

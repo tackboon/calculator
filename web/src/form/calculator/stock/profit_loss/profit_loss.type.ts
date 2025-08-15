@@ -1,3 +1,5 @@
+import { BigNumber } from "mathjs";
+
 export type ProfitLossInputType = {
   entryPrice: string;
   exitPrice: string;
@@ -17,13 +19,13 @@ export enum ERROR_FIELD_PROFIT_LOSS {
 }
 
 export type ProfitLossResultType = {
-  grossEntryAmount: string;
-  grossGained: string;
-  grossPercentage: string;
-  netGained?: string;
-  netPercentage?: string;
-  entryFee?: string;
-  exitFee?: string;
+  grossEntryAmount: BigNumber;
+  grossGained: BigNumber;
+  grossPercentage: BigNumber;
+  netGained?: BigNumber;
+  netPercentage?: BigNumber;
+  entryFee?: BigNumber;
+  exitFee?: BigNumber;
   isLong: boolean;
   includeTradingFee: boolean;
 };

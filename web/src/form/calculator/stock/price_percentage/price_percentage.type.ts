@@ -1,3 +1,5 @@
+import { BigNumber } from "mathjs";
+
 export type PricePercentageInputType = {
   price: string;
   percentage: string;
@@ -9,6 +11,6 @@ export enum ERROR_FIELD_PRICE_PERCENTAGE {
 }
 
 export type PricePercentageResultType = {
-  increasedPrice?: string;
-  decreasedPrice?: string;
+  increasedPrice?: BigNumber;
+  decreasedPrice?: BigNumber;
 };
