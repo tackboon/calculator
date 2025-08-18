@@ -113,95 +113,95 @@ export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
 export const validatePositionSizeInput = (
   input: ForexPositionSizeInputType
 ): { err: string; field: ERROR_FIELD_POSITION_SIZE | null } => {
-  if (!checkMinMax(input.portfolioCapital, 0)) {
-    return {
-      err: "Please enter a valid portfolio capital.",
-      field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,
-    };
-  }
+  // if (!checkMinMax(input.portfolioCapital, 0)) {
+  //   return {
+  //     err: "Please enter a valid portfolio capital.",
+  //     field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,
+  //   };
+  // }
 
-  if (!checkMinMax(input.maxPortfolioRisk, 0, 100)) {
-    return {
-      err: "Please enter a valid max portflio risk.",
-      field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
-    };
-  }
+  // if (!checkMinMax(input.maxPortfolioRisk, 0, 100)) {
+  //   return {
+  //     err: "Please enter a valid max portflio risk.",
+  //     field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
+  //   };
+  // }
 
-  if (input.basePair !== "" && !checkMinMax(input.baseCrossRate, 0)) {
-    return {
-      err: "Please enter a valid cross rate.",
-      field: ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE,
-    };
-  }
+  // if (input.basePair !== "" && !checkMinMax(input.baseCrossRate, 0)) {
+  //   return {
+  //     err: "Please enter a valid cross rate.",
+  //     field: ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE,
+  //   };
+  // }
 
-  if (input.quotePair !== "" && !checkMinMax(input.quoteCrossRate, 0)) {
-    return {
-      err: "Please enter a valid cross rate.",
-      field: ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE,
-    };
-  }
+  // if (input.quotePair !== "" && !checkMinMax(input.quoteCrossRate, 0)) {
+  //   return {
+  //     err: "Please enter a valid cross rate.",
+  //     field: ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE,
+  //   };
+  // }
 
-  if (!checkMinMax(input.contractSize, 0)) {
-    return {
-      err: "Please enter a valid contract size.",
-      field: ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE,
-    };
-  }
+  // if (!checkMinMax(input.contractSize, 0)) {
+  //   return {
+  //     err: "Please enter a valid contract size.",
+  //     field: ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE,
+  //   };
+  // }
 
-  if (!checkMinMax(input.openPrice, 0)) {
-    return {
-      err: "Please enter a valid open price.",
-      field: ERROR_FIELD_POSITION_SIZE.OPEN_PRICE,
-    };
-  }
+  // if (!checkMinMax(input.openPrice, 0)) {
+  //   return {
+  //     err: "Please enter a valid open price.",
+  //     field: ERROR_FIELD_POSITION_SIZE.OPEN_PRICE,
+  //   };
+  // }
 
-  let stopLossMin = mathBigNum.bignumber(0);
-  let stopLossMax: BigNumber | undefined;
-  if (input.isLong) {
-    stopLossMax = parseBigNumberFromString(input.openPrice);
-  } else {
-    stopLossMin = parseBigNumberFromString(input.openPrice);
-  }
-  if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
-    return {
-      err: "Please enter a valid stop loss.",
-      field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,
-    };
-  }
+  // let stopLossMin = mathBigNum.bignumber(0);
+  // let stopLossMax: BigNumber | undefined;
+  // if (input.isLong) {
+  //   stopLossMax = parseBigNumberFromString(input.openPrice);
+  // } else {
+  //   stopLossMin = parseBigNumberFromString(input.openPrice);
+  // }
+  // if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
+  //   return {
+  //     err: "Please enter a valid stop loss.",
+  //     field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,
+  //   };
+  // }
 
-  if (input.includeProfitGoal) {
-    let profitGoalMin = mathBigNum.bignumber(0);
-    let profitGoalMax: BigNumber | undefined;
-    if (input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED) {
-      if (!checkMinMax(input.profitGoal, profitGoalMin)) {
-        return {
-          err: "Please enter a valid min portfolio profit.",
-          field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
-        };
-      }
-    } else {
-      if (input.isLong) {
-        profitGoalMin = parseBigNumberFromString(input.openPrice);
-      } else {
-        profitGoalMax = parseBigNumberFromString(input.openPrice);
-      }
-      if (!checkMinMax(input.profitGoal, profitGoalMin, profitGoalMax)) {
-        return {
-          err: "Please enter a valid profit target.",
-          field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
-        };
-      }
-    }
-  }
+  // if (input.includeProfitGoal) {
+  //   let profitGoalMin = mathBigNum.bignumber(0);
+  //   let profitGoalMax: BigNumber | undefined;
+  //   if (input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED) {
+  //     if (!checkMinMax(input.profitGoal, profitGoalMin)) {
+  //       return {
+  //         err: "Please enter a valid min portfolio profit.",
+  //         field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
+  //       };
+  //     }
+  //   } else {
+  //     if (input.isLong) {
+  //       profitGoalMin = parseBigNumberFromString(input.openPrice);
+  //     } else {
+  //       profitGoalMax = parseBigNumberFromString(input.openPrice);
+  //     }
+  //     if (!checkMinMax(input.profitGoal, profitGoalMin, profitGoalMax)) {
+  //       return {
+  //         err: "Please enter a valid profit target.",
+  //         field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
+  //       };
+  //     }
+  //   }
+  // }
 
-  if (input.includeTradingFee) {
-    if (!checkMinMax(input.estTradingFee, 0)) {
-      return {
-        err: "Please estimates a valid trading fee.",
-        field: ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE,
-      };
-    }
-  }
+  // if (input.includeTradingFee) {
+  //   if (!checkMinMax(input.estTradingFee, 0)) {
+  //     return {
+  //       err: "Please estimates a valid trading fee.",
+  //       field: ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE,
+  //     };
+  //   }
+  // }
 
   return { err: "", field: null };
 };

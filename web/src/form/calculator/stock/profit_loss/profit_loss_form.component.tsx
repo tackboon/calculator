@@ -15,6 +15,7 @@ import {
   ProfitLossResultType,
 } from "./profit_loss.type";
 import { mathBigNum } from "../../../../common/number/math";
+import Ranger from "../../../../component/common/ranger/ranger.component";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -236,7 +237,27 @@ const ProfitLossForm = () => {
           <Container
             className={`${styles["result-container"]} ${styles["profit-loss"]}`}
           >
+            <div className={`${styles["dec-container"]} ${styles["xm"]}`}>
+              <div>Precision:</div>
+              <Ranger
+                min={0}
+                max={5}
+                defaultValue={decPrecision}
+                onChange={(val) => setDecPrecision(val)}
+              />
+            </div>
+
             <div className={styles["result-wrapper"]}>
+              <div className={`${styles["dec-container"]} ${styles["xl"]}`}>
+                <div>Precision:</div>
+                <Ranger
+                  min={0}
+                  max={5}
+                  defaultValue={decPrecision}
+                  onChange={(val) => setDecPrecision(val)}
+                />
+              </div>
+
               <div className={styles["row"]}>
                 <div>Gross Entry Amount:</div>
                 <div>${result.grossEntryAmount.toFixed(decPrecision)}</div>

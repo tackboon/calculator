@@ -87,7 +87,7 @@ export const calculateResult = (
     // Calculate entry amount
     // grossEntryAmt = entryPrice * quantity;
     const grossEntryAmount = multiplyBig(entryPrice, quantity);
-    let entryA
+    let entryA;
 
     // Calculate total entry amount
     // totalEntryAmount = totalEntryAmount + entryAmount;
@@ -229,24 +229,24 @@ export const calculateResult = (
     }
 
     // update results
-    ordersResult.push({
-      isLong: isLong,
-      entryAmount: entryAmountStr,
-      entryPrice: orders[i].entryPrice,
-      stopLossPrice: orders[i].stopLoss,
-      stopLossPercent: stopLossPercentStr,
-      profitPrice: orders[i].profitGoal,
-      profitPercent: profitPercentStr,
-      riskAmount: riskAmountStr,
-      profitAmount: profitAmountStr,
-      entryFee: estimatedEntryFeeStr,
-      stopLossFee: estimatedStopFeeStr,
-      profitFee: estimatedProfitFeeStr,
-      portfolioRisk: portfolioRiskStr,
-      portfolioProfit: portfolioProfitStr,
-      riskRewardRatio: riskRewardRatio,
-      quantity: orders[i].quantity,
-    });
+    // ordersResult.push({
+    //   isLong: isLong,
+    //   entryAmount: entryAmountStr,
+    //   entryPrice: orders[i].entryPrice,
+    //   stopLossPrice: orders[i].stopLoss,
+    //   stopLossPercent: stopLossPercentStr,
+    //   profitPrice: orders[i].profitGoal,
+    //   profitPercent: profitPercentStr,
+    //   riskAmount: riskAmountStr,
+    //   profitAmount: profitAmountStr,
+    //   entryFee: estimatedEntryFeeStr,
+    //   stopLossFee: estimatedStopFeeStr,
+    //   profitFee: estimatedProfitFeeStr,
+    //   portfolioRisk: portfolioRiskStr,
+    //   portfolioProfit: portfolioProfitStr,
+    //   riskRewardRatio: riskRewardRatio,
+    //   quantity: orders[i].quantity,
+    // });
   }
 
   // portfolioRisk = (totalRiskAmount / portfolioCapital) * 100
@@ -260,48 +260,61 @@ export const calculateResult = (
 
   let portfolioProfitStr: string | undefined;
   let riskRewardRatio: string | undefined;
-  if (hasProfitGoal) {
-    // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
-    let portfolioProfit = mathBigNum.bignumber(0);
-    if (!mathBigNum.equal(portfolioCapital, 0)) {
-      portfolioProfit = multiplyBig(
-        divideBig(totalProfitAmount, portfolioCapital),
-        100
-      );
-    }
+  // if (hasProfitGoal) {
+  //   // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
+  //   let portfolioProfit = mathBigNum.bignumber(0);
+  //   if (!mathBigNum.equal(portfolioCapital, 0)) {
+  //     portfolioProfit = multiplyBig(
+  //       divideBig(totalProfitAmount, portfolioCapital),
+  //       100
+  //     );
+  //   }
 
-    if (mathBigNum.larger(totalProfitAmount, 0)) {
-      // ratio = totalRiskAmount / totalProfitAmount
-      let ratio = divideBig(totalRiskAmount, totalProfitAmount);
-      const roundedRatio = mathBigNum.round(ratio, 2);
+  //   if (mathBigNum.larger(totalProfitAmount, 0)) {
+  //     // ratio = totalRiskAmount / totalProfitAmount
+  //     let ratio = divideBig(totalRiskAmount, totalProfitAmount);
+  //     const roundedRatio = mathBigNum.round(ratio, 2);
 
-      if (mathBigNum.largerEq(roundedRatio, 1)) {
-        riskRewardRatio = `${roundedRatio}:1`;
-      } else {
-        riskRewardRatio = `1:${convertToLocaleString(
-          divideBig(1, ratio).toFixed(2),
-          0,
-          2
-        )}`;
-      }
-    }
-  }
+  //     if (mathBigNum.largerEq(roundedRatio, 1)) {
+  //       riskRewardRatio = `${roundedRatio}:1`;
+  //     } else {
+  //       riskRewardRatio = `1:${convertToLocaleString(
+  //         divideBig(1, ratio).toFixed(2),
+  //         0,
+  //         2
+  //       )}`;
+  //     }
+  //   }
+  // }
+
+  // return {
+  //   hasProfitGoal: hasProfitGoal,
+  //   totalEntryAmount: convertToLocaleString(totalEntryAmount.toString(), 2, 5),
+  //   totalRiskAmount: convertToLocaleString(totalRiskAmount.toString(), 2, 5),
+  //   totalProfitAmount: convertToLocaleString(
+  //     totalProfitAmount.toString(),
+  //     2,
+  //     5
+  //   ),
+  //   portfolioRisk: convertToLocaleString(portfolioRisk.toString(), 2, 5),
+  //   portfolioProfit: portfolioProfitStr,
+  //   riskRewardRatio: riskRewardRatio,
+  //   includeTradingFee: input.includeTradingFee,
+  //   orders: ordersResult,
+  //   totalLong: `${totalLong}`,
+  //   totalShort: `${totalShort}`,
+  // };
 
   return {
-    hasProfitGoal: hasProfitGoal,
-    totalEntryAmount: convertToLocaleString(totalEntryAmount.toString(), 2, 5),
-    totalRiskAmount: convertToLocaleString(totalRiskAmount.toString(), 2, 5),
-    totalProfitAmount: convertToLocaleString(
-      totalProfitAmount.toString(),
-      2,
-      5
-    ),
-    portfolioRisk: convertToLocaleString(portfolioRisk.toString(), 2, 5),
-    portfolioProfit: portfolioProfitStr,
-    riskRewardRatio: riskRewardRatio,
-    includeTradingFee: input.includeTradingFee,
+    totalEntryAmount: mathBigNum.bignumber(0),
+    totalRiskAmount: mathBigNum.bignumber(0),
+    totalProfitAmount: mathBigNum.bignumber(0),
+    portfolioRisk: mathBigNum.bignumber(0),
+    portfolioProfit: mathBigNum.bignumber(0),
+    riskRewardRatio: mathBigNum.bignumber(0),
+    includeTradingFee: false,
     orders: ordersResult,
-    totalLong: `${totalLong}`,
-    totalShort: `${totalShort}`,
+    totalShort: 0,
+    totalLong: 0,
   };
 };

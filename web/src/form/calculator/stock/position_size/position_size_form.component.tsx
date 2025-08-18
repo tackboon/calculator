@@ -134,7 +134,7 @@ const PositionSizeForm = () => {
             maxDecimalPlace={5}
             value={input.portfolioCapital}
             onChangeHandler={(val) =>
-              setInput({ ...input, portfolioCapital: val })
+              setInput((prev) => ({ ...prev, portfolioCapital: val }))
             }
           />
         </div>
@@ -142,7 +142,7 @@ const PositionSizeForm = () => {
         <div className={styles["form-group"]}>
           <label htmlFor="max-portfolio-risk">Max Portfolio Risk (%)</label>
           <NumberInput
-            step="0.1"
+            step={0.1}
             id="max-portfolio-risk"
             minDecimalPlace={2}
             maxDecimalPlace={5}
@@ -152,7 +152,7 @@ const PositionSizeForm = () => {
             }
             value={input.maxPortfolioRisk}
             onChangeHandler={(val) =>
-              setInput({ ...input, maxPortfolioRisk: val })
+              setInput((prev) => ({ ...prev, maxPortfolioRisk: val }))
             }
           />
         </div>
@@ -166,7 +166,9 @@ const PositionSizeForm = () => {
             maxDecimalPlace={5}
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE}
             value={input.entryPrice}
-            onChangeHandler={(val) => setInput({ ...input, entryPrice: val })}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, entryPrice: val }))
+            }
           />
         </div>
 
@@ -176,7 +178,9 @@ const PositionSizeForm = () => {
             name="unit-type"
             options={["Fractional Share", "Unit", "Round Lot"]}
             defaultIndex={UnitType.UNIT}
-            onChangeHandler={(idx) => setInput({ ...input, unitType: idx })}
+            onChangeHandler={(idx) =>
+              setInput((prev) => ({ ...prev, unitType: idx }))
+            }
           />
         </div>
 
@@ -191,7 +195,9 @@ const PositionSizeForm = () => {
               minDecimalPlace={2}
               maxDecimalPlace={5}
               value={input.stopLoss}
-              onChangeHandler={(val) => setInput({ ...input, stopLoss: val })}
+              onChangeHandler={(val) =>
+                setInput((prev) => ({ ...prev, stopLoss: val }))
+              }
             />
             <Switch
               height={46}
@@ -200,20 +206,20 @@ const PositionSizeForm = () => {
               defaultIndex={input.stopLossTyp === "$" ? 0 : 1}
               childWidth={50}
               onSwitch={(idx: number) => {
-                setInput({
-                  ...input,
+                setInput((prev) => ({
+                  ...prev,
                   stopLossTyp: idx === 0 ? "$" : "%",
                   stopLoss:
-                    input.stopLoss === "0"
-                      ? input.stopLoss
-                      : parseNumberFromString(input.stopLoss).toLocaleString(
+                    prev.stopLoss === "0"
+                      ? prev.stopLoss
+                      : parseNumberFromString(prev.stopLoss).toLocaleString(
                           "en-US",
                           {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 5,
                           }
                         ),
-                });
+                }));
               }}
             />
           </div>
@@ -230,12 +236,12 @@ const PositionSizeForm = () => {
             <Checkbox
               isCheck={input.includeProfitGoal}
               onCheck={() =>
-                setInput({
-                  ...input,
-                  includeProfitGoal: !input.includeProfitGoal,
+                setInput((prev) => ({
+                  ...prev,
+                  includeProfitGoal: !prev.includeProfitGoal,
                   profitGoal: DEFAULT_INPUT.profitGoal,
                   profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
-                })
+                }))
               }
             />
             <span>Include Profit Goal</span>
@@ -252,7 +258,11 @@ const PositionSizeForm = () => {
                   options={["Priced-Based", "Portfolio-Based"]}
                   defaultIndex={ProfitGoalTyp.PRICED_BASED}
                   onChangeHandler={(idx) => {
-                    setInput({ ...input, profitGoalTyp: idx, profitGoal: "0" });
+                    setInput((prev) => ({
+                      ...prev,
+                      profitGoalTyp: idx,
+                      profitGoal: "0",
+                    }));
                     if (
                       errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                     ) {
@@ -288,7 +298,7 @@ const PositionSizeForm = () => {
                     maxDecimalPlace={5}
                     value={input.profitGoal}
                     onChangeHandler={(val) =>
-                      setInput({ ...input, profitGoal: val })
+                      setInput((prev) => ({ ...prev, profitGoal: val }))
                     }
                   />
                   {input.profitGoalTyp === ProfitGoalTyp.PRICED_BASED && (
@@ -299,19 +309,19 @@ const PositionSizeForm = () => {
                       defaultIndex={input.profitGoalUnit === "$" ? 0 : 1}
                       childWidth={50}
                       onSwitch={(idx: number) => {
-                        setInput({
-                          ...input,
+                        setInput((prev) => ({
+                          ...prev,
                           profitGoalUnit: idx === 0 ? "$" : "%",
                           profitGoal:
-                            input.profitGoal === "0"
-                              ? input.profitGoal
+                            prev.profitGoal === "0"
+                              ? prev.profitGoal
                               : parseNumberFromString(
-                                  input.profitGoal
+                                  prev.profitGoal
                                 ).toLocaleString("en-US", {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 5,
                                 }),
-                        });
+                        }));
                       }}
                     />
                   )}
@@ -331,12 +341,12 @@ const PositionSizeForm = () => {
             <Checkbox
               isCheck={input.includeTradingFee}
               onCheck={() =>
-                setInput({
-                  ...input,
-                  includeTradingFee: !input.includeTradingFee,
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !prev.includeTradingFee,
                   estTradingFee: DEFAULT_INPUT.estTradingFee,
                   minTradingFee: DEFAULT_INPUT.minTradingFee,
-                })
+                }))
               }
             />
             <span>Include Trading Fee</span>
@@ -360,7 +370,7 @@ const PositionSizeForm = () => {
                   maxDecimalPlace={5}
                   value={input.estTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, estTradingFee: val })
+                    setInput((prev) => ({ ...prev, estTradingFee: val }))
                   }
                 />
               </div>
@@ -379,7 +389,7 @@ const PositionSizeForm = () => {
                   maxDecimalPlace={5}
                   value={input.minTradingFee}
                   onChangeHandler={(val) =>
-                    setInput({ ...input, minTradingFee: val })
+                    setInput((prev) => ({ ...prev, minTradingFee: val }))
                   }
                 />
               </div>
