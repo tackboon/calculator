@@ -87,11 +87,7 @@ export const calculateResult = (
     // Calculate entry amount
     // grossEntryAmt = entryPrice * quantity;
     const grossEntryAmount = multiplyBig(entryPrice, quantity);
-    let entryA;
-
-    // Calculate total entry amount
-    // totalEntryAmount = totalEntryAmount + entryAmount;
-    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
+    let entryAmount = grossEntryAmount;
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
@@ -227,6 +223,10 @@ export const calculateResult = (
         riskRewardRatio = `1:${ratio}`;
       }
     }
+
+        // Calculate total entry amount
+    // totalEntryAmount = totalEntryAmount + entryAmount;
+    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
 
     // update results
     // ordersResult.push({

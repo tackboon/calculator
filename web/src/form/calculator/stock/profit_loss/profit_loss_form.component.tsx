@@ -16,6 +16,7 @@ import {
 } from "./profit_loss.type";
 import { mathBigNum } from "../../../../common/number/math";
 import Ranger from "../../../../component/common/ranger/ranger.component";
+import { convertToLocaleString } from "../../../../common/number/number";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -260,20 +261,27 @@ const ProfitLossForm = () => {
 
               <div className={styles["row"]}>
                 <div>Gross Entry Amount:</div>
-                <div>${result.grossEntryAmount.toFixed(decPrecision)}</div>
+                <div>
+                  $
+                  {convertToLocaleString(result.grossEntryAmount, decPrecision)}
+                </div>
               </div>
 
               {result.entryFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Entry Fee:</div>
-                  <div>${result.entryFee.toFixed(decPrecision)}</div>
+                  <div>
+                    ${convertToLocaleString(result.entryFee, decPrecision)}
+                  </div>
                 </div>
               )}
 
               {result.exitFee !== undefined && (
                 <div className={styles["row"]}>
                   <div>Closing Fee:</div>
-                  <div>${result.exitFee.toFixed(decPrecision)}</div>
+                  <div>
+                    ${convertToLocaleString(result.exitFee, decPrecision)}
+                  </div>
                 </div>
               )}
 
@@ -284,7 +292,9 @@ const ProfitLossForm = () => {
                   {mathBigNum.largerEq(result.grossGained, 0) ? "Gain" : "Loss"}
                   :
                 </div>
-                <div>${result.grossGained.toFixed(decPrecision)}</div>
+                <div>
+                  ${convertToLocaleString(result.grossGained, decPrecision)}
+                </div>
               </div>
 
               <div className={styles["row"]}>
@@ -302,7 +312,7 @@ const ProfitLossForm = () => {
                       : styles["loss"]
                   }
                 >
-                  {result.grossPercentage.toFixed(decPrecision)}%
+                  {convertToLocaleString(result.grossPercentage, decPrecision)}%
                 </div>
               </div>
 
@@ -313,7 +323,9 @@ const ProfitLossForm = () => {
                     {mathBigNum.largerEq(result.netGained, 0) ? "Gain" : "Loss"}
                     :
                   </div>
-                  <div>${result.netGained.toFixed(decPrecision)}</div>
+                  <div>
+                    ${convertToLocaleString(result.netGained, decPrecision)}
+                  </div>
                 </div>
               )}
 
@@ -334,7 +346,11 @@ const ProfitLossForm = () => {
                           : styles["loss"]
                       }
                     >
-                      {result.netPercentage.toFixed(decPrecision)}%
+                      {convertToLocaleString(
+                        result.netPercentage,
+                        decPrecision
+                      )}
+                      %
                     </div>
                   </div>
                 )}
