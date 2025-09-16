@@ -5,6 +5,7 @@ import {
   mathBigNum,
   multiplyBig,
   QUADRILLION,
+  QUINTILLION,
   subtractBig,
 } from "../../../../common/number/math";
 import {
@@ -23,7 +24,9 @@ import {
 export const validateRiskAndProfitInput = (
   input: RiskAndProfitInputType
 ): { err: string; field: ERROR_FIELD_RISK_AND_PROFIT | null } => {
-  if (!checkMinMax(input.portfolioCapital, { min: 0 })) {
+  if (
+    !checkMinMax(input.portfolioCapital, { min: 0, maxOrEqual: QUINTILLION })
+  ) {
     return {
       err: "Please enter a valid portfolio capital.",
       field: ERROR_FIELD_RISK_AND_PROFIT.PORTFOLIO_CAPITAL,
@@ -190,41 +193,30 @@ export const calculateResult = (
       totalProfitAmount = addBig(totalProfitAmount, profitAmount);
     }
 
-    // Calculate portfolio risk
+    // Calculate portfolio risk and profit
     let portfolioRisk = mathBigNum.bignumber(0);
-    if (!mathBigNum.equal(portfolioCapital, 0)) {
+    let portfolioProfit = mathBigNum.bignumber(0);
+    if (mathBigNum.unequal(portfolioCapital, 0)) {
       // portfolioRisk = (riskAmount / portfolioCapital) * 100
       portfolioRisk = multiplyBig(divideBig(riskAmount, portfolioCapital), 100);
-    }
 
-    // Calculate portfolio profit
-    let portfolioProfitStr: string | undefined;
-    if (profitAmount !== undefined) {
       // portfolioProfit = (profitAmount / portfolioCapital) * 100
-      let portfolioProfit = mathBigNum.bignumber(0);
-      portfolioProfit = multiplyBig(
-        divideBig(profitAmount, portfolioCapital),
-        100
-      );
-    }
-
-    // Calculate risk reward ratio
-    let riskRewardRatio: string | undefined;
-    if (profitAmount !== undefined && !mathBigNum.equal(profitAmount, 0)) {
-      // ratio = riskAmount / profitAmount
-      let ratio = divideBig(riskAmount, profitAmount);
-      let roundedRatio = mathBigNum.round(ratio, 2);
-
-      if (mathBigNum.largerEq(roundedRatio, 1)) {
-        riskRewardRatio = `${roundedRatio}:1`;
-      } else {
-        ratio = divideBig(1, ratio);
-        ratio = mathBigNum.round(ratio, 2);
-        riskRewardRatio = `1:${ratio}`;
+      if (profitAmount !== undefined) {
+        portfolioProfit = multiplyBig(
+          divideBig(profitAmount, portfolioCapital),
+          100
+        );
       }
     }
 
-        // Calculate total entry amount
+    // Calculate risk reward ratio
+    let ratio: BigNumber | undefined;
+    if (profitAmount !== undefined && !mathBigNum.equal(profitAmount, 0)) {
+      // ratio = riskAmount / profitAmount
+      ratio = divideBig(riskAmount, profitAmount);
+    }
+
+    // Calculate total entry amount
     // totalEntryAmount = totalEntryAmount + entryAmount;
     totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
 

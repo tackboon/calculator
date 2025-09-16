@@ -5,6 +5,7 @@ import {
   mathBigNum,
   multiplyBig,
   QUADRILLION,
+  QUINTILLION,
   subtractBig,
 } from "../../../../common/number/math";
 import {
@@ -26,7 +27,7 @@ import {
 export const validatePositionSizeInput = (
   input: PositionSizeInputType
 ): { err: string; field: ERROR_FIELD_POSITION_SIZE | null } => {
-  if (!checkMinMax(input.portfolioCapital, { min: 0 })) {
+  if (!checkMinMax(input.portfolioCapital, { min: 0, maxOrEqual: QUINTILLION })) {
     return {
       err: "Please enter a valid portfolio capital.",
       field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,

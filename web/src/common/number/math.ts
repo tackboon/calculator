@@ -18,4 +18,5 @@ export const divideBig = (x: BigNumber | number, y: BigNumber | number) => {
   return mathBigNum.divide(x, y) as BigNumber;
 };
 
-export const QUADRILLION = mathBigNum.bignumber("1000000000");
+export const QUADRILLION = mathBigNum.bignumber("1000000000000000");
+export const QUINTILLION = mathBigNum.bignumber("1000000000000000000");

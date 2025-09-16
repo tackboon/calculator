@@ -15,12 +15,12 @@ export enum ERROR_FIELD_RISK_AND_PROFIT {
 
 export type OrderResultType = {
   isLong: boolean;
-  grossEntryAmount: BigNumber;
-  entryPrice: string;
-  stopLossPrice: string;
+  entryPrice: BigNumber;
+  stopLossPrice: BigNumber;
   stopLossPercent: BigNumber;
-  profitPrice?: string;
+  profitPrice?: BigNumber;
   profitPercent?: BigNumber;
+  grossEntryAmount: BigNumber;
   riskAmount: BigNumber;
   profitAmount?: BigNumber;
   entryFee?: BigNumber;
@@ -29,7 +29,7 @@ export type OrderResultType = {
   portfolioRisk: BigNumber;
   portfolioProfit?: BigNumber;
   riskRewardRatio?: BigNumber;
-  quantity: string;
+  quantity: BigNumber;
 };
 
 export type RiskAndProfitResultType = {
