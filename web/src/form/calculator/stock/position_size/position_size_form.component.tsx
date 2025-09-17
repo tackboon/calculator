@@ -18,6 +18,7 @@ import {
   ProfitGoalTyp,
   UnitType,
 } from "./position_size.type";
+import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
@@ -41,6 +42,7 @@ const PositionSizeForm = () => {
   const [errorField, setErrorField] =
     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
   const [input, setInput] = useState<PositionSizeInputType>(DEFAULT_INPUT);
+  const [decPrecision, setDecPrecision] = useState(2);
 
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -416,114 +418,126 @@ const PositionSizeForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container
-            className={`${styles["result-container"]} ${styles["position-size"]}`}
-          >
-            <div className={styles["result-wrapper"]}>
-              <div className={styles["row"]}>
-                <div>Open Price:</div>
-                <div>${result.entryPrice}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Stop Price:</div>
-                <div>${result.stopPrice}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Stop Loss (%):</div>
-                <div>{result.stopPercent}%</div>
-              </div>
-
-              {result.profitPrice !== undefined && (
-                <>
-                  <div className={styles["row"]}>
-                    <div>Profit Price:</div>
-                    <div>${result.profitPrice}</div>
-                  </div>
-
-                  <div className={styles["row"]}>
-                    <div>Profit (%):</div>
-                    <div>{result.profitPercent}%</div>
-                  </div>
-                </>
-              )}
-
-              <div className={styles["row"]}>
-                <div>Quantity:</div>
-                <div>{result.quantity}</div>
-              </div>
-
-              <br />
-
-              <div className={styles["row"]}>
-                <div>Entry Amount:</div>
-                <div>${result.tradingAmount}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Risk Amount:</div>
-                <div>${result.riskAmount}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Portfolio Risk (%):</div>
-                <div>{result.portfolioRisk}%</div>
-              </div>
-
-              {result.profitAmount !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Potential Profit:</div>
-                  <div>${result.profitAmount}</div>
-                </div>
-              )}
-
-              {result.portfolioProfit !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Potential Portfolio Return (%):</div>
-                  <div>{result.portfolioProfit}%</div>
-                </div>
-              )}
-
-              {result.estimatedEntryFee !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Opening Fee:</div>
-                  <div>${result.estimatedEntryFee}</div>
-                </div>
-              )}
-
-              {result.estimatedStopFee !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Stop Loss Execution Fee:</div>
-                  <div>${result.estimatedStopFee}</div>
-                </div>
-              )}
-
-              {result.estimatedProfitFee !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Profit-Taking Fee:</div>
-                  <div>${result.estimatedProfitFee}</div>
-                </div>
-              )}
-
-              {result.riskRewardRatio && (
-                <>
-                  <br />
-                  <div className={styles["row"]}>
-                    <div>Risk/Reward Ratio:</div>
-                    <div>{result.riskRewardRatio}</div>
-                  </div>
-                </>
-              )}
-
-              {result.breakEvenWinRate && (
-                <div className={styles["row"]}>
-                  <div>Breakeven Win Rate:</div>
-                  <div>{result.breakEvenWinRate}%</div>
-                </div>
-              )}
+          <>
+            <div className={styles["precision-container"]}>
+              <label htmlFor="precision">Precision:</label>
+              <DefaultSelect
+                className={styles["select"]}
+                name="precision"
+                options={["0", "1", "2", "3", "4", "5"]}
+                defaultIndex={decPrecision}
+                onChangeHandler={(idx) => setDecPrecision(idx)}
+              />
             </div>
-          </Container>
+            <Container
+              className={`${styles["result-container"]} ${styles["position-size"]}`}
+            >
+              <div className={styles["result-wrapper"]}>
+                <div className={styles["row"]}>
+                  <div>Open Price:</div>
+                  <div>${result.entryPrice}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Stop Price:</div>
+                  <div>${result.stopPrice}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Stop Loss (%):</div>
+                  <div>{result.stopPercent}%</div>
+                </div>
+
+                {result.profitPrice !== undefined && (
+                  <>
+                    <div className={styles["row"]}>
+                      <div>Profit Price:</div>
+                      <div>${result.profitPrice}</div>
+                    </div>
+
+                    <div className={styles["row"]}>
+                      <div>Profit (%):</div>
+                      <div>{result.profitPercent}%</div>
+                    </div>
+                  </>
+                )}
+
+                <div className={styles["row"]}>
+                  <div>Quantity:</div>
+                  <div>{result.quantity}</div>
+                </div>
+
+                <br />
+
+                <div className={styles["row"]}>
+                  <div>Entry Amount:</div>
+                  <div>${result.tradingAmount}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Risk Amount:</div>
+                  <div>${result.riskAmount}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Portfolio Risk (%):</div>
+                  <div>{result.portfolioRisk}%</div>
+                </div>
+
+                {result.profitAmount !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Potential Profit:</div>
+                    <div>${result.profitAmount}</div>
+                  </div>
+                )}
+
+                {result.portfolioProfit !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Potential Portfolio Return (%):</div>
+                    <div>{result.portfolioProfit}%</div>
+                  </div>
+                )}
+
+                {result.estimatedEntryFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Opening Fee:</div>
+                    <div>${result.estimatedEntryFee}</div>
+                  </div>
+                )}
+
+                {result.estimatedStopFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Stop Loss Execution Fee:</div>
+                    <div>${result.estimatedStopFee}</div>
+                  </div>
+                )}
+
+                {result.estimatedProfitFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit-Taking Fee:</div>
+                    <div>${result.estimatedProfitFee}</div>
+                  </div>
+                )}
+
+                {result.riskRewardRatio && (
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Risk/Reward Ratio:</div>
+                      <div>{result.riskRewardRatio}</div>
+                    </div>
+                  </>
+                )}
+
+                {result.breakEvenWinRate && (
+                  <div className={styles["row"]}>
+                    <div>Breakeven Win Rate:</div>
+                    <div>{result.breakEvenWinRate}%</div>
+                  </div>
+                )}
+              </div>
+            </Container>
+          </>
         )}
       </div>
     </form>

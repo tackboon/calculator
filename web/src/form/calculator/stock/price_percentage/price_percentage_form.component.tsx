@@ -14,7 +14,7 @@ import {
   PricePercentageInputType,
   PricePercentageResultType,
 } from "./price_percentage.type";
-import { convertToLocaleString } from "../../../../common/number/number";
+import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 
 const DEFAULT_INPUT: PricePercentageInputType = {
   price: "0",
@@ -121,31 +121,37 @@ const PricePercentageForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container
-            className={`${styles["result-container"]} ${styles["price-percentage"]}`}
-          >
-            <div className={styles["result-wrapper"]}>
-              {result.increasedPrice !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Increased Price:</div>
-                  <div>
-                    $
-                    {convertToLocaleString(result.increasedPrice, decPrecision)}
-                  </div>
-                </div>
-              )}
-
-              {result.decreasedPrice !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Decreased Price:</div>
-                  <div>
-                    $
-                    {convertToLocaleString(result.decreasedPrice, decPrecision)}
-                  </div>
-                </div>
-              )}
+          <>
+            <div className={styles["precision-container"]}>
+              <label htmlFor="precision">Precision:</label>
+              <DefaultSelect
+                className={styles["select"]}
+                name="precision"
+                options={["0", "1", "2", "3", "4", "5"]}
+                defaultIndex={decPrecision}
+                onChangeHandler={(idx) => setDecPrecision(idx)}
+              />
             </div>
-          </Container>
+            <Container
+              className={`${styles["result-container"]} ${styles["price-percentage"]}`}
+            >
+              <div className={styles["result-wrapper"]}>
+                {result.increasedPrice !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Increased Price:</div>
+                    <div>${result.increasedPrice.toFixed(decPrecision)}</div>
+                  </div>
+                )}
+
+                {result.decreasedPrice !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Decreased Price:</div>
+                    <div>${result.decreasedPrice.toFixed(decPrecision)}</div>
+                  </div>
+                )}
+              </div>
+            </Container>
+          </>
         )}
       </div>
     </form>

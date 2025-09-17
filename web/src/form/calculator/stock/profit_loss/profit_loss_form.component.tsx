@@ -15,8 +15,7 @@ import {
   ProfitLossResultType,
 } from "./profit_loss.type";
 import { mathBigNum } from "../../../../common/number/math";
-import Ranger from "../../../../component/common/ranger/ranger.component";
-import { convertToLocaleString } from "../../../../common/number/number";
+import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -235,127 +234,108 @@ const ProfitLossForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container
-            className={`${styles["result-container"]} ${styles["profit-loss"]}`}
-          >
-            <div className={`${styles["dec-container"]} ${styles["xm"]}`}>
-              <div>Precision:</div>
-              <Ranger
-                min={0}
-                max={5}
-                defaultValue={decPrecision}
-                onChange={(val) => setDecPrecision(val)}
+          <>
+            <div className={styles["precision-container"]}>
+              <label htmlFor="precision">Precision:</label>
+              <DefaultSelect
+                className={styles["select"]}
+                name="precision"
+                options={["0", "1", "2", "3", "4", "5"]}
+                defaultIndex={decPrecision}
+                onChangeHandler={(idx) => setDecPrecision(idx)}
               />
             </div>
-
-            <div className={styles["result-wrapper"]}>
-              <div className={`${styles["dec-container"]} ${styles["xl"]}`}>
-                <div>Precision:</div>
-                <Ranger
-                  min={0}
-                  max={5}
-                  defaultValue={decPrecision}
-                  onChange={(val) => setDecPrecision(val)}
-                />
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Gross Entry Amount:</div>
-                <div>
-                  $
-                  {convertToLocaleString(result.grossEntryAmount, decPrecision)}
-                </div>
-              </div>
-
-              {result.entryFee !== undefined && (
+            <Container
+              className={`${styles["result-container"]} ${styles["profit-loss"]}`}
+            >
+              <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
-                  <div>Entry Fee:</div>
-                  <div>
-                    ${convertToLocaleString(result.entryFee, decPrecision)}
+                  <div>Gross Entry Amount:</div>
+                  <div>${result.grossEntryAmount.toFixed(decPrecision)}</div>
+                </div>
+
+                {result.entryFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Entry Fee:</div>
+                    <div>${result.entryFee.toFixed(decPrecision)}</div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {result.exitFee !== undefined && (
-                <div className={styles["row"]}>
-                  <div>Closing Fee:</div>
-                  <div>
-                    ${convertToLocaleString(result.exitFee, decPrecision)}
+                {result.exitFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Closing Fee:</div>
+                    <div>${result.exitFee.toFixed(decPrecision)}</div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <br />
-              <div className={styles["row"]}>
-                <div>
-                  {result.includeTradingFee ? "Gross" : "Total"}{" "}
-                  {mathBigNum.largerEq(result.grossGained, 0) ? "Gain" : "Loss"}
-                  :
-                </div>
-                <div>
-                  ${convertToLocaleString(result.grossGained, decPrecision)}
-                </div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>
-                  {result.includeTradingFee ? "Gross " : ""}
-                  {mathBigNum.largerEq(result.grossGained, 0)
-                    ? "Gain"
-                    : "Loss"}{" "}
-                  (%):
-                </div>
-                <div
-                  className={
-                    mathBigNum.largerEq(result.grossGained, 0)
-                      ? ""
-                      : styles["loss"]
-                  }
-                >
-                  {convertToLocaleString(result.grossPercentage, decPrecision)}%
-                </div>
-              </div>
-
-              {result.netGained !== undefined && (
+                <br />
                 <div className={styles["row"]}>
                   <div>
-                    Net{" "}
-                    {mathBigNum.largerEq(result.netGained, 0) ? "Gain" : "Loss"}
+                    {result.includeTradingFee ? "Gross" : "Total"}{" "}
+                    {mathBigNum.largerEq(result.grossGained, 0)
+                      ? "Gain"
+                      : "Loss"}
                     :
                   </div>
+                  <div>${result.grossGained.toFixed(decPrecision)}</div>
+                </div>
+
+                <div className={styles["row"]}>
                   <div>
-                    ${convertToLocaleString(result.netGained, decPrecision)}
+                    {result.includeTradingFee ? "Gross " : ""}
+                    {mathBigNum.largerEq(result.grossGained, 0)
+                      ? "Gain"
+                      : "Loss"}{" "}
+                    (%):
+                  </div>
+                  <div
+                    className={
+                      mathBigNum.largerEq(result.grossGained, 0)
+                        ? ""
+                        : styles["loss"]
+                    }
+                  >
+                    {result.grossPercentage.toFixed(decPrecision)}%
                   </div>
                 </div>
-              )}
 
-              {result.netGained !== undefined &&
-                result.netPercentage !== undefined && (
+                {result.netGained !== undefined && (
                   <div className={styles["row"]}>
                     <div>
                       Net{" "}
                       {mathBigNum.largerEq(result.netGained, 0)
                         ? "Gain"
-                        : "Loss"}{" "}
-                      (%):
+                        : "Loss"}
+                      :
                     </div>
-                    <div
-                      className={
-                        mathBigNum.largerEq(result.netGained, 0)
-                          ? ""
-                          : styles["loss"]
-                      }
-                    >
-                      {convertToLocaleString(
-                        result.netPercentage,
-                        decPrecision
-                      )}
-                      %
-                    </div>
+                    <div>${result.netGained.toFixed(decPrecision)}</div>
                   </div>
                 )}
-            </div>
-          </Container>
+
+                {result.netGained !== undefined &&
+                  result.netPercentage !== undefined && (
+                    <div className={styles["row"]}>
+                      <div>
+                        Net{" "}
+                        {mathBigNum.largerEq(result.netGained, 0)
+                          ? "Gain"
+                          : "Loss"}{" "}
+                        (%):
+                      </div>
+                      <div
+                        className={
+                          mathBigNum.largerEq(result.netGained, 0)
+                            ? ""
+                            : styles["loss"]
+                        }
+                      >
+                        {result.netPercentage.toFixed(decPrecision)}%
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </Container>
+          </>
         )}
       </div>
     </form>

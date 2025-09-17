@@ -90,7 +90,11 @@ export const calculateResult = (
     // Calculate entry amount
     // grossEntryAmt = entryPrice * quantity;
     const grossEntryAmount = multiplyBig(entryPrice, quantity);
-    let entryAmount = grossEntryAmount;
+    let entryA;
+
+    // Calculate total entry amount
+    // totalEntryAmount = totalEntryAmount + entryAmount;
+    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100

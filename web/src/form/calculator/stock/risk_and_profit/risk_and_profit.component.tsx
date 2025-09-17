@@ -17,6 +17,7 @@ import {
 import { StockOrderInputType } from "../../../../component/stock/order/order.type";
 import { divideBig, mathBigNum } from "../../../../common/number/math";
 import { convertToLocaleString } from "../../../../common/number/number";
+import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 
 const DEFAULT_INPUT: RiskAndProfitInputType = {
   portfolioCapital: "0",
@@ -219,185 +220,201 @@ const RiskAndProfitForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container
-            className={`${styles["result-container"]} ${styles["position-size"]}`}
-          >
-            <div className={styles["result-wrapper"]}>
-              <div className={styles["row"]}>
-                <div>Total Entry Amount:</div>
-                <div>${result.totalEntryAmount.toFixed(decPrecision)}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Total Risk Amount:</div>
-                <div>${result.totalRiskAmount.toFixed(decPrecision)}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Portfolio Risk (%):</div>
-                <div>{result.portfolioRisk.toFixed(decPrecision)}%</div>
-              </div>
-
-              {result.totalProfitAmount !== undefined && (
+          <>
+            <div className={styles["precision-container"]}>
+              <label htmlFor="precision">Precision:</label>
+              <DefaultSelect
+                className={styles["select"]}
+                name="precision"
+                options={["0", "1", "2", "3", "4", "5"]}
+                defaultIndex={decPrecision}
+                onChangeHandler={(idx) => setDecPrecision(idx)}
+              />
+            </div>
+            <Container
+              className={`${styles["result-container"]} ${styles["position-size"]}`}
+            >
+              <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
-                  <div>Total Potential Profit:</div>
-                  <div>${result.totalProfitAmount.toFixed(decPrecision)}</div>
+                  <div>Total Entry Amount:</div>
+                  <div>${result.totalEntryAmount.toFixed(decPrecision)}</div>
                 </div>
-              )}
 
-              {result.portfolioProfit !== undefined && (
                 <div className={styles["row"]}>
-                  <div>Potential Portfolio Return (%):</div>
-                  <div>{result.portfolioProfit.toFixed(decPrecision)}%</div>
+                  <div>Total Risk Amount:</div>
+                  <div>${result.totalRiskAmount.toFixed(decPrecision)}</div>
                 </div>
-              )}
 
-              <br />
-
-              <div className={styles["row"]}>
-                <div>Total Long Position:</div>
-                <div>{result.totalLong}</div>
-              </div>
-
-              <div className={styles["row"]}>
-                <div>Total Short Position:</div>
-                <div>{result.totalShort}</div>
-              </div>
-
-              {result.riskRewardRatio !== undefined && (
                 <div className={styles["row"]}>
-                  <div>Portfolio Risk/Reward Ratio:</div>
-                  <div>
-                    {mathBigNum.largerEq(result.riskRewardRatio, 1)
-                      ? `${convertToLocaleString(
-                          result.riskRewardRatio.toFixed(decPrecision),
-                          0,
-                          decPrecision
-                        )}:1`
-                      : `1:${convertToLocaleString(
-                          divideBig(1, result.riskRewardRatio).toFixed(
-                            decPrecision
-                          ),
-                          0,
-                          decPrecision
-                        )}`}
+                  <div>Portfolio Risk (%):</div>
+                  <div>{result.portfolioRisk.toFixed(decPrecision)}%</div>
+                </div>
+
+                {result.totalProfitAmount !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Total Potential Profit:</div>
+                    <div>${result.totalProfitAmount.toFixed(decPrecision)}</div>
                   </div>
+                )}
+
+                {result.portfolioProfit !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Potential Portfolio Return (%):</div>
+                    <div>{result.portfolioProfit.toFixed(decPrecision)}%</div>
+                  </div>
+                )}
+
+                <br />
+
+                <div className={styles["row"]}>
+                  <div>Total Long Position:</div>
+                  <div>{result.totalLong}</div>
                 </div>
-              )}
 
-              {result.orders.map((order, idx) => {
-                return (
-                  <div key={`res-${idx}`}>
-                    <br />
-                    <div key={`order-result-${idx}`}>
-                      <h3>Order #{idx + 1}</h3>
+                <div className={styles["row"]}>
+                  <div>Total Short Position:</div>
+                  <div>{result.totalShort}</div>
+                </div>
 
-                      <div className={styles["row"]}>
-                        <div>Order Type:</div>
-                        <div>{order.isLong ? "Long" : "Short"}</div>
-                      </div>
-
-                      <div className={styles["row"]}>
-                        <div>Open Price:</div>
-                        <div>${order.entryPrice}</div>
-                      </div>
-
-                      <div className={styles["row"]}>
-                        <div>Stop Price:</div>
-                        <div>${order.stopLossPrice}</div>
-                      </div>
-
-                      <div className={styles["row"]}>
-                        <div>Stop Loss (%):</div>
-                        <div>
-                          {order.stopLossPercent.toFixed(decPrecision)}%
-                        </div>
-                      </div>
-
-                      {order.profitPrice !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Profit Price:</div>
-                          <div>${order.profitPrice}</div>
-                        </div>
-                      )}
-
-                      {order.profitPercent !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Profit (%):</div>
-                          <div>
-                            {order.profitPercent.toFixed(decPrecision)}%
-                          </div>
-                        </div>
-                      )}
-
-                      <div className={styles["row"]}>
-                        <div>Quantity:</div>
-                        <div>{order.quantity}</div>
-                      </div>
-
-                      <br />
-                      <div className={styles["row"]}>
-                        <div>Risk Amount:</div>
-                        <div>{order.riskAmount.toFixed(decPrecision)}</div>
-                      </div>
-
-                      {order.profitAmount !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Potential Profit:</div>
-                          <div>{order.profitAmount.toFixed(decPrecision)}</div>
-                        </div>
-                      )}
-
-                      {order.riskRewardRatio && (
-                        <div className={styles["row"]}>
-                          <div>Risk/Reward Ratio:</div>
-                          <div>
-                            {mathBigNum.largerEq(order.riskRewardRatio, 1)
-                              ? `${convertToLocaleString(
-                                  order.riskRewardRatio.toFixed(decPrecision),
-                                  0,
-                                  decPrecision
-                                )}:1`
-                              : `1:${convertToLocaleString(
-                                  divideBig(1, order.riskRewardRatio).toFixed(
-                                    decPrecision
-                                  ),
-                                  0,
-                                  decPrecision
-                                )}`}
-                          </div>
-                        </div>
-                      )}
-
-                      {order.entryFee !== undefined && (
-                        <>
-                          <br />
-                          <div className={styles["row"]}>
-                            <div>Opening Fee:</div>
-                            <div>${order.entryFee.toFixed(decPrecision)}</div>
-                          </div>
-                        </>
-                      )}
-
-                      {order.stopLossFee !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Stop Loss Execution Fee:</div>
-                          <div>${order.stopLossFee.toFixed(decPrecision)}</div>
-                        </div>
-                      )}
-
-                      {order.profitFee !== undefined && (
-                        <div className={styles["row"]}>
-                          <div>Profit-Taking Fee:</div>
-                          <div>${order.profitFee.toFixed(decPrecision)}</div>
-                        </div>
-                      )}
+                {result.riskRewardRatio !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Portfolio Risk/Reward Ratio:</div>
+                    <div>
+                      {mathBigNum.largerEq(result.riskRewardRatio, 1)
+                        ? `${convertToLocaleString(
+                            result.riskRewardRatio.toFixed(decPrecision),
+                            0,
+                            decPrecision
+                          )}:1`
+                        : `1:${convertToLocaleString(
+                            divideBig(1, result.riskRewardRatio).toFixed(
+                              decPrecision
+                            ),
+                            0,
+                            decPrecision
+                          )}`}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </Container>
+                )}
+
+                {result.orders.map((order, idx) => {
+                  return (
+                    <div key={`res-${idx}`}>
+                      <br />
+                      <div key={`order-result-${idx}`}>
+                        <h3>Order #{idx + 1}</h3>
+
+                        <div className={styles["row"]}>
+                          <div>Order Type:</div>
+                          <div>{order.isLong ? "Long" : "Short"}</div>
+                        </div>
+
+                        <div className={styles["row"]}>
+                          <div>Open Price:</div>
+                          <div>${order.entryPrice}</div>
+                        </div>
+
+                        <div className={styles["row"]}>
+                          <div>Stop Price:</div>
+                          <div>${order.stopLossPrice}</div>
+                        </div>
+
+                        <div className={styles["row"]}>
+                          <div>Stop Loss (%):</div>
+                          <div>
+                            {order.stopLossPercent.toFixed(decPrecision)}%
+                          </div>
+                        </div>
+
+                        {order.profitPrice !== undefined && (
+                          <div className={styles["row"]}>
+                            <div>Profit Price:</div>
+                            <div>${order.profitPrice}</div>
+                          </div>
+                        )}
+
+                        {order.profitPercent !== undefined && (
+                          <div className={styles["row"]}>
+                            <div>Profit (%):</div>
+                            <div>
+                              {order.profitPercent.toFixed(decPrecision)}%
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={styles["row"]}>
+                          <div>Quantity:</div>
+                          <div>{order.quantity}</div>
+                        </div>
+
+                        <br />
+                        <div className={styles["row"]}>
+                          <div>Risk Amount:</div>
+                          <div>{order.riskAmount.toFixed(decPrecision)}</div>
+                        </div>
+
+                        {order.profitAmount !== undefined && (
+                          <div className={styles["row"]}>
+                            <div>Potential Profit:</div>
+                            <div>
+                              {order.profitAmount.toFixed(decPrecision)}
+                            </div>
+                          </div>
+                        )}
+
+                        {order.riskRewardRatio && (
+                          <div className={styles["row"]}>
+                            <div>Risk/Reward Ratio:</div>
+                            <div>
+                              {mathBigNum.largerEq(order.riskRewardRatio, 1)
+                                ? `${convertToLocaleString(
+                                    order.riskRewardRatio.toFixed(decPrecision),
+                                    0,
+                                    decPrecision
+                                  )}:1`
+                                : `1:${convertToLocaleString(
+                                    divideBig(1, order.riskRewardRatio).toFixed(
+                                      decPrecision
+                                    ),
+                                    0,
+                                    decPrecision
+                                  )}`}
+                            </div>
+                          </div>
+                        )}
+
+                        {order.entryFee !== undefined && (
+                          <>
+                            <br />
+                            <div className={styles["row"]}>
+                              <div>Opening Fee:</div>
+                              <div>${order.entryFee.toFixed(decPrecision)}</div>
+                            </div>
+                          </>
+                        )}
+
+                        {order.stopLossFee !== undefined && (
+                          <div className={styles["row"]}>
+                            <div>Stop Loss Execution Fee:</div>
+                            <div>
+                              ${order.stopLossFee.toFixed(decPrecision)}
+                            </div>
+                          </div>
+                        )}
+
+                        {order.profitFee !== undefined && (
+                          <div className={styles["row"]}>
+                            <div>Profit-Taking Fee:</div>
+                            <div>${order.profitFee.toFixed(decPrecision)}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Container>
+          </>
         )}
       </div>
     </form>
