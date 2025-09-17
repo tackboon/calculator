@@ -250,15 +250,24 @@ const ProfitLossForm = () => {
             >
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
-                  <div>Gross Entry Amount:</div>
-                  <div>${result.grossEntryAmount.toFixed(decPrecision)}</div>
+                  <div>Entry Amount:</div>
+                  <div>${result.entryAmount.toFixed(decPrecision)}</div>
                 </div>
 
                 {result.entryFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Entry Fee:</div>
-                    <div>${result.entryFee.toFixed(decPrecision)}</div>
-                  </div>
+                  <>
+                    <div className={styles["row"]}>
+                      <div>Gross Entry Amount:</div>
+                      <div>
+                        ${result.grossEntryAmount.toFixed(decPrecision)}
+                      </div>
+                    </div>
+
+                    <div className={styles["row"]}>
+                      <div>Entry Fee:</div>
+                      <div>${result.entryFee.toFixed(decPrecision)}</div>
+                    </div>
+                  </>
                 )}
 
                 {result.exitFee !== undefined && (

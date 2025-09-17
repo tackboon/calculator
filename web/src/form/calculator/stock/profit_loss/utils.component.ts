@@ -138,6 +138,7 @@ export const calculateResult = (
   }
 
   return {
+    entryAmount: totalEntryAmount,
     grossEntryAmount: grossEntryAmount,
     grossGained: grossGained,
     grossPercentage: grossPercentage,

@@ -66,7 +66,8 @@ export const calculateResult = (
   const minTradingFee = parseBigNumberFromString(input.minTradingFee);
   const estFeeRate = divideBig(tradingFee, 100);
 
-  let totalEntryAmount = mathBigNum.bignumber(0);
+  let totalGrossEntryAmount = mathBigNum.bignumber(0);
+  let totalEntryFee = mathBigNum.bignumber(0);
   let totalRiskAmount = mathBigNum.bignumber(0);
   let totalProfitAmount = mathBigNum.bignumber(0);
   let totalLong = 0;
@@ -90,11 +91,10 @@ export const calculateResult = (
     // Calculate entry amount
     // grossEntryAmt = entryPrice * quantity;
     const grossEntryAmount = multiplyBig(entryPrice, quantity);
-    let entryA;
 
     // Calculate total entry amount
-    // totalEntryAmount = totalEntryAmount + entryAmount;
-    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
+    // totalGrossEntryAmount = totalEntryAmount + entryAmount;
+    totalGrossEntryAmount = addBig(totalGrossEntryAmount, grossEntryAmount);
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
@@ -155,15 +155,15 @@ export const calculateResult = (
         entryFee = minTradingFee;
       }
 
+      // Calculate total entry fee
+      totalEntryFee = addBig(totalEntryFee, entryFee);
+
       // Calculate stop fee
       // stopFee = exitAmount * estFeeRate
       let stopFee = multiplyBig(grossExitAmount, estFeeRate);
       if (mathBigNum.smaller(stopFee, minTradingFee)) {
         stopFee = minTradingFee;
       }
-
-      // Recompute total entry amount
-      totalEntryAmount = addBig(totalEntryAmount, entryFee);
 
       // Recompute risk amount
       // riskAmount = riskAmount + entryFee + stopFee

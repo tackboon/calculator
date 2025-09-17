@@ -19,6 +19,7 @@ export enum ERROR_FIELD_PROFIT_LOSS {
 }
 
 export type ProfitLossResultType = {
+  entryAmount: BigNumber;
   grossEntryAmount: BigNumber;
   grossGained: BigNumber;
   grossPercentage: BigNumber;
