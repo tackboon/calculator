@@ -132,7 +132,7 @@ export const calculateResult = (
     // Calculate net gained percentage
     netPercentage = mathBigNum.bignumber(0);
     if (!mathBigNum.equal(totalEntryAmount, 0)) {
-      // netGainedPercentage = (Math.abs(netGained) / totalEntryAmount) * 100
+      // netGainedPercentage = (netGained / totalEntryAmount) * 100
       netPercentage = multiplyBig(divideBig(netGained, totalEntryAmount), 100);
     }
   }

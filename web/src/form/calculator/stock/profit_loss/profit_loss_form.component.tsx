@@ -14,7 +14,7 @@ import {
   ProfitLossInputType,
   ProfitLossResultType,
 } from "./profit_loss.type";
-import { mathBigNum } from "../../../../common/number/math";
+import { absBig, mathBigNum } from "../../../../common/number/math";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
@@ -286,7 +286,10 @@ const ProfitLossForm = () => {
                       : "Loss"}
                     :
                   </div>
-                  <div>${result.grossGained.toFixed(decPrecision)}</div>
+                  <div>
+                    {mathBigNum.largerEq(result.grossGained, 0) ? "" : "-"}$
+                    {absBig(result.grossGained).toFixed(decPrecision)}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>
@@ -297,15 +300,7 @@ const ProfitLossForm = () => {
                       : "Loss"}{" "}
                     (%):
                   </div>
-                  <div
-                    className={
-                      mathBigNum.largerEq(result.grossGained, 0)
-                        ? ""
-                        : styles["loss"]
-                    }
-                  >
-                    {result.grossPercentage.toFixed(decPrecision)}%
-                  </div>
+                  <div>{result.grossPercentage.toFixed(decPrecision)}%</div>
                 </div>
 
                 {result.netGained !== undefined && (
@@ -317,7 +312,10 @@ const ProfitLossForm = () => {
                         : "Loss"}
                       :
                     </div>
-                    <div>${result.netGained.toFixed(decPrecision)}</div>
+                    <div>
+                      {mathBigNum.largerEq(result.netGained, 0) ? "" : "-"}$
+                      {absBig(result.netGained).toFixed(decPrecision)}
+                    </div>
                   </div>
                 )}
 
@@ -331,15 +329,7 @@ const ProfitLossForm = () => {
                           : "Loss"}{" "}
                         (%):
                       </div>
-                      <div
-                        className={
-                          mathBigNum.largerEq(result.netGained, 0)
-                            ? ""
-                            : styles["loss"]
-                        }
-                      >
-                        {result.netPercentage.toFixed(decPrecision)}%
-                      </div>
+                      <div>{result.netPercentage.toFixed(decPrecision)}%</div>
                     </div>
                   )}
               </div>
