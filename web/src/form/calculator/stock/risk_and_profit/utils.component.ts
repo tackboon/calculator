@@ -8,10 +8,7 @@ import {
   QUINTILLION,
   subtractBig,
 } from "../../../../common/number/math";
-import {
-  convertToLocaleString,
-  parseBigNumberFromString,
-} from "../../../../common/number/number";
+import { parseBigNumberFromString } from "../../../../common/number/number";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import { StockOrderInputType } from "../../../../component/stock/order/order.type";
 import {
@@ -67,11 +64,12 @@ export const calculateResult = (
   const estFeeRate = divideBig(tradingFee, 100);
 
   let totalGrossEntryAmount = mathBigNum.bignumber(0);
-  let totalEntryFee = mathBigNum.bignumber(0);
+  let totalEntryAmount = mathBigNum.bignumber(0);
   let totalRiskAmount = mathBigNum.bignumber(0);
   let totalProfitAmount = mathBigNum.bignumber(0);
   let totalLong = 0;
   let totalShort = 0;
+  let hasProfitGoal = false;
 
   for (let i = 0; i < orders.length; i++) {
     // Process input for each order
@@ -91,10 +89,7 @@ export const calculateResult = (
     // Calculate entry amount
     // grossEntryAmt = entryPrice * quantity;
     const grossEntryAmount = multiplyBig(entryPrice, quantity);
-
-    // Calculate total entry amount
-    // totalGrossEntryAmount = totalEntryAmount + entryAmount;
-    totalGrossEntryAmount = addBig(totalGrossEntryAmount, grossEntryAmount);
+    let entryAmount = grossEntryAmount;
 
     // Calculate stop loss percent
     // stopLossPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
@@ -109,22 +104,25 @@ export const calculateResult = (
       );
     }
 
-    // Calculate stop loss amount
+    // Calculate gross stop loss amount
     // grossExitAmount = stopLoss * quantity;
     const grossExitAmount = multiplyBig(stopLoss, quantity);
 
     // Calculate risk amount
-    // riskAmount = Math.abs(entryAmount - exitAmount);
+    // riskAmount = Math.abs(grossEntryAmount - exitAmount);
     let riskAmount = mathBigNum.abs(
       subtractBig(grossEntryAmount, grossExitAmount)
     );
 
     // Calcualte profit
     let profitAmount: BigNumber | undefined;
+    let profitPercent: BigNumber | undefined;
     if (includeProfitGoal) {
+      hasProfitGoal = true;
+
       // Calculate profit percent
       // profitPercent = (Math.abs(entryPrice - profitGoal) / entryPrice) * 100
-      let profitPercent = mathBigNum.bignumber(0);
+      profitPercent = mathBigNum.bignumber(0);
       if (!mathBigNum.equal(entryPrice, 0)) {
         profitPercent = multiplyBig(
           divideBig(
@@ -143,7 +141,7 @@ export const calculateResult = (
       );
     }
 
-    // calculate fees
+    // calculate fees and entry amount
     let entryFee: BigNumber | undefined;
     let stopFee: BigNumber | undefined;
     let profitFee: BigNumber | undefined;
@@ -155,8 +153,8 @@ export const calculateResult = (
         entryFee = minTradingFee;
       }
 
-      // Calculate total entry fee
-      totalEntryFee = addBig(totalEntryFee, entryFee);
+      // Recompute entry amount
+      entryAmount = addBig(grossEntryAmount, entryFee);
 
       // Calculate stop fee
       // stopFee = exitAmount * estFeeRate
@@ -173,7 +171,6 @@ export const calculateResult = (
         // Calculate profit fee
         // profitFee = profitAmount * estFeeRate
         let profitFee = multiplyBig(profitAmount, estFeeRate);
-        profitFee = mathBigNum.round(profitFee, 5);
         if (mathBigNum.smaller(profitFee, minTradingFee)) {
           profitFee = minTradingFee;
         }
@@ -221,28 +218,33 @@ export const calculateResult = (
     }
 
     // Calculate total entry amount
+    // totalGrossEntryAmount = totalEntryAmount + entryAmount;
+    totalGrossEntryAmount = addBig(totalGrossEntryAmount, grossEntryAmount);
+
+    // Calculate total entry amount
     // totalEntryAmount = totalEntryAmount + entryAmount;
-    totalEntryAmount = addBig(totalEntryAmount, grossEntryAmount);
+    totalEntryAmount = addBig(totalEntryAmount, entryAmount);
 
     // update results
-    // ordersResult.push({
-    //   isLong: isLong,
-    //   entryAmount: entryAmountStr,
-    //   entryPrice: orders[i].entryPrice,
-    //   stopLossPrice: orders[i].stopLoss,
-    //   stopLossPercent: stopLossPercentStr,
-    //   profitPrice: orders[i].profitGoal,
-    //   profitPercent: profitPercentStr,
-    //   riskAmount: riskAmountStr,
-    //   profitAmount: profitAmountStr,
-    //   entryFee: estimatedEntryFeeStr,
-    //   stopLossFee: estimatedStopFeeStr,
-    //   profitFee: estimatedProfitFeeStr,
-    //   portfolioRisk: portfolioRiskStr,
-    //   portfolioProfit: portfolioProfitStr,
-    //   riskRewardRatio: riskRewardRatio,
-    //   quantity: orders[i].quantity,
-    // });
+    ordersResult.push({
+      isLong: isLong,
+      entryPrice: entryPrice,
+      stopLossPrice: stopLoss,
+      stopLossPercent: stopLossPercent,
+      profitPrice: includeProfitGoal ? profitGoal : undefined,
+      profitPercent: profitPercent,
+      grossEntryAmount: input.includeTradingFee ? grossEntryAmount : undefined,
+      entryAmount: entryAmount,
+      riskAmount: riskAmount,
+      profitAmount: profitAmount,
+      entryFee: entryFee,
+      stopLossFee: stopFee,
+      profitFee: profitFee,
+      portfolioRisk: portfolioRisk,
+      portfolioProfit: portfolioProfit,
+      riskRewardRatio: ratio,
+      quantity: quantity,
+    });
   }
 
   // portfolioRisk = (totalRiskAmount / portfolioCapital) * 100
@@ -254,63 +256,36 @@ export const calculateResult = (
     );
   }
 
-  let portfolioProfitStr: string | undefined;
-  let riskRewardRatio: string | undefined;
-  // if (hasProfitGoal) {
-  //   // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
-  //   let portfolioProfit = mathBigNum.bignumber(0);
-  //   if (!mathBigNum.equal(portfolioCapital, 0)) {
-  //     portfolioProfit = multiplyBig(
-  //       divideBig(totalProfitAmount, portfolioCapital),
-  //       100
-  //     );
-  //   }
-
-  //   if (mathBigNum.larger(totalProfitAmount, 0)) {
-  //     // ratio = totalRiskAmount / totalProfitAmount
-  //     let ratio = divideBig(totalRiskAmount, totalProfitAmount);
-  //     const roundedRatio = mathBigNum.round(ratio, 2);
-
-  //     if (mathBigNum.largerEq(roundedRatio, 1)) {
-  //       riskRewardRatio = `${roundedRatio}:1`;
-  //     } else {
-  //       riskRewardRatio = `1:${convertToLocaleString(
-  //         divideBig(1, ratio).toFixed(2),
-  //         0,
-  //         2
-  //       )}`;
-  //     }
-  //   }
-  // }
-
-  // return {
-  //   hasProfitGoal: hasProfitGoal,
-  //   totalEntryAmount: convertToLocaleString(totalEntryAmount.toString(), 2, 5),
-  //   totalRiskAmount: convertToLocaleString(totalRiskAmount.toString(), 2, 5),
-  //   totalProfitAmount: convertToLocaleString(
-  //     totalProfitAmount.toString(),
-  //     2,
-  //     5
-  //   ),
-  //   portfolioRisk: convertToLocaleString(portfolioRisk.toString(), 2, 5),
-  //   portfolioProfit: portfolioProfitStr,
-  //   riskRewardRatio: riskRewardRatio,
-  //   includeTradingFee: input.includeTradingFee,
-  //   orders: ordersResult,
-  //   totalLong: `${totalLong}`,
-  //   totalShort: `${totalShort}`,
-  // };
+  let portfolioProfit: BigNumber | undefined;
+  let riskRewardRatio: BigNumber | undefined;
+  if (hasProfitGoal) {
+    // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
+    portfolioProfit = mathBigNum.bignumber(0);
+    if (!mathBigNum.equal(portfolioCapital, 0)) {
+      portfolioProfit = multiplyBig(
+        divideBig(totalProfitAmount, portfolioCapital),
+        100
+      );
+    }
+    if (mathBigNum.larger(totalProfitAmount, 0)) {
+      // ratio = totalRiskAmount / totalProfitAmount
+      riskRewardRatio = divideBig(totalRiskAmount, totalProfitAmount);
+    }
+  }
 
   return {
-    totalEntryAmount: mathBigNum.bignumber(0),
-    totalRiskAmount: mathBigNum.bignumber(0),
-    totalProfitAmount: mathBigNum.bignumber(0),
-    portfolioRisk: mathBigNum.bignumber(0),
-    portfolioProfit: mathBigNum.bignumber(0),
-    riskRewardRatio: mathBigNum.bignumber(0),
-    includeTradingFee: false,
+    totalEntryAmount: totalEntryAmount,
+    totalGrossEntryAmount: input.includeTradingFee
+      ? totalGrossEntryAmount
+      : undefined,
+    totalRiskAmount: totalRiskAmount,
+    totalProfitAmount: hasProfitGoal ? totalProfitAmount : undefined,
+    portfolioRisk: portfolioRisk,
+    portfolioProfit: portfolioProfit,
+    riskRewardRatio: riskRewardRatio,
+    includeTradingFee: input.includeTradingFee,
     orders: ordersResult,
-    totalShort: 0,
-    totalLong: 0,
+    totalLong: totalLong,
+    totalShort: totalShort,
   };
 };

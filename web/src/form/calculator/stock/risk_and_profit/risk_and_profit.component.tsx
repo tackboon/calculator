@@ -15,9 +15,9 @@ import {
   RiskAndProfitResultType,
 } from "./risk_and_profit.type";
 import { StockOrderInputType } from "../../../../component/stock/order/order.type";
-import { divideBig, mathBigNum } from "../../../../common/number/math";
 import { convertToLocaleString } from "../../../../common/number/number";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import { convertRatioToString } from "../../../../common/common";
 
 const DEFAULT_INPUT: RiskAndProfitInputType = {
   portfolioCapital: "0",
@@ -237,30 +237,79 @@ const RiskAndProfitForm = () => {
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
                   <div>Total Entry Amount:</div>
-                  <div>${result.totalEntryAmount.toFixed(decPrecision)}</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.totalEntryAmount,
+                      decPrecision,
+                      decPrecision
+                    )}
+                  </div>
                 </div>
+
+                {result.totalGrossEntryAmount !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Total Gross Entry Amount:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.totalGrossEntryAmount,
+                        decPrecision,
+                        decPrecision
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className={styles["row"]}>
                   <div>Total Risk Amount:</div>
-                  <div>${result.totalRiskAmount.toFixed(decPrecision)}</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.totalRiskAmount,
+                      decPrecision,
+                      decPrecision
+                    )}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>
                   <div>Portfolio Risk (%):</div>
-                  <div>{result.portfolioRisk.toFixed(decPrecision)}%</div>
+                  <div>
+                    {convertToLocaleString(
+                      result.portfolioRisk,
+                      decPrecision,
+                      decPrecision
+                    )}
+                    %
+                  </div>
                 </div>
 
                 {result.totalProfitAmount !== undefined && (
                   <div className={styles["row"]}>
                     <div>Total Potential Profit:</div>
-                    <div>${result.totalProfitAmount.toFixed(decPrecision)}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.totalProfitAmount,
+                        decPrecision,
+                        decPrecision
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {result.portfolioProfit !== undefined && (
                   <div className={styles["row"]}>
                     <div>Potential Portfolio Return (%):</div>
-                    <div>{result.portfolioProfit.toFixed(decPrecision)}%</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.portfolioProfit,
+                        decPrecision,
+                        decPrecision
+                      )}
+                      %
+                    </div>
                   </div>
                 )}
 
@@ -268,31 +317,22 @@ const RiskAndProfitForm = () => {
 
                 <div className={styles["row"]}>
                   <div>Total Long Position:</div>
-                  <div>{result.totalLong}</div>
+                  <div>{convertToLocaleString(result.totalLong, 0, 0)}</div>
                 </div>
 
                 <div className={styles["row"]}>
                   <div>Total Short Position:</div>
-                  <div>{result.totalShort}</div>
+                  <div>{convertToLocaleString(result.totalShort, 0, 0)}</div>
                 </div>
 
                 {result.riskRewardRatio !== undefined && (
                   <div className={styles["row"]}>
                     <div>Portfolio Risk/Reward Ratio:</div>
                     <div>
-                      {mathBigNum.largerEq(result.riskRewardRatio, 1)
-                        ? `${convertToLocaleString(
-                            result.riskRewardRatio.toFixed(decPrecision),
-                            0,
-                            decPrecision
-                          )}:1`
-                        : `1:${convertToLocaleString(
-                            divideBig(1, result.riskRewardRatio).toFixed(
-                              decPrecision
-                            ),
-                            0,
-                            decPrecision
-                          )}`}
+                      {convertRatioToString(
+                        result.riskRewardRatio,
+                        decPrecision
+                      )}
                     </div>
                   </div>
                 )}
@@ -311,25 +351,29 @@ const RiskAndProfitForm = () => {
 
                         <div className={styles["row"]}>
                           <div>Open Price:</div>
-                          <div>${order.entryPrice}</div>
+                          <div>${convertToLocaleString(order.entryPrice)}</div>
                         </div>
 
                         <div className={styles["row"]}>
                           <div>Stop Price:</div>
-                          <div>${order.stopLossPrice}</div>
+                          <div>
+                            ${convertToLocaleString(order.stopLossPrice)}
+                          </div>
                         </div>
 
                         <div className={styles["row"]}>
                           <div>Stop Loss (%):</div>
                           <div>
-                            {order.stopLossPercent.toFixed(decPrecision)}%
+                            {convertToLocaleString(order.stopLossPercent)}%
                           </div>
                         </div>
 
                         {order.profitPrice !== undefined && (
                           <div className={styles["row"]}>
                             <div>Profit Price:</div>
-                            <div>${order.profitPrice}</div>
+                            <div>
+                              ${convertToLocaleString(order.profitPrice)}
+                            </div>
                           </div>
                         )}
 
@@ -337,27 +381,50 @@ const RiskAndProfitForm = () => {
                           <div className={styles["row"]}>
                             <div>Profit (%):</div>
                             <div>
-                              {order.profitPercent.toFixed(decPrecision)}%
+                              {convertToLocaleString(order.profitPercent)}%
                             </div>
                           </div>
                         )}
 
                         <div className={styles["row"]}>
                           <div>Quantity:</div>
-                          <div>{order.quantity}</div>
+                          <div>
+                            {convertToLocaleString(order.quantity, 0, 6)}
+                          </div>
                         </div>
 
                         <br />
                         <div className={styles["row"]}>
+                          <div>Entry Amount:</div>
+                          <div>
+                            {convertToLocaleString(
+                              order.riskAmount,
+                              decPrecision,
+                              decPrecision
+                            )}
+                          </div>
+                        </div>
+
+                        <div className={styles["row"]}>
                           <div>Risk Amount:</div>
-                          <div>{order.riskAmount.toFixed(decPrecision)}</div>
+                          <div>
+                            {convertToLocaleString(
+                              order.riskAmount,
+                              decPrecision,
+                              decPrecision
+                            )}
+                          </div>
                         </div>
 
                         {order.profitAmount !== undefined && (
                           <div className={styles["row"]}>
                             <div>Potential Profit:</div>
                             <div>
-                              {order.profitAmount.toFixed(decPrecision)}
+                              {convertToLocaleString(
+                                order.profitAmount,
+                                decPrecision,
+                                decPrecision
+                              )}
                             </div>
                           </div>
                         )}
@@ -366,19 +433,10 @@ const RiskAndProfitForm = () => {
                           <div className={styles["row"]}>
                             <div>Risk/Reward Ratio:</div>
                             <div>
-                              {mathBigNum.largerEq(order.riskRewardRatio, 1)
-                                ? `${convertToLocaleString(
-                                    order.riskRewardRatio.toFixed(decPrecision),
-                                    0,
-                                    decPrecision
-                                  )}:1`
-                                : `1:${convertToLocaleString(
-                                    divideBig(1, order.riskRewardRatio).toFixed(
-                                      decPrecision
-                                    ),
-                                    0,
-                                    decPrecision
-                                  )}`}
+                              {convertRatioToString(
+                                order.riskRewardRatio,
+                                decPrecision
+                              )}
                             </div>
                           </div>
                         )}
@@ -388,7 +446,14 @@ const RiskAndProfitForm = () => {
                             <br />
                             <div className={styles["row"]}>
                               <div>Opening Fee:</div>
-                              <div>${order.entryFee.toFixed(decPrecision)}</div>
+                              <div>
+                                $
+                                {convertToLocaleString(
+                                  order.entryFee,
+                                  decPrecision,
+                                  decPrecision
+                                )}
+                              </div>
                             </div>
                           </>
                         )}
@@ -397,7 +462,12 @@ const RiskAndProfitForm = () => {
                           <div className={styles["row"]}>
                             <div>Stop Loss Execution Fee:</div>
                             <div>
-                              ${order.stopLossFee.toFixed(decPrecision)}
+                              $
+                              {convertToLocaleString(
+                                order.stopLossFee,
+                                decPrecision,
+                                decPrecision
+                              )}
                             </div>
                           </div>
                         )}
@@ -405,7 +475,14 @@ const RiskAndProfitForm = () => {
                         {order.profitFee !== undefined && (
                           <div className={styles["row"]}>
                             <div>Profit-Taking Fee:</div>
-                            <div>${order.profitFee.toFixed(decPrecision)}</div>
+                            <div>
+                              $
+                              {convertToLocaleString(
+                                order.profitFee,
+                                decPrecision,
+                                decPrecision
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

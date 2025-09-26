@@ -15,6 +15,7 @@ import {
   PricePercentageResultType,
 } from "./price_percentage.type";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import { convertToLocaleString } from "../../../../common/number/number";
 
 const DEFAULT_INPUT: PricePercentageInputType = {
   price: "0",
@@ -139,14 +140,28 @@ const PricePercentageForm = () => {
                 {result.increasedPrice !== undefined && (
                   <div className={styles["row"]}>
                     <div>Increased Price:</div>
-                    <div>${result.increasedPrice.toFixed(decPrecision)}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.increasedPrice,
+                        decPrecision,
+                        decPrecision
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {result.decreasedPrice !== undefined && (
                   <div className={styles["row"]}>
                     <div>Decreased Price:</div>
-                    <div>${result.decreasedPrice.toFixed(decPrecision)}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.decreasedPrice,
+                        decPrecision,
+                        decPrecision
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

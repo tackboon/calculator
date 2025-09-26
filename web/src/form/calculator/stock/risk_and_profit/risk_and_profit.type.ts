@@ -20,7 +20,8 @@ export type OrderResultType = {
   stopLossPercent: BigNumber;
   profitPrice?: BigNumber;
   profitPercent?: BigNumber;
-  grossEntryAmount: BigNumber;
+  grossEntryAmount?: BigNumber;
+  entryAmount: BigNumber;
   riskAmount: BigNumber;
   profitAmount?: BigNumber;
   entryFee?: BigNumber;
@@ -34,6 +35,7 @@ export type OrderResultType = {
 
 export type RiskAndProfitResultType = {
   totalEntryAmount: BigNumber;
+  totalGrossEntryAmount?: BigNumber;
   totalRiskAmount: BigNumber;
   totalProfitAmount?: BigNumber;
   portfolioRisk: BigNumber;

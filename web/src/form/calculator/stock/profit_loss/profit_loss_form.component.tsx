@@ -16,6 +16,7 @@ import {
 } from "./profit_loss.type";
 import { absBig, mathBigNum } from "../../../../common/number/math";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import { convertToLocaleString } from "../../../../common/number/number";
 
 const DEFAULT_INPUT: ProfitLossInputType = {
   entryPrice: "0",
@@ -251,7 +252,14 @@ const ProfitLossForm = () => {
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
                   <div>Entry Amount:</div>
-                  <div>${result.entryAmount.toFixed(decPrecision)}</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.entryAmount,
+                      decPrecision,
+                      decPrecision
+                    )}
+                  </div>
                 </div>
 
                 {result.entryFee !== undefined && (
@@ -259,13 +267,25 @@ const ProfitLossForm = () => {
                     <div className={styles["row"]}>
                       <div>Gross Entry Amount:</div>
                       <div>
-                        ${result.grossEntryAmount.toFixed(decPrecision)}
+                        $
+                        {convertToLocaleString(
+                          result.grossEntryAmount,
+                          decPrecision,
+                          decPrecision
+                        )}
                       </div>
                     </div>
 
                     <div className={styles["row"]}>
                       <div>Entry Fee:</div>
-                      <div>${result.entryFee.toFixed(decPrecision)}</div>
+                      <div>
+                        $
+                        {convertToLocaleString(
+                          result.entryFee,
+                          decPrecision,
+                          decPrecision
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -273,7 +293,14 @@ const ProfitLossForm = () => {
                 {result.exitFee !== undefined && (
                   <div className={styles["row"]}>
                     <div>Closing Fee:</div>
-                    <div>${result.exitFee.toFixed(decPrecision)}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.exitFee,
+                        decPrecision,
+                        decPrecision
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -288,7 +315,11 @@ const ProfitLossForm = () => {
                   </div>
                   <div>
                     {mathBigNum.largerEq(result.grossGained, 0) ? "" : "-"}$
-                    {absBig(result.grossGained).toFixed(decPrecision)}
+                    {convertToLocaleString(
+                      absBig(result.grossGained),
+                      decPrecision,
+                      decPrecision
+                    )}
                   </div>
                 </div>
 
@@ -300,7 +331,14 @@ const ProfitLossForm = () => {
                       : "Loss"}{" "}
                     (%):
                   </div>
-                  <div>{result.grossPercentage.toFixed(decPrecision)}%</div>
+                  <div>
+                    {convertToLocaleString(
+                      result.grossPercentage,
+                      decPrecision,
+                      decPrecision
+                    )}
+                    %
+                  </div>
                 </div>
 
                 {result.netGained !== undefined && (
@@ -314,7 +352,11 @@ const ProfitLossForm = () => {
                     </div>
                     <div>
                       {mathBigNum.largerEq(result.netGained, 0) ? "" : "-"}$
-                      {absBig(result.netGained).toFixed(decPrecision)}
+                      {convertToLocaleString(
+                        absBig(result.netGained),
+                        decPrecision,
+                        decPrecision
+                      )}
                     </div>
                   </div>
                 )}
@@ -329,7 +371,14 @@ const ProfitLossForm = () => {
                           : "Loss"}{" "}
                         (%):
                       </div>
-                      <div>{result.netPercentage.toFixed(decPrecision)}%</div>
+                      <div>
+                        {convertToLocaleString(
+                          result.netPercentage,
+                          decPrecision,
+                          decPrecision
+                        )}
+                        %
+                      </div>
                     </div>
                   )}
               </div>

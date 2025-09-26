@@ -2,12 +2,15 @@ import { BigNumber } from "mathjs";
 import { mathBigNum } from "./math";
 
 export function convertToLocaleString(
-  input: string | BigNumber,
+  input: string | BigNumber | number,
   min = 2,
   max = 5
 ): string {
   try {
-    let num = typeof input === "string" ? mathBigNum.bignumber(input) : input;
+    let num =
+      typeof input === "string" || typeof input === "number"
+        ? mathBigNum.bignumber(input)
+        : input;
     if (num.isNaN() || mathBigNum.equal(num, 0)) return "0";
 
     const s = num.toFixed(max);
