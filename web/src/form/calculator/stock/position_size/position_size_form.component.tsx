@@ -2,7 +2,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
 import { calculateResult, validatePositionSizeInput } from "./utils.component";
-import { parseNumberFromString } from "../../../../common/number/number";
+import {
+  convertToLocaleString,
+  parseNumberFromString,
+} from "../../../../common/number/number";
 
 import styles from "../stock_calculator_form.module.scss";
 import Switch from "../../../../component/common/switch/switch.component";
@@ -35,6 +38,7 @@ const DEFAULT_INPUT: PositionSizeInputType = {
   includeTradingFee: false,
   estTradingFee: "0",
   minTradingFee: "0",
+  precision: 2,
 };
 
 const PositionSizeForm = () => {
@@ -42,7 +46,6 @@ const PositionSizeForm = () => {
   const [errorField, setErrorField] =
     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
   const [input, setInput] = useState<PositionSizeInputType>(DEFAULT_INPUT);
-  const [decPrecision, setDecPrecision] = useState(2);
 
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -72,22 +75,23 @@ const PositionSizeForm = () => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput({
+    setInput((prev) => ({
       ...DEFAULT_INPUT,
-      isLong: input.isLong,
-      stopLossTyp: input.stopLossTyp,
-      includeProfitGoal: input.includeProfitGoal,
-      profitGoalTyp: input.profitGoalTyp,
-      profitGoalUnit: input.profitGoalUnit,
-      unitType: input.unitType,
-      includeTradingFee: input.includeTradingFee,
-    });
+      isLong: prev.isLong,
+      stopLossTyp: prev.stopLossTyp,
+      includeProfitGoal: prev.includeProfitGoal,
+      profitGoalTyp: prev.profitGoalTyp,
+      profitGoalUnit: prev.profitGoalUnit,
+      unitType: prev.unitType,
+      includeTradingFee: prev.includeTradingFee,
+      precision: prev.precision,
+    }));
     setErrorField(null);
     setResult(null);
   };
 
   const handleSwitch = (idx: number) => {
-    setInput({ ...input, isLong: idx === 0 });
+    setInput((prev) => ({ ...prev, isLong: idx === 0 }));
   };
 
   const profitGoalStyles = useSpring({
@@ -425,8 +429,18 @@ const PositionSizeForm = () => {
                 className={styles["select"]}
                 name="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
-                defaultIndex={decPrecision}
-                onChangeHandler={(idx) => setDecPrecision(idx)}
+                defaultIndex={input.precision}
+                onChangeHandler={(idx) =>
+                  setInput((prev) => {
+                    const data = {
+                      ...prev,
+                      precision: idx,
+                    };
+
+                    setResult(calculateResult(data));
+                    return data;
+                  })
+                }
               />
             </div>
             <Container
@@ -435,53 +449,105 @@ const PositionSizeForm = () => {
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
                   <div>Open Price:</div>
-                  <div>${result.entryPrice}</div>
+                  <div>${convertToLocaleString(result.entryPrice)}</div>
                 </div>
 
                 <div className={styles["row"]}>
                   <div>Stop Price:</div>
-                  <div>${result.stopPrice}</div>
+                  <div>
+                    ${convertToLocaleString(result.stopPrice, input.precision)}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>
                   <div>Stop Loss (%):</div>
-                  <div>{result.stopPercent}%</div>
+                  <div>
+                    {convertToLocaleString(result.stopPercent, input.precision)}
+                    %
+                  </div>
                 </div>
 
                 {result.profitPrice !== undefined && (
-                  <>
-                    <div className={styles["row"]}>
-                      <div>Profit Price:</div>
-                      <div>${result.profitPrice}</div>
+                  <div className={styles["row"]}>
+                    <div>Profit Price:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitPrice,
+                        input.precision
+                      )}
                     </div>
+                  </div>
+                )}
 
-                    <div className={styles["row"]}>
-                      <div>Profit (%):</div>
-                      <div>{result.profitPercent}%</div>
+                {result.profitPercent !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit (%):</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.profitPercent,
+                        input.precision
+                      )}
+                      %
                     </div>
-                  </>
+                  </div>
                 )}
 
                 <div className={styles["row"]}>
                   <div>Quantity:</div>
-                  <div>{result.quantity}</div>
+                  <div>{convertToLocaleString(result.quantity, 0, 6)}</div>
                 </div>
 
                 <br />
 
                 <div className={styles["row"]}>
                   <div>Entry Amount:</div>
-                  <div>${result.tradingAmount}</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.entryAmount,
+                      input.precision,
+                      input.precision
+                    )}
+                  </div>
                 </div>
+
+                {result.grossEntryAmount !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Gross Entry Amount:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.grossEntryAmount,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className={styles["row"]}>
                   <div>Risk Amount:</div>
-                  <div>${result.riskAmount}</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.riskAmount,
+                      input.precision,
+                      input.precision
+                    )}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>
                   <div>Portfolio Risk (%):</div>
-                  <div>{result.portfolioRisk}%</div>
+                  <div>
+                    {convertToLocaleString(
+                      result.portfolioRisk,
+                      input.precision,
+                      input.precision
+                    )}
+                    %
+                  </div>
                 </div>
 
                 {result.profitAmount !== undefined && (

@@ -5,6 +5,7 @@ export type RiskAndProfitInputType = {
   includeTradingFee: boolean;
   estTradingFee: string;
   minTradingFee: string;
+  precision: number;
 };
 
 export enum ERROR_FIELD_RISK_AND_PROFIT {
@@ -30,6 +31,7 @@ export type OrderResultType = {
   portfolioRisk: BigNumber;
   portfolioProfit?: BigNumber;
   riskRewardRatio?: BigNumber;
+  breakEvenWinRate?: BigNumber;
   quantity: BigNumber;
 };
 
@@ -41,6 +43,7 @@ export type RiskAndProfitResultType = {
   portfolioRisk: BigNumber;
   portfolioProfit?: BigNumber;
   riskRewardRatio?: BigNumber;
+  breakEvenWinRate?: BigNumber;
   includeTradingFee: boolean;
   orders: OrderResultType[];
   totalShort: number;

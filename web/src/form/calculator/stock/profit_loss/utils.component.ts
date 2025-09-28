@@ -91,6 +91,7 @@ export const calculateResult = (
     // Calculate total entry fee
     // entryFee = grossEntryAmount * estFeeRate
     entryFee = multiplyBig(grossEntryAmount, estFeeRate);
+    entryFee = mathBigNum.round(entryFee, input.precision);
     if (mathBigNum.smaller(entryFee, minTradingFee)) {
       entryFee = minTradingFee;
     }
@@ -101,6 +102,7 @@ export const calculateResult = (
     // Calculate total exit fee
     // exitFee = grossExitAmount * estFeeRate
     exitFee = multiplyBig(grossExitAmount, estFeeRate);
+    exitFee = mathBigNum.round(exitFee, input.precision);
     if (mathBigNum.smaller(exitFee, minTradingFee)) {
       exitFee = minTradingFee;
     }

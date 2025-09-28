@@ -1,3 +1,5 @@
+import { BigNumber } from "mathjs";
+
 export enum UnitType {
   FRACTIONAL,
   UNIT,
@@ -24,6 +26,7 @@ export type PositionSizeInputType = {
   includeTradingFee: boolean;
   estTradingFee: string;
   minTradingFee: string;
+  precision: number;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {
@@ -40,20 +43,21 @@ export type PositionSizeResultType = {
   isLong: boolean;
   includeTradingFee: boolean;
   includeProfitGoal: boolean;
-  entryPrice: string;
-  stopPrice: string;
-  stopPercent: string;
-  profitPrice?: string;
-  profitPercent?: string;
-  quantity: string;
-  tradingAmount: string;
-  riskAmount: string;
-  portfolioRisk: string;
-  profitAmount?: string;
-  portfolioProfit?: string;
-  riskRewardRatio?: string;
-  breakEvenWinRate?: string;
-  estimatedEntryFee?: string;
-  estimatedStopFee?: string;
-  estimatedProfitFee?: string;
+  entryPrice: BigNumber;
+  stopPrice: BigNumber;
+  stopPercent: BigNumber;
+  profitPrice?: BigNumber;
+  profitPercent?: BigNumber;
+  quantity: BigNumber;
+  entryAmount: BigNumber;
+  grossEntryAmount?: BigNumber;
+  riskAmount: BigNumber;
+  portfolioRisk: BigNumber;
+  profitAmount?: BigNumber;
+  portfolioProfit?: BigNumber;
+  riskRewardRatio?: BigNumber;
+  breakEvenWinRate?: BigNumber;
+  entryFee?: BigNumber;
+  stopFee?: BigNumber;
+  profitFee?: BigNumber;
 };

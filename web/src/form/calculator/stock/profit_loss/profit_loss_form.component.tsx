@@ -26,6 +26,7 @@ const DEFAULT_INPUT: ProfitLossInputType = {
   includeTradingFee: false,
   estTradingFee: "0",
   minTradingFee: "0",
+  precision: 2,
 };
 
 const ProfitLossForm = () => {
@@ -35,7 +36,6 @@ const ProfitLossForm = () => {
   );
   const [input, setInput] = useState<ProfitLossInputType>(DEFAULT_INPUT);
   const [result, setResult] = useState<ProfitLossResultType | null>(null);
-  const [decPrecision, setDecPrecision] = useState(2);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Scroll to result after it is updated
@@ -67,6 +67,7 @@ const ProfitLossForm = () => {
       ...DEFAULT_INPUT,
       isLong: prev.isLong,
       includeTradingFee: prev.includeTradingFee,
+      precision: prev.precision,
     }));
     setErrorField(null);
     setResult(null);
@@ -242,8 +243,18 @@ const ProfitLossForm = () => {
                 className={styles["select"]}
                 name="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
-                defaultIndex={decPrecision}
-                onChangeHandler={(idx) => setDecPrecision(idx)}
+                defaultIndex={input.precision}
+                onChangeHandler={(idx) =>
+                  setInput((prev) => {
+                    const data = {
+                      ...prev,
+                      precision: idx,
+                    };
+
+                    setResult(calculateResult(data));
+                    return data;
+                  })
+                }
               />
             </div>
             <Container
@@ -256,8 +267,8 @@ const ProfitLossForm = () => {
                     $
                     {convertToLocaleString(
                       result.entryAmount,
-                      decPrecision,
-                      decPrecision
+                      input.precision,
+                      input.precision
                     )}
                   </div>
                 </div>
@@ -270,8 +281,8 @@ const ProfitLossForm = () => {
                         $
                         {convertToLocaleString(
                           result.grossEntryAmount,
-                          decPrecision,
-                          decPrecision
+                          input.precision,
+                          input.precision
                         )}
                       </div>
                     </div>
@@ -282,8 +293,7 @@ const ProfitLossForm = () => {
                         $
                         {convertToLocaleString(
                           result.entryFee,
-                          decPrecision,
-                          decPrecision
+                          input.precision
                         )}
                       </div>
                     </div>
@@ -294,12 +304,7 @@ const ProfitLossForm = () => {
                   <div className={styles["row"]}>
                     <div>Closing Fee:</div>
                     <div>
-                      $
-                      {convertToLocaleString(
-                        result.exitFee,
-                        decPrecision,
-                        decPrecision
-                      )}
+                      ${convertToLocaleString(result.exitFee, input.precision)}
                     </div>
                   </div>
                 )}
@@ -317,8 +322,8 @@ const ProfitLossForm = () => {
                     {mathBigNum.largerEq(result.grossGained, 0) ? "" : "-"}$
                     {convertToLocaleString(
                       absBig(result.grossGained),
-                      decPrecision,
-                      decPrecision
+                      input.precision,
+                      input.precision
                     )}
                   </div>
                 </div>
@@ -334,8 +339,8 @@ const ProfitLossForm = () => {
                   <div>
                     {convertToLocaleString(
                       result.grossPercentage,
-                      decPrecision,
-                      decPrecision
+                      input.precision,
+                      input.precision
                     )}
                     %
                   </div>
@@ -354,8 +359,8 @@ const ProfitLossForm = () => {
                       {mathBigNum.largerEq(result.netGained, 0) ? "" : "-"}$
                       {convertToLocaleString(
                         absBig(result.netGained),
-                        decPrecision,
-                        decPrecision
+                        input.precision,
+                        input.precision
                       )}
                     </div>
                   </div>
@@ -374,8 +379,8 @@ const ProfitLossForm = () => {
                       <div>
                         {convertToLocaleString(
                           result.netPercentage,
-                          decPrecision,
-                          decPrecision
+                          input.precision,
+                          input.precision
                         )}
                         %
                       </div>

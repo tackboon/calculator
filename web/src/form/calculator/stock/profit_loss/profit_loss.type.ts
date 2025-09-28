@@ -8,6 +8,7 @@ export type ProfitLossInputType = {
   includeTradingFee: boolean;
   estTradingFee: string;
   minTradingFee: string;
+  precision: number;
 };
 
 export enum ERROR_FIELD_PROFIT_LOSS {

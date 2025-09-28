@@ -104,15 +104,19 @@ export const calculateResult = (
       );
     }
 
-    // Calculate gross stop loss amount
-    // grossExitAmount = stopLoss * quantity;
-    const grossExitAmount = multiplyBig(stopLoss, quantity);
+    // Calculate stop loss exit amount
+    // stopExitAmount = stopLoss * quantity;
+    const stopExitAmount = multiplyBig(stopLoss, quantity);
 
     // Calculate risk amount
     // riskAmount = Math.abs(grossEntryAmount - exitAmount);
     let riskAmount = mathBigNum.abs(
-      subtractBig(grossEntryAmount, grossExitAmount)
+      subtractBig(grossEntryAmount, stopExitAmount)
     );
+
+    // Calculate profit exit amount
+    // profitExitAmount = profitGoal * quantity
+    const profitExitAmount = multiplyBig(profitGoal, quantity);
 
     // Calcualte profit
     let profitAmount: BigNumber | undefined;
@@ -148,7 +152,8 @@ export const calculateResult = (
     if (input.includeTradingFee) {
       // Calculate entry fee
       // entryFee = entryAmount * estFeeRate
-      let entryFee = multiplyBig(grossEntryAmount, estFeeRate);
+      entryFee = multiplyBig(grossEntryAmount, estFeeRate);
+      entryFee = mathBigNum.round(entryFee, input.precision);
       if (mathBigNum.smaller(entryFee, minTradingFee)) {
         entryFee = minTradingFee;
       }
@@ -157,8 +162,9 @@ export const calculateResult = (
       entryAmount = addBig(grossEntryAmount, entryFee);
 
       // Calculate stop fee
-      // stopFee = exitAmount * estFeeRate
-      let stopFee = multiplyBig(grossExitAmount, estFeeRate);
+      // stopFee = stopExitAmount * estFeeRate
+      stopFee = multiplyBig(stopExitAmount, estFeeRate);
+      stopFee = mathBigNum.round(stopFee, input.precision);
       if (mathBigNum.smaller(stopFee, minTradingFee)) {
         stopFee = minTradingFee;
       }
@@ -169,8 +175,9 @@ export const calculateResult = (
 
       if (profitAmount !== undefined) {
         // Calculate profit fee
-        // profitFee = profitAmount * estFeeRate
-        let profitFee = multiplyBig(profitAmount, estFeeRate);
+        // profitFee = profitExitAmount * estFeeRate
+        profitFee = multiplyBig(profitExitAmount, estFeeRate);
+        profitFee = mathBigNum.round(profitFee, input.precision);
         if (mathBigNum.smaller(profitFee, minTradingFee)) {
           profitFee = minTradingFee;
         }
@@ -181,6 +188,10 @@ export const calculateResult = (
           subtractBig(profitAmount, entryFee),
           profitFee
         );
+
+        if (mathBigNum.smaller(profitAmount, 0)) {
+          profitAmount = mathBigNum.bignumber(0);
+        }
       }
     }
 
@@ -210,11 +221,19 @@ export const calculateResult = (
       }
     }
 
-    // Calculate risk reward ratio
+    // Calculate risk reward ratio and break even win rate
     let ratio: BigNumber | undefined;
-    if (profitAmount !== undefined && !mathBigNum.equal(profitAmount, 0)) {
-      // ratio = riskAmount / profitAmount
-      ratio = divideBig(riskAmount, profitAmount);
+    let breakEvenWinRate: BigNumber | undefined;
+    if (
+      profitAmount !== undefined &&
+      mathBigNum.larger(riskAmount, 0) &&
+      mathBigNum.larger(profitAmount, 0)
+    ) {
+      // ratio = profitAmount / riskAmount
+      ratio = divideBig(profitAmount, riskAmount);
+
+      // breakEvenWinRate = (1 / (1 + ratio)) * 100
+      breakEvenWinRate = multiplyBig(divideBig(1, addBig(1, ratio)), 100);
     }
 
     // Calculate total entry amount
@@ -243,6 +262,7 @@ export const calculateResult = (
       portfolioRisk: portfolioRisk,
       portfolioProfit: portfolioProfit,
       riskRewardRatio: ratio,
+      breakEvenWinRate: breakEvenWinRate,
       quantity: quantity,
     });
   }
@@ -258,6 +278,7 @@ export const calculateResult = (
 
   let portfolioProfit: BigNumber | undefined;
   let riskRewardRatio: BigNumber | undefined;
+  let breakEvenWinRate: BigNumber | undefined;
   if (hasProfitGoal) {
     // portfolioProfit = (totalProfitAmount / portfolioCapital) * 100;
     portfolioProfit = mathBigNum.bignumber(0);
@@ -267,9 +288,18 @@ export const calculateResult = (
         100
       );
     }
-    if (mathBigNum.larger(totalProfitAmount, 0)) {
-      // ratio = totalRiskAmount / totalProfitAmount
-      riskRewardRatio = divideBig(totalRiskAmount, totalProfitAmount);
+    if (
+      mathBigNum.larger(totalRiskAmount, 0) &&
+      mathBigNum.larger(totalProfitAmount, 0)
+    ) {
+      // ratio = totalProfitAmount / totalRiskAmount
+      riskRewardRatio = divideBig(totalProfitAmount, totalRiskAmount);
+
+      // breakEvenWinRate = (1 / (1 + ratio)) * 100
+      breakEvenWinRate = multiplyBig(
+        divideBig(1, addBig(1, riskRewardRatio)),
+        100
+      );
     }
   }
 
@@ -283,6 +313,7 @@ export const calculateResult = (
     portfolioRisk: portfolioRisk,
     portfolioProfit: portfolioProfit,
     riskRewardRatio: riskRewardRatio,
+    breakEvenWinRate: breakEvenWinRate,
     includeTradingFee: input.includeTradingFee,
     orders: ordersResult,
     totalLong: totalLong,
