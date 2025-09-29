@@ -6,9 +6,19 @@ export enum UnitType {
   LOT,
 }
 
+export enum StopLossTyp {
+  PRICED_BASED,
+  PERCENT_BASED,
+}
+
 export enum ProfitGoalTyp {
   PRICED_BASED,
   PORTFOLIO_BASED,
+}
+
+export enum ProfitGoalUnit {
+  PRICED_BASED,
+  PERCENT_BASED,
 }
 
 export type PositionSizeInputType = {
@@ -17,11 +27,11 @@ export type PositionSizeInputType = {
   entryPrice: string;
   unitType: UnitType;
   stopLoss: string;
-  stopLossTyp: "$" | "%";
+  stopLossTyp: StopLossTyp;
   includeProfitGoal: boolean;
   profitGoalTyp: ProfitGoalTyp;
   profitGoal: string;
-  profitGoalUnit: "$" | "%";
+  profitGoalUnit: ProfitGoalUnit;
   isLong: boolean;
   includeTradingFee: boolean;
   estTradingFee: string;
@@ -48,7 +58,7 @@ export type PositionSizeResultType = {
   stopPercent: BigNumber;
   profitPrice?: BigNumber;
   profitPercent?: BigNumber;
-  quantity: BigNumber;
+  quantity: string;
   entryAmount: BigNumber;
   grossEntryAmount?: BigNumber;
   riskAmount: BigNumber;

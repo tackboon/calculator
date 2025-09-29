@@ -19,9 +19,12 @@ import {
   PositionSizeInputType,
   PositionSizeResultType,
   ProfitGoalTyp,
+  ProfitGoalUnit,
+  StopLossTyp,
   UnitType,
 } from "./position_size.type";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import { convertRatioToString } from "../../../../common/common";
 
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
@@ -29,11 +32,11 @@ const DEFAULT_INPUT: PositionSizeInputType = {
   entryPrice: "0",
   unitType: UnitType.UNIT,
   stopLoss: "0",
-  stopLossTyp: "%",
+  stopLossTyp: StopLossTyp.PERCENT_BASED,
   includeProfitGoal: false,
   profitGoal: "0",
   profitGoalTyp: ProfitGoalTyp.PRICED_BASED,
-  profitGoalUnit: "%",
+  profitGoalUnit: ProfitGoalUnit.PERCENT_BASED,
   isLong: true,
   includeTradingFee: false,
   estTradingFee: "0",
@@ -195,8 +198,12 @@ const PositionSizeForm = () => {
           <div className={styles["input-with-switch"]}>
             <NumberInput
               id="stop-loss"
-              preUnit={input.stopLossTyp === "$" ? "$" : ""}
-              postUnit={input.stopLossTyp === "%" ? "%" : ""}
+              preUnit={
+                input.stopLossTyp === StopLossTyp.PRICED_BASED ? "$" : ""
+              }
+              postUnit={
+                input.stopLossTyp === StopLossTyp.PERCENT_BASED ? "%" : ""
+              }
               isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
               minDecimalPlace={2}
               maxDecimalPlace={5}
@@ -209,12 +216,17 @@ const PositionSizeForm = () => {
               height={46}
               borderRadius={5}
               names={["$", "%"]}
-              defaultIndex={input.stopLossTyp === "$" ? 0 : 1}
+              defaultIndex={
+                input.stopLossTyp === StopLossTyp.PRICED_BASED ? 0 : 1
+              }
               childWidth={50}
               onSwitch={(idx: number) => {
                 setInput((prev) => ({
                   ...prev,
-                  stopLossTyp: idx === 0 ? "$" : "%",
+                  stopLossTyp:
+                    idx === 0
+                      ? StopLossTyp.PRICED_BASED
+                      : StopLossTyp.PERCENT_BASED,
                   stopLoss:
                     prev.stopLoss === "0"
                       ? prev.stopLoss
@@ -289,10 +301,14 @@ const PositionSizeForm = () => {
                   <NumberInput
                     id="profit-goal"
                     step={0.1}
-                    preUnit={input.profitGoalUnit === "$" ? "$" : ""}
+                    preUnit={
+                      input.profitGoalUnit === ProfitGoalUnit.PRICED_BASED
+                        ? "$"
+                        : ""
+                    }
                     postUnit={
                       input.profitGoalTyp === ProfitGoalTyp.PRICED_BASED
-                        ? input.profitGoalUnit === "%"
+                        ? input.profitGoalUnit === ProfitGoalUnit.PERCENT_BASED
                           ? "%"
                           : ""
                         : "%"
@@ -312,12 +328,19 @@ const PositionSizeForm = () => {
                       height={46}
                       borderRadius={5}
                       names={["$", "%"]}
-                      defaultIndex={input.profitGoalUnit === "$" ? 0 : 1}
+                      defaultIndex={
+                        input.profitGoalUnit === ProfitGoalUnit.PRICED_BASED
+                          ? 0
+                          : 1
+                      }
                       childWidth={50}
                       onSwitch={(idx: number) => {
                         setInput((prev) => ({
                           ...prev,
-                          profitGoalUnit: idx === 0 ? "$" : "%",
+                          profitGoalUnit:
+                            idx === 0
+                              ? ProfitGoalUnit.PRICED_BASED
+                              : ProfitGoalUnit.PERCENT_BASED,
                           profitGoal:
                             prev.profitGoal === "0"
                               ? prev.profitGoal
@@ -454,9 +477,7 @@ const PositionSizeForm = () => {
 
                 <div className={styles["row"]}>
                   <div>Stop Price:</div>
-                  <div>
-                    ${convertToLocaleString(result.stopPrice, input.precision)}
-                  </div>
+                  <div>${convertToLocaleString(result.stopPrice)}</div>
                 </div>
 
                 <div className={styles["row"]}>
@@ -470,13 +491,7 @@ const PositionSizeForm = () => {
                 {result.profitPrice !== undefined && (
                   <div className={styles["row"]}>
                     <div>Profit Price:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.profitPrice,
-                        input.precision
-                      )}
-                    </div>
+                    <div>${convertToLocaleString(result.profitPrice)}</div>
                   </div>
                 )}
 
@@ -553,35 +568,69 @@ const PositionSizeForm = () => {
                 {result.profitAmount !== undefined && (
                   <div className={styles["row"]}>
                     <div>Potential Profit:</div>
-                    <div>${result.profitAmount}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitAmount,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {result.portfolioProfit !== undefined && (
                   <div className={styles["row"]}>
                     <div>Potential Portfolio Return (%):</div>
-                    <div>{result.portfolioProfit}%</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.portfolioProfit,
+                        input.precision
+                      )}
+                      %
+                    </div>
                   </div>
                 )}
 
-                {result.estimatedEntryFee !== undefined && (
+                {result.entryFee !== undefined && (
                   <div className={styles["row"]}>
                     <div>Opening Fee:</div>
-                    <div>${result.estimatedEntryFee}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.entryFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {result.estimatedStopFee !== undefined && (
+                {result.stopFee !== undefined && (
                   <div className={styles["row"]}>
                     <div>Stop Loss Execution Fee:</div>
-                    <div>${result.estimatedStopFee}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.stopFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {result.estimatedProfitFee !== undefined && (
+                {result.profitFee !== undefined && (
                   <div className={styles["row"]}>
                     <div>Profit-Taking Fee:</div>
-                    <div>${result.estimatedProfitFee}</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -590,7 +639,12 @@ const PositionSizeForm = () => {
                     <br />
                     <div className={styles["row"]}>
                       <div>Risk/Reward Ratio:</div>
-                      <div>{result.riskRewardRatio}</div>
+                      <div>
+                        {convertRatioToString(
+                          result.riskRewardRatio,
+                          input.precision
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -598,7 +652,14 @@ const PositionSizeForm = () => {
                 {result.breakEvenWinRate && (
                   <div className={styles["row"]}>
                     <div>Breakeven Win Rate:</div>
-                    <div>{result.breakEvenWinRate}%</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.breakEvenWinRate,
+                        input.precision,
+                        input.precision
+                      )}
+                      %
+                    </div>
                   </div>
                 )}
               </div>
