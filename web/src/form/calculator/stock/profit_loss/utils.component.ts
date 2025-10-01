@@ -40,7 +40,7 @@ export const validateProfitLossInput = (
   }
 
   if (input.includeTradingFee) {
-    if (!checkMinMax(input.estTradingFee, { min: 0, max: 100 })) {
+    if (!checkMinMax(input.estTradingFee, { min: 0, maxOrEqual: 100 })) {
       return {
         err: "Please estimates a valid trading fee.",
         field: ERROR_FIELD_PROFIT_LOSS.EST_TRADING_FEE,

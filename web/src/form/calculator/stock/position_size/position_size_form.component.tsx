@@ -510,7 +510,7 @@ const PositionSizeForm = () => {
 
                 <div className={styles["row"]}>
                   <div>Quantity:</div>
-                  <div>{convertToLocaleString(result.quantity, 0, 6)}</div>
+                  <div>{result.quantity}</div>
                 </div>
 
                 <br />

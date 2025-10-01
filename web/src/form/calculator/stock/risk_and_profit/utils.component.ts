@@ -31,7 +31,7 @@ export const validateRiskAndProfitInput = (
   }
 
   if (input.includeTradingFee) {
-    if (!checkMinMax(input.estTradingFee, { min: 0, max: 100 })) {
+    if (!checkMinMax(input.estTradingFee, { min: 0, maxOrEqual: 100 })) {
       return {
         err: "Please estimates a valid trading fee.",
         field: ERROR_FIELD_RISK_AND_PROFIT.EST_TRADING_FEE,
