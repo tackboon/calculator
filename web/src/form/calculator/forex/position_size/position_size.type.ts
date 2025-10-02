@@ -1,3 +1,5 @@
+import { BigNumber } from "mathjs";
+
 export enum ProfitGoalTyp {
   PRICE_BASED,
   PORTFOLIO_BASED,
@@ -30,6 +32,7 @@ export type ForexPositionSizeInputType = {
   swapFee: string;
   leverage: number;
   pipSize: number;
+  precision: number;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {
@@ -48,20 +51,20 @@ export type PositionSizeResultType = {
   isLong: boolean;
   includeTradingFee: boolean;
   includeProfitGoal: boolean;
-  entryPrice: number;
-  stopPrice: number;
-  profitPrice?: number;
-  quantity: number;
-  lot: number;
-  marginToHold: number;
-  riskAmount: number;
-  portfolioRisk: number;
-  profitAmount?: number;
-  portfolioProfit?: number;
-  riskRewardRatio?: string;
-  breakEvenWinRate?: number;
-  commissionFee?: number;
-  stopFee?: number;
-  profitFee?: number;
-  swapFee?: number;
+  entryPrice: BigNumber;
+  stopPrice: BigNumber;
+  profitPrice?: BigNumber;
+  quantity: BigNumber;
+  lot: BigNumber;
+  marginToHold: BigNumber;
+  riskAmount: BigNumber;
+  portfolioRisk: BigNumber;
+  profitAmount?: BigNumber;
+  portfolioProfit?: BigNumber;
+  riskRewardRatio?: BigNumber;
+  breakEvenWinRate?: BigNumber;
+  commissionFee?: BigNumber;
+  stopFee?: BigNumber;
+  profitFee?: BigNumber;
+  swapFee?: BigNumber;
 };

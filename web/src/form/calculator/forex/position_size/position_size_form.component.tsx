@@ -60,6 +60,7 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   swapFee: "0",
   leverage: 100,
   pipSize: 0.0001,
+  precision: 2,
 };
 
 const ForexPositionSizeForm = () => {
