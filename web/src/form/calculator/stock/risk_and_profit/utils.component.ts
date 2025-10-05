@@ -188,10 +188,6 @@ export const calculateResult = (
           subtractBig(profitAmount, entryFee),
           profitFee
         );
-
-        if (mathBigNum.smaller(profitAmount, 0)) {
-          profitAmount = mathBigNum.bignumber(0);
-        }
       }
     }
 

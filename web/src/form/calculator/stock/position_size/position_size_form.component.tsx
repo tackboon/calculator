@@ -515,6 +515,50 @@ const PositionSizeForm = () => {
 
                 <br />
 
+                {result.entryFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Entry Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.entryFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.stopFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Stop Loss Execution Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.stopFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.profitFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit-Taking Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <br />
+
                 <div className={styles["row"]}>
                   <div>Entry Amount:</div>
                   <div>
@@ -588,48 +632,6 @@ const PositionSizeForm = () => {
                         input.precision
                       )}
                       %
-                    </div>
-                  </div>
-                )}
-
-                {result.entryFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Opening Fee:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.entryFee,
-                        input.precision,
-                        input.precision
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {result.stopFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Stop Loss Execution Fee:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.stopFee,
-                        input.precision,
-                        input.precision
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {result.profitFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Profit-Taking Fee:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.profitFee,
-                        input.precision,
-                        input.precision
-                      )}
                     </div>
                   </div>
                 )}

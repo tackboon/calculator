@@ -13,7 +13,8 @@ export function convertToLocaleString(
         : input;
     if (num.isNaN() || mathBigNum.equal(num, 0)) return "0";
 
-    const s = num.toFixed(max);
+    num = mathBigNum.round(num, max);
+    const s = num.toString();
     let [i, dRaw = ""] = s.split(".");
 
     if (max === 0) return i;

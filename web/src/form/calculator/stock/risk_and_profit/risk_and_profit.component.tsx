@@ -18,6 +18,7 @@ import { StockOrderInputType } from "../../../../component/stock/order/order.typ
 import { convertToLocaleString } from "../../../../common/number/number";
 import { convertRatioToString } from "../../../../common/common";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import { absBig, mathBigNum } from "../../../../common/number/math";
 
 const DEFAULT_INPUT: RiskAndProfitInputType = {
   portfolioCapital: "0",
@@ -304,9 +305,12 @@ const RiskAndProfitForm = () => {
                   <div className={styles["row"]}>
                     <div>Total Potential Profit:</div>
                     <div>
+                      {mathBigNum.smaller(result.totalProfitAmount, 0)
+                        ? "-"
+                        : ""}
                       $
                       {convertToLocaleString(
-                        result.totalProfitAmount,
+                        absBig(result.totalProfitAmount),
                         input.precision,
                         input.precision
                       )}
@@ -436,7 +440,7 @@ const RiskAndProfitForm = () => {
                           <>
                             <br />
                             <div className={styles["row"]}>
-                              <div>Opening Fee:</div>
+                              <div>Entry Fee:</div>
                               <div>
                                 $
                                 {convertToLocaleString(
@@ -517,9 +521,12 @@ const RiskAndProfitForm = () => {
                           <div className={styles["row"]}>
                             <div>Potential Profit:</div>
                             <div>
+                              {mathBigNum.smaller(order.profitAmount, 0)
+                                ? "-"
+                                : ""}
                               $
                               {convertToLocaleString(
-                                order.profitAmount,
+                                absBig(order.profitAmount),
                                 input.precision,
                                 input.precision
                               )}
