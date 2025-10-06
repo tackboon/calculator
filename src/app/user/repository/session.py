@@ -1,4 +1,5 @@
 import json
+import re
 import src.app.user.constant as constant
 
 from dataclasses import asdict
@@ -330,7 +331,7 @@ class SessionRepo:
     """
 
     # Get cache key and duration
-    key, duration = self._get_ip_limit_cache_info(ip)
+    key, duration = self._get_risk_ip_cache_info(ip)
 
     # Update requests count
     def fn(pipe: Pipeline) -> None:
@@ -368,12 +369,12 @@ class SessionRepo:
 
     return f"user:session:{user_id}:{session_id}", timedelta(hours=1)  
 
-  def _get_ip_limit_cache_info(self, ip: str) -> tuple[str, timedelta]:
+  def _get_risk_ip_cache_info(self, ip: str) -> tuple[str, timedelta]:
     """
-    Construct ip limit cache key and cache duration.
+    Construct risk by ip cache key and cache duration.
     """
 
     # Replace ':' (IPv6) with '_' and trim spaces
     safe_ip = re.sub(r':', '_', ip.strip())
 
-    return f"user:risk:ip:{safe_ip}", timedelta(minutes=10)
+    return f"user:risk:ip:{safe_ip}", timedelta(minutes=5)

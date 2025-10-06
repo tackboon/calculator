@@ -58,6 +58,7 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   feeTyp: FeeTyp.COMMISSION_PER_LOT,
   estTradingFee: "0",
   swapFee: "0",
+  period: "0",
   leverage: 100,
   pipSize: 0.0001,
   precision: 2,
@@ -137,7 +138,7 @@ const ForexPositionSizeForm = () => {
   });
 
   const tradingFeeStyles = useSpring({
-    height: input.includeTradingFee ? 300 : 0,
+    height: input.includeTradingFee ? 395 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
     overflow: "hidden",
   });
@@ -215,7 +216,7 @@ const ForexPositionSizeForm = () => {
           <label htmlFor="acc-base-currency">Account Currency</label>
           <CurrencySelectBox
             name="acc-base-currency"
-            defaultIndex={29}
+            defaultIndex={9}
             supportedCurrencies={supportedCurrencies}
             onChange={(currency) => {
               setInput((prev) => ({
@@ -230,7 +231,7 @@ const ForexPositionSizeForm = () => {
           <label htmlFor="currency-pair">Currency Pair</label>
           <PairSelectBox
             name="currency-pair"
-            defaultIndex={24}
+            defaultIndex={23}
             supportedAssets={supportedAssets}
             onChange={(pair) => {
               setInput((prev) => {
@@ -447,6 +448,7 @@ const ForexPositionSizeForm = () => {
                   feeTyp: DEFAULT_INPUT.feeTyp,
                   estTradingFee: "0",
                   swapFee: "0",
+                  period: "0",
                 }));
               }}
             />
@@ -486,39 +488,52 @@ const ForexPositionSizeForm = () => {
                 <label htmlFor="estimated-fee">
                   Commission Fee ({input.accBaseCurrency})
                 </label>
-                <div className={styles["input-with-switch"]}>
-                  <NumberInput
-                    id="estimated-fee"
-                    step={0.1}
-                    preUnit="$"
-                    isInvalid={
-                      errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
-                    }
-                    minDecimalPlace={2}
-                    maxDecimalPlace={5}
-                    value={input.estTradingFee}
-                    onChangeHandler={(val) =>
-                      setInput((prev) => ({ ...prev, estTradingFee: val }))
-                    }
-                  />
-                </div>
+
+                <NumberInput
+                  id="estimated-fee"
+                  step={0.1}
+                  preUnit="$"
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
+                  }
+                  minDecimalPlace={2}
+                  maxDecimalPlace={5}
+                  value={input.estTradingFee}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, estTradingFee: val }))
+                  }
+                />
               </div>
 
               <div className={styles["form-group"]}>
-                <label htmlFor="estimated-fee">
+                <label htmlFor="swap-fee">
                   Total Swap {input.isLong ? "Long" : "Short"} (
                   {getBaseAndQuote(input.currencyPair).quote})
                 </label>
+
+                <NumberInput
+                  id="swap-fee"
+                  step={0.1}
+                  preUnit="$"
+                  minDecimalPlace={2}
+                  maxDecimalPlace={5}
+                  value={input.swapFee}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, swapFee: val }))
+                  }
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="period">Period in Days</label>
                 <div className={styles["input-with-switch"]}>
                   <NumberInput
-                    id="swap-fee"
-                    step={0.1}
-                    preUnit="$"
-                    minDecimalPlace={2}
-                    maxDecimalPlace={5}
-                    value={input.swapFee}
+                    id="period"
+                    minDecimalPlace={0}
+                    maxDecimalPlace={0}
+                    value={input.period}
                     onChangeHandler={(val) =>
-                      setInput((prev) => ({ ...prev, swapFee: val }))
+                      setInput((prev) => ({ ...prev, period: val }))
                     }
                   />
                 </div>

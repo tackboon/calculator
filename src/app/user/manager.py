@@ -142,7 +142,7 @@ class UserService:
     Send OTP to email
     """
     
-    # Check OTP requests limit by ip
+    # Check email requests limit by ip
     if self.repo.session.update_ip_limit(ip) > constant.MAX_OTP_REQUEST_BY_IP:
       raise common_error.TooManyRequestError("Too many requests.")
 
@@ -186,6 +186,10 @@ class UserService:
     """
     Send reset password link to user via email.
     """
+
+    # Check email requests limit by ip
+    if self.repo.session.update_ip_limit(ip) > constant.MAX_OTP_REQUEST_BY_IP:
+      raise common_error.TooManyRequestError("Too many requests.")
 
     # Check if email exists
     user = self.repo.user.get_user_by_email(email)

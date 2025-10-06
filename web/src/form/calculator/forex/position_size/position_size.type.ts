@@ -30,6 +30,7 @@ export type ForexPositionSizeInputType = {
   feeTyp: FeeTyp;
   estTradingFee: string;
   swapFee: string;
+  period: string;
   leverage: number;
   pipSize: number;
   precision: number;

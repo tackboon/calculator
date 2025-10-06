@@ -338,8 +338,8 @@ export const calculateResult = (
         ) as BigNumber;
       }
 
-      entryFeeStr = convertToLocaleString(fee.toString(), 2, 5);
-      stopFeeStr = entryFeeStr;
+      // entryFeeStr = convertToLocaleString(fee.toString(), 2, 5);
+      // stopFeeStr = entryFeeStr;
     } else {
       const commissionFeeRate = mathBigNum.divide(
         commissionFee,
@@ -441,7 +441,7 @@ export const calculateResult = (
     }
   }
 
-  console.log(lotSize.toString(), entryFeeStr, stopFeeStr);
+  console.log(lotSize.toString(), entryFee?.toString(), stopFee?.toString());
 };
 
 const calcLotSize = (
