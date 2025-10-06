@@ -104,21 +104,22 @@ const ForexPositionSizeForm = () => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput({
+    setInput((prev) => ({
       ...DEFAULT_INPUT,
-      isLong: input.isLong,
-      accBaseCurrency: input.accBaseCurrency,
-      currencyPair: input.currencyPair,
-      includeProfitGoal: input.includeProfitGoal,
-      profitGoalTyp: input.profitGoalTyp,
-      includeTradingFee: input.includeTradingFee,
-      feeTyp: input.feeTyp,
-      leverage: input.leverage,
-      basePair: input.basePair,
-      baseCrossRate: input.baseCrossRate,
-      quotePair: input.quotePair,
-      quoteCrossRate: input.quoteCrossRate,
-    });
+      isLong: prev.isLong,
+      accBaseCurrency: prev.accBaseCurrency,
+      currencyPair: prev.currencyPair,
+      includeProfitGoal: prev.includeProfitGoal,
+      profitGoalTyp: prev.profitGoalTyp,
+      includeTradingFee: prev.includeTradingFee,
+      feeTyp: prev.feeTyp,
+      leverage: prev.leverage,
+      basePair: prev.basePair,
+      baseCrossRate: prev.baseCrossRate,
+      quotePair: prev.quotePair,
+      quoteCrossRate: prev.quoteCrossRate,
+      precision: prev.precision,
+    }));
     setErrorField(null);
     setResult(null);
   };
@@ -168,7 +169,9 @@ const ForexPositionSizeForm = () => {
           childWidth={161}
           names={["Long", "Short"]}
           defaultIndex={0}
-          onSwitch={(idx: number) => setInput({ ...input, isLong: idx === 0 })}
+          onSwitch={(idx: number) =>
+            setInput((prev) => ({ ...prev, isLong: idx === 0 }))
+          }
         />
       </div>
 
@@ -185,7 +188,7 @@ const ForexPositionSizeForm = () => {
             maxDecimalPlace={5}
             value={input.portfolioCapital}
             onChangeHandler={(val) =>
-              setInput({ ...input, portfolioCapital: val })
+              setInput((prev) => ({ ...prev, portfolioCapital: val }))
             }
           />
         </div>
@@ -203,7 +206,7 @@ const ForexPositionSizeForm = () => {
             }
             value={input.maxPortfolioRisk}
             onChangeHandler={(val) =>
-              setInput({ ...input, maxPortfolioRisk: val })
+              setInput((prev) => ({ ...prev, maxPortfolioRisk: val }))
             }
           />
         </div>
@@ -215,10 +218,10 @@ const ForexPositionSizeForm = () => {
             defaultIndex={29}
             supportedCurrencies={supportedCurrencies}
             onChange={(currency) => {
-              setInput({
-                ...input,
+              setInput((prev) => ({
+                ...prev,
                 accBaseCurrency: currency,
-              });
+              }));
             }}
           />
         </div>
@@ -230,10 +233,10 @@ const ForexPositionSizeForm = () => {
             defaultIndex={24}
             supportedAssets={supportedAssets}
             onChange={(pair) => {
-              setInput(() => {
+              setInput((prev) => {
                 const pairInfo = supportedAssets[pair];
                 return {
-                  ...input,
+                  ...prev,
                   pipSize: pairInfo.pip,
                   contractSize: pairInfo.lot,
                   currencyPair: pair,
@@ -262,7 +265,11 @@ const ForexPositionSizeForm = () => {
                   currencyRate={baseCurrencyRate}
                   commodityRate={usdCommodityRate}
                   onChange={(pair, rate) =>
-                    setInput({ ...input, baseCrossRate: rate, basePair: pair })
+                    setInput((prev) => ({
+                      ...prev,
+                      baseCrossRate: rate,
+                      basePair: pair,
+                    }))
                   }
                 />
 
@@ -280,11 +287,11 @@ const ForexPositionSizeForm = () => {
                   currencyRate={baseCurrencyRate}
                   commodityRate={usdCommodityRate}
                   onChange={(pair, rate) =>
-                    setInput({
-                      ...input,
+                    setInput((prev) => ({
+                      ...prev,
                       quoteCrossRate: rate,
                       quotePair: pair,
-                    })
+                    }))
                   }
                 />
               </div>
@@ -298,12 +305,10 @@ const ForexPositionSizeForm = () => {
             name="leverage"
             defaultIndex={9}
             onChange={(leverage) => {
-              setInput(() => {
-                return {
-                  ...input,
-                  leverage,
-                };
-              });
+              setInput((prev) => ({
+                ...prev,
+                leverage,
+              }));
             }}
           />
         </div>
@@ -317,7 +322,9 @@ const ForexPositionSizeForm = () => {
             minDecimalPlace={0}
             maxDecimalPlace={0}
             value={input.contractSize}
-            onChangeHandler={(val) => setInput({ ...input, contractSize: val })}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, contractSize: val }))
+            }
           />
         </div>
 
@@ -331,7 +338,9 @@ const ForexPositionSizeForm = () => {
             minDecimalPlace={2}
             maxDecimalPlace={5}
             value={input.openPrice}
-            onChangeHandler={(val) => setInput({ ...input, openPrice: val })}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, openPrice: val }))
+            }
           />
         </div>
 
@@ -361,12 +370,12 @@ const ForexPositionSizeForm = () => {
             <Checkbox
               isCheck={input.includeProfitGoal}
               onCheck={() =>
-                setInput({
-                  ...input,
-                  includeProfitGoal: !input.includeProfitGoal,
+                setInput((prev) => ({
+                  ...prev,
+                  includeProfitGoal: !prev.includeProfitGoal,
                   profitGoal: DEFAULT_INPUT.profitGoal,
                   profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
-                })
+                }))
               }
             />
             <span>Include Profit Goal</span>
@@ -383,7 +392,11 @@ const ForexPositionSizeForm = () => {
                   options={["Price-Based", "Portfolio-Based"]}
                   defaultIndex={ProfitGoalTyp.PRICE_BASED}
                   onChangeHandler={(idx) => {
-                    setInput({ ...input, profitGoalTyp: idx, profitGoal: "0" });
+                    setInput((prev) => ({
+                      ...prev,
+                      profitGoalTyp: idx,
+                      profitGoal: "0",
+                    }));
                     if (
                       errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                     ) {
@@ -428,13 +441,13 @@ const ForexPositionSizeForm = () => {
             <Checkbox
               isCheck={input.includeTradingFee}
               onCheck={() => {
-                setInput({
-                  ...input,
+                setInput((prev) => ({
+                  ...prev,
                   includeTradingFee: !input.includeTradingFee,
                   feeTyp: DEFAULT_INPUT.feeTyp,
                   estTradingFee: "0",
                   swapFee: "0",
-                });
+                }));
               }}
             />
             <span>Include Commission Fee</span>
@@ -454,7 +467,11 @@ const ForexPositionSizeForm = () => {
                   ]}
                   defaultIndex={DEFAULT_INPUT.feeTyp}
                   onChangeHandler={(idx) => {
-                    setInput({ ...input, feeTyp: idx, estTradingFee: "0" });
+                    setInput((prev) => ({
+                      ...prev,
+                      feeTyp: idx,
+                      estTradingFee: "0",
+                    }));
                     if (
                       errorField === ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE
                     ) {
@@ -481,7 +498,7 @@ const ForexPositionSizeForm = () => {
                     maxDecimalPlace={5}
                     value={input.estTradingFee}
                     onChangeHandler={(val) =>
-                      setInput({ ...input, estTradingFee: val })
+                      setInput((prev) => ({ ...prev, estTradingFee: val }))
                     }
                   />
                 </div>
@@ -501,7 +518,7 @@ const ForexPositionSizeForm = () => {
                     maxDecimalPlace={5}
                     value={input.swapFee}
                     onChangeHandler={(val) =>
-                      setInput({ ...input, swapFee: val })
+                      setInput((prev) => ({ ...prev, swapFee: val }))
                     }
                   />
                 </div>

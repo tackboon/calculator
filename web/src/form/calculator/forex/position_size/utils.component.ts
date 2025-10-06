@@ -1,6 +1,12 @@
 import { BigNumber } from "mathjs";
 import { getBaseAndQuote } from "../../../../common/forex/forex";
-import { mathBigNum } from "../../../../common/number/math";
+import {
+  absBig,
+  divideBig,
+  mathBigNum,
+  multiplyBig,
+  subtractBig,
+} from "../../../../common/number/math";
 import {
   convertToLocaleString,
   parseBigNumberFromString,
@@ -227,31 +233,33 @@ export const calculateResult = (
   // Get base rate (XXXUSD)
   let baseRate = mathBigNum.bignumber(1);
   if (input.basePair === "") {
+    // acc base currency in the pair
     if (pairInfo.quote === input.accBaseCurrency) {
       baseRate = input.isLong ? openPrice : stopLoss;
     }
   } else {
     const baseRateInfo = getBaseAndQuote(input.basePair);
     const baseCrossRate = parseBigNumberFromString(input.baseCrossRate);
-    baseRate = baseCrossRate;
-    if (baseRateInfo.base === input.accBaseCurrency) {
-      baseRate = mathBigNum.divide(1, baseCrossRate) as BigNumber;
-    }
+    baseRate =
+      baseRateInfo.quote === input.accBaseCurrency
+        ? baseCrossRate
+        : divideBig(1, baseCrossRate);
   }
 
   // Get quote rate (XXXUSD)
   let quoteRate = mathBigNum.bignumber(1);
   if (input.quotePair === "") {
+    // acc base currency in the pair
     if (pairInfo.base === input.accBaseCurrency) {
-      quoteRate = mathBigNum.divide(1, stopLoss) as BigNumber;
+      quoteRate = divideBig(1, stopLoss);
     }
   } else {
     const quoteRateInfo = getBaseAndQuote(input.quotePair);
     const quoteCrossRate = parseBigNumberFromString(input.quoteCrossRate);
-    quoteRate = quoteCrossRate;
-    if (quoteRateInfo.base === input.accBaseCurrency) {
-      quoteRate = mathBigNum.divide(1, quoteCrossRate) as BigNumber;
-    }
+    quoteRate =
+      quoteRateInfo.quote === input.accBaseCurrency
+        ? quoteCrossRate
+        : divideBig(1, quoteCrossRate);
   }
 
   /*
@@ -260,33 +268,27 @@ export const calculateResult = (
 
   // Calculate max loss
   // maxLoss = portfolioCapital * maxPortfolioRiskRate
-  const maxLoss = mathBigNum.multiply(
-    portfolioCapital,
-    maxPortfolioRiskRate
-  ) as BigNumber;
+  const maxLoss = multiplyBig(portfolioCapital, maxPortfolioRiskRate);
 
   // priceDiff = Math.abs(stopLoss - openPrice)
-  const priceDiff = mathBigNum.abs(mathBigNum.subtract(stopLoss, openPrice));
+  const priceDiff = absBig(subtractBig(stopLoss, openPrice));
 
   // Calculate lot size
   let lotSize = mathBigNum.bignumber(0);
   let riskAmount = mathBigNum.bignumber(0);
-  let entryFeeStr: string | undefined;
-  let stopFeeStr: string | undefined;
+  let entryFee: BigNumber | undefined;
+  let stopFee: BigNumber | undefined;
   if (!input.includeTradingFee) {
     lotSize = calcLotSize(maxLoss, contractSize, quoteRate, priceDiff);
 
     // riskAmount = lotSize * contractSize * priceDiff * quoteRate
-    riskAmount = mathBigNum.multiply(
-      mathBigNum.multiply(
-        mathBigNum.multiply(lotSize, contractSize),
-        priceDiff
-      ),
+    riskAmount = multiplyBig(
+      multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
       quoteRate
-    ) as BigNumber;
+    );
   } else {
     // swapFeeInAccBase = swapFee * quoteRate
-    let swapFeeInAccBase = mathBigNum.multiply(swapFee, quoteRate) as BigNumber;
+    let swapFeeInAccBase = multiplyBig(swapFee, quoteRate);
     swapFeeInAccBase = mathBigNum.round(swapFeeInAccBase, 5);
 
     if (input.feeTyp === FeeTyp.COMMISSION_PER_LOT) {
@@ -452,14 +454,11 @@ const calcLotSize = (
     maxLoss = priceDiff * lotSize * contractSize * quoteRate
     lotSize = maxLoss / (priceDiff * quoteRate * contractSize)
   */
-  const diff = mathBigNum.multiply(
-    mathBigNum.multiply(priceDiff, quoteRate),
-    contractSize
-  ) as BigNumber;
+  const diff = multiplyBig(multiplyBig(priceDiff, quoteRate), contractSize);
 
   let lotSize = mathBigNum.bignumber(0);
   if (!mathBigNum.equal(diff, 0)) {
-    lotSize = mathBigNum.divide(maxLoss, diff) as BigNumber;
+    lotSize = divideBig(maxLoss, diff);
     lotSize = mathBigNum.floor(lotSize, 2);
   }
 

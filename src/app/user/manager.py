@@ -142,6 +142,11 @@ class UserService:
     Send OTP to email
     """
     
+    # Check OTP requests limit by ip
+    if self.repo.session.update_ip_limit(ip) > constant.MAX_OTP_REQUEST_BY_IP:
+      raise common_error.TooManyRequestError("Too many requests.")
+
+    # Check is email already registered
     if typ == OTPTyp.REGISTER.value and self.check_email_exists(email):
       raise common_error.ResourceConflictError("Email already exists.")
 

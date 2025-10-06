@@ -324,6 +324,22 @@ class SessionRepo:
 
     return False, 0
 
+  def update_ip_limit(self, ip: str) -> int:
+    """
+    Check OTP requests limit by IP.
+    """
+
+    # Get cache key and duration
+    key, duration = self._get_ip_limit_cache_info(ip)
+
+    # Update requests count
+    def fn(pipe: Pipeline) -> None:
+      pipe.incrby(key, 1), 
+      pipe.expire(key, duration)
+
+    casted_rdb = cast(RedisServicer, self.rdb)
+    return casted_rdb.exec_with_pipeline(fn)[0]
+
   def _get_login_attempts_cache_info(self, user_id: int) -> tuple[str, timedelta]:
     """
     Construct login attempts cache key and cache duration.
@@ -351,3 +367,13 @@ class SessionRepo:
     """
 
     return f"user:session:{user_id}:{session_id}", timedelta(hours=1)  
+
+  def _get_ip_limit_cache_info(self, ip: str) -> tuple[str, timedelta]:
+    """
+    Construct ip limit cache key and cache duration.
+    """
+
+    # Replace ':' (IPv6) with '_' and trim spaces
+    safe_ip = re.sub(r':', '_', ip.strip())
+
+    return f"user:risk:ip:{safe_ip}", timedelta(minutes=10)
