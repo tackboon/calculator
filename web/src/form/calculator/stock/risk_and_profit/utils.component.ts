@@ -153,10 +153,10 @@ export const calculateResult = (
       // Calculate entry fee
       // entryFee = entryAmount * estFeeRate
       entryFee = multiplyBig(grossEntryAmount, estFeeRate);
-      entryFee = mathBigNum.round(entryFee, input.precision);
       if (mathBigNum.smaller(entryFee, minTradingFee)) {
         entryFee = minTradingFee;
       }
+      entryFee = mathBigNum.round(entryFee, input.precision);
 
       // Recompute entry amount
       entryAmount = addBig(grossEntryAmount, entryFee);
@@ -164,10 +164,10 @@ export const calculateResult = (
       // Calculate stop fee
       // stopFee = stopExitAmount * estFeeRate
       stopFee = multiplyBig(stopExitAmount, estFeeRate);
-      stopFee = mathBigNum.round(stopFee, input.precision);
       if (mathBigNum.smaller(stopFee, minTradingFee)) {
         stopFee = minTradingFee;
       }
+      stopFee = mathBigNum.round(stopFee, input.precision);
 
       // Recompute risk amount
       // riskAmount = riskAmount + entryFee + stopFee
@@ -177,10 +177,10 @@ export const calculateResult = (
         // Calculate profit fee
         // profitFee = profitExitAmount * estFeeRate
         profitFee = multiplyBig(profitExitAmount, estFeeRate);
-        profitFee = mathBigNum.round(profitFee, input.precision);
         if (mathBigNum.smaller(profitFee, minTradingFee)) {
           profitFee = minTradingFee;
         }
+        profitFee = mathBigNum.round(profitFee, input.precision);
 
         // Recompute profit amount
         // profitAmount = profitAmount - entryFee - profitFee
