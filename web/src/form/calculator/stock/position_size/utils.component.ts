@@ -187,7 +187,7 @@ export const calculateResult = (
         entryPrice
       );
       stopPercent = multiplyBig(stopRate, 100);
-      stopPercent = mathBigNum.round(stopPercent, 5);
+      stopPercent = mathBigNum.round(stopPercent, input.precision);
     }
   }
 
@@ -206,29 +206,38 @@ export const calculateResult = (
     quantity = mathBigNum.bignumber(0);
   }
 
-  // Adjust quantity
-  while (
-    mathBigNum.larger(
-      calculateCurrentLoss(
+  switch (input.unitType) {
+    case UnitType.FRACTIONAL:
+      // Adjust quantity
+      let units = [0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001];
+      for (let i = 0; i < units.length; i++) {
+        quantity = adjustQuantity(
+          maxLoss,
+          quantity,
+          entryPrice,
+          stopPrice,
+          estFeeRate,
+          minTradingFee,
+          input.precision,
+          units[i]
+        );
+      }
+      quantityStr = quantity.toString();
+      break;
+    case UnitType.UNIT:
+      // Adjust quantity
+      quantity = mathBigNum.floor(quantity);
+      quantity = adjustQuantity(
+        maxLoss,
         quantity,
         entryPrice,
         stopPrice,
         estFeeRate,
         minTradingFee,
-        input.precision
-      ),
-      maxLoss
-    )
-  ) {
-    quantity = subtractBig(quantity, 0.000001);
-  }
+        input.precision,
+        1
+      );
 
-  switch (input.unitType) {
-    case UnitType.FRACTIONAL:
-      quantityStr = quantity.toString();
-      break;
-    case UnitType.UNIT:
-      quantity = mathBigNum.floor(quantity);
       quantityStr = quantity.toString();
       break;
     case UnitType.LOT:
@@ -236,46 +245,68 @@ export const calculateResult = (
       // quantity = lot * 100
       const lot = mathBigNum.floor(divideBig(quantity, 100));
       quantity = multiplyBig(lot, 100);
+
+      // Adjust quantity
+      quantity = adjustQuantity(
+        maxLoss,
+        quantity,
+        entryPrice,
+        stopPrice,
+        estFeeRate,
+        minTradingFee,
+        input.precision,
+        100
+      );
+
       quantityStr = lot.toString() + " Lot";
       break;
   }
 
   // Calculate entry amount
   // grossEntryAmount = entryPrice * quantity
-  const grossEntryAmount = multiplyBig(entryPrice, quantity);
-  let entryAmount = grossEntryAmount;
+  let grossEntryAmount = mathBigNum.bignumber(0);
+  let entryAmount = mathBigNum.bignumber(0);
+  if (mathBigNum.larger(quantity, 0)) {
+    grossEntryAmount = multiplyBig(entryPrice, quantity);
+    entryAmount = grossEntryAmount;
+  }
 
   // Calculate risk amount
   // riskAmount = Math.abs(entryPrice - stopPrice) * quantity
-  let riskAmount = multiplyBig(
-    mathBigNum.abs(subtractBig(entryPrice, stopPrice)),
-    quantity
-  );
+  let riskAmount = mathBigNum.bignumber(0);
+  if (mathBigNum.larger(quantity, 0)) {
+    riskAmount = multiplyBig(
+      mathBigNum.abs(subtractBig(entryPrice, stopPrice)),
+      quantity
+    );
+  }
 
   // Calculate entry fee and stop fee
   let entryFee: BigNumber | undefined;
-  let realEntryFee: BigNumber | undefined;
   let stopFee: BigNumber | undefined;
   if (input.includeTradingFee) {
     // entryFee = grossEntryAmount * estFeeRate;
-    realEntryFee = multiplyBig(grossEntryAmount, estFeeRate);
-    entryFee = mathBigNum.round(realEntryFee, input.precision);
-    if (mathBigNum.smaller(entryFee, minTradingFee)) {
+    entryFee = multiplyBig(grossEntryAmount, estFeeRate);
+    if (
+      mathBigNum.smaller(entryFee, minTradingFee) &&
+      mathBigNum.larger(quantity, 0)
+    ) {
       entryFee = minTradingFee;
     }
-    if (mathBigNum.smaller(realEntryFee, entryFee)) {
-      realEntryFee = entryFee;
-    }
+    entryFee = mathBigNum.round(entryFee, input.precision);
 
     // Recompute entry amount
     entryAmount = addBig(grossEntryAmount, entryFee);
 
     // stopFee = stopPrice * quantity * estFeeRate;
     stopFee = multiplyBig(stopPrice, multiplyBig(quantity, estFeeRate));
-    stopFee = mathBigNum.round(stopFee, input.precision);
-    if (mathBigNum.smaller(stopFee, minTradingFee)) {
+    if (
+      mathBigNum.smaller(stopFee, minTradingFee) &&
+      mathBigNum.larger(quantity, 0)
+    ) {
       stopFee = minTradingFee;
     }
+    stopFee = mathBigNum.round(stopFee, input.precision);
 
     // Recompute risk amount
     riskAmount = addBig(riskAmount, addBig(entryFee, stopFee));
@@ -336,24 +367,28 @@ export const calculateResult = (
             ),
             100
           );
-          profitPercent = mathBigNum.round(profitPercent, 5);
+          profitPercent = mathBigNum.round(profitPercent, input.precision);
         }
       }
 
       // exitAmount = profitPrice * quantity
-      const exitAmount = multiplyBig(profitPrice, quantity);
+      let exitAmount = mathBigNum.bignumber(0);
+      if (mathBigNum.larger(quantity, 0)) {
+        exitAmount = multiplyBig(profitPrice, quantity);
+      }
 
       // profitAmount = Math.abs(grossEntryAmount - exitAmount)
       profitAmount = mathBigNum.abs(subtractBig(grossEntryAmount, exitAmount));
       if (input.includeTradingFee) {
-        profitFee = mathBigNum.bignumber(0);
-
-        // estimatedProfitFee = exitAmount * estFeeRate
+        // profitFee = exitAmount * estFeeRate
         profitFee = multiplyBig(exitAmount, estFeeRate);
-        profitFee = mathBigNum.round(profitFee, input.precision);
-        if (mathBigNum.smaller(profitFee, minTradingFee)) {
+        if (
+          mathBigNum.smaller(profitFee, minTradingFee) &&
+          mathBigNum.larger(quantity, 0)
+        ) {
           profitFee = minTradingFee;
         }
+        profitFee = mathBigNum.round(profitFee, input.precision);
 
         // profitAmount = profitAmount - entryFee - profitFee
         if (entryFee !== undefined) {
@@ -370,7 +405,7 @@ export const calculateResult = (
         divideBig(profitGoal, 100)
       );
 
-      if (entryFee !== undefined && realEntryFee !== undefined) {
+      if (entryFee !== undefined) {
         // including trading fee
         if (
           !mathBigNum.equal(quantity, 0) ||
@@ -384,16 +419,13 @@ export const calculateResult = (
           */
           if (input.isLong) {
             profitPrice = divideBig(
-              addBig(addBig(minProfit, realEntryFee), grossEntryAmount),
+              addBig(addBig(minProfit, entryFee), grossEntryAmount),
               multiplyBig(subtractBig(1, estFeeRate), quantity)
             );
             profitPrice = mathBigNum.ceil(profitPrice, 5);
           } else {
             profitPrice = divideBig(
-              subtractBig(
-                subtractBig(grossEntryAmount, realEntryFee),
-                minProfit
-              ),
+              subtractBig(subtractBig(grossEntryAmount, entryFee), minProfit),
               multiplyBig(addBig(1, estFeeRate), quantity)
             );
             profitPrice = mathBigNum.floor(profitPrice, 5);
@@ -404,7 +436,7 @@ export const calculateResult = (
             profitPrice,
             quantity,
             grossEntryAmount,
-            realEntryFee,
+            entryFee,
             estFeeRate,
             minTradingFee,
             minProfit,
@@ -433,7 +465,7 @@ export const calculateResult = (
             ? minProfit / quantity + entryPrice
             : entryPrice - minProfit / quantity
         */
-        if (!mathBigNum.equal(quantity, 0)) {
+        if (mathBigNum.larger(quantity, 0)) {
           if (input.isLong) {
             profitPrice = addBig(divideBig(minProfit, quantity), entryPrice);
             profitPrice = mathBigNum.ceil(profitPrice, 5);
@@ -469,7 +501,7 @@ export const calculateResult = (
       }
 
       // profitPercent = (Math.abs(entryPrice - profitPrice) / entryPrice) * 100
-      if (!mathBigNum.equal(entryPrice, 0)) {
+      if (!mathBigNum.equal(entryPrice, 0) && mathBigNum.larger(quantity, 0)) {
         profitPercent = multiplyBig(
           divideBig(
             mathBigNum.abs(subtractBig(entryPrice, profitPrice)),
@@ -492,19 +524,7 @@ export const calculateResult = (
         divideBig(profitAmount, portfolioCapital),
         100
       );
-
-      const roundedPortfolioProfit = mathBigNum.round(
-        portfolioProfit,
-        input.precision
-      );
-      if (
-        input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED &&
-        mathBigNum.smaller(roundedPortfolioProfit, profitGoal)
-      ) {
-        portfolioProfit = mathBigNum.round(portfolioProfit, 5);
-      } else {
-        portfolioProfit = roundedPortfolioProfit;
-      }
+      portfolioProfit = mathBigNum.round(portfolioProfit, input.precision);
     }
   }
 
@@ -598,12 +618,14 @@ const calculateQuantity = (
 
   // entryFee = quantity * entryPrice * estFeeRate
   let entryFee = multiplyBig(quantity, multiplyBig(entryPrice, estFeeRate));
+  entryFee = mathBigNum.round(entryFee, precision);
 
   // stopLossFee = quantity * stopLossPrice * estFeeRate
   let stopLossFee = multiplyBig(
     quantity,
     multiplyBig(stopLossPrice, estFeeRate)
   );
+  stopLossFee = mathBigNum.round(stopLossFee, precision);
 
   if (
     mathBigNum.largerEq(entryFee, minTradingFee) &&
@@ -637,9 +659,11 @@ const calculateQuantity = (
 
   // entryFee = quantity * entryPrice * estFeeRate
   entryFee = multiplyBig(quantity, multiplyBig(entryPrice, estFeeRate));
+  entryFee = mathBigNum.round(entryFee, precision);
 
   // stopLossFee = quantity * stopLossPrice * estFeeRate
   stopLossFee = multiplyBig(quantity, multiplyBig(stopLossPrice, estFeeRate));
+  stopLossFee = mathBigNum.round(stopLossFee, precision);
 
   if (
     mathBigNum.largerEq(entryFee, minTradingFee) &&
@@ -673,23 +697,17 @@ const calculateCurrentLoss = (
 
   // entryFee = grossEntryAmt * feeRate
   let entryFee = multiplyBig(grossEntryAmt, feeRate);
-  const roundedEntryFee = mathBigNum.round(entryFee, precision);
-  entryFee = mathBigNum.larger(entryFee, roundedEntryFee)
-    ? entryFee
-    : roundedEntryFee;
-  if (mathBigNum.smaller(roundedEntryFee, minFee)) {
+  if (mathBigNum.smaller(entryFee, minFee)) {
     entryFee = minFee;
   }
+  entryFee = mathBigNum.round(entryFee, precision);
 
   // stopFee = stopAmt * feeRate
   let stopFee = multiplyBig(stopAmt, feeRate);
-  const roundedStopFee = mathBigNum.round(stopFee, precision);
-  stopFee = mathBigNum.larger(stopFee, roundedStopFee)
-    ? stopFee
-    : roundedStopFee;
   if (mathBigNum.smaller(stopFee, minFee)) {
     stopFee = minFee;
   }
+  stopFee = mathBigNum.round(stopFee, precision);
 
   // currentLoss = Math.abs(grossEntryAmt - stopAmt) + entryFee + stopFee
   const currentLoss = addBig(
@@ -698,6 +716,53 @@ const calculateCurrentLoss = (
   );
 
   return currentLoss;
+};
+
+const adjustQuantity = (
+  maxLoss: BigNumber,
+  quantity: BigNumber,
+  entryPrice: BigNumber,
+  stopPrice: BigNumber,
+  feeRate: BigNumber,
+  minFee: BigNumber,
+  precision: number,
+  unit: number
+) => {
+  let lossAmt = calculateCurrentLoss(
+    quantity,
+    entryPrice,
+    stopPrice,
+    feeRate,
+    minFee,
+    precision
+  );
+  let tempQuantity = quantity;
+  let isLossSmall = false;
+
+  while (!mathBigNum.equal(lossAmt, maxLoss)) {
+    if (mathBigNum.larger(lossAmt, maxLoss)) {
+      if (isLossSmall) break;
+      tempQuantity = subtractBig(tempQuantity, unit);
+    } else {
+      isLossSmall = true;
+      tempQuantity = addBig(tempQuantity, unit);
+    }
+
+    lossAmt = calculateCurrentLoss(
+      tempQuantity,
+      entryPrice,
+      stopPrice,
+      feeRate,
+      minFee,
+      precision
+    );
+
+    if (mathBigNum.smallerEq(lossAmt, maxLoss)) {
+      quantity = tempQuantity;
+    }
+  }
+
+  return quantity;
 };
 
 const adjustProfitPrice = (
@@ -718,56 +783,68 @@ const adjustProfitPrice = (
     };
   }
 
-  // exitAmount = profitPrice * quantity
-  let exitAmount = multiplyBig(profitPrice, quantity);
+  // profitAmount = profitPrice * quantity
+  const grossProfitAmount = multiplyBig(profitPrice, quantity);
 
-  // exitFee = exitAmount * feeRate
-  let exitFee = mathBigNum.bignumber(0);
-  if (mathBigNum.larger(exitAmount, 0)) {
-    exitFee = multiplyBig(exitAmount, feeRate);
-    const roundedExitFee = mathBigNum.round(exitFee, precision);
-    exitFee = mathBigNum.larger(exitFee, roundedExitFee)
-      ? exitFee
-      : roundedExitFee;
-  }
-  if (exitFee < minFee) exitFee = minFee;
+  // profitFee = profitAmount * feeRate
+  let profitFee = multiplyBig(grossProfitAmount, feeRate);
+  if (profitFee < minFee) profitFee = minFee;
+  profitFee = mathBigNum.round(profitFee, precision);
 
-  // profitAmt = Math.abs(exitAmount - entryAmt) - entryFee - exitFee
+  // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - profitFee
   let profitAmt = subtractBig(
-    subtractBig(mathBigNum.abs(subtractBig(exitAmount, entryAmt)), entryFee),
-    exitFee
+    subtractBig(
+      mathBigNum.abs(subtractBig(grossProfitAmount, entryAmt)),
+      entryFee
+    ),
+    profitFee
   );
 
-  while (mathBigNum.smaller(profitAmt, minProfit)) {
-    // profitPrice = isLong ? profitPrice + 0.00001: profitPrice - 0.00001
-    profitPrice = isLong
-      ? addBig(profitPrice, 0.00001)
-      : subtractBig(profitPrice, 0.00001);
+  let exitPrice = profitPrice;
+  let exitFee = profitFee;
+  let units = [0.001, 0.0001, 0.00001];
 
-    // exitAmount = profitPrice * quantity;
-    exitAmount = multiplyBig(profitPrice, quantity);
+  for (let i = 0; i < units.length; i++) {
+    let isSmaller = false;
+    while (!mathBigNum.equal(profitAmt, minProfit)) {
+      if (mathBigNum.smaller(profitAmt, minProfit)) {
+        // profitPrice = isLong ? profitPrice + 0.00001: profitPrice - 0.00001
+        profitPrice = isLong
+          ? addBig(profitPrice, units[i])
+          : subtractBig(profitPrice, units[i]);
+        isSmaller = true;
+      } else {
+        if (isSmaller) break;
 
-    // exitFee = exitAmount * feeRate
-    exitFee = mathBigNum.bignumber(0);
-    if (mathBigNum.larger(exitAmount, 0)) {
-      exitFee = multiplyBig(exitAmount, feeRate);
-      const roundedExitFee = mathBigNum.round(exitFee, precision);
-      exitFee = mathBigNum.larger(exitFee, roundedExitFee)
-        ? exitFee
-        : roundedExitFee;
+        // profitPrice = isLong ? profitPrice - 0.00001: profitPrice + 0.00001
+        profitPrice = isLong
+          ? subtractBig(profitPrice, units[i])
+          : addBig(profitPrice, units[i]);
+      }
+
+      // grossProfitAmount = profitPrice * quantity;
+      const grossProfitAmount = multiplyBig(profitPrice, quantity);
+
+      // profitFee = exitAmount * feeRate
+      let profitFee = multiplyBig(grossProfitAmount, feeRate);
+      if (mathBigNum.smaller(profitFee, minFee)) profitFee = minFee;
+      profitFee = mathBigNum.round(profitFee, precision);
+
+      // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - profitFee
+      profitAmt = subtractBig(
+        subtractBig(
+          mathBigNum.abs(subtractBig(grossProfitAmount, entryAmt)),
+          entryFee
+        ),
+        profitFee
+      );
+
+      if (mathBigNum.largerEq(profitAmt, minProfit)) {
+        exitPrice = profitPrice;
+        exitFee = profitFee;
+      }
     }
-    if (mathBigNum.smaller(exitFee, minFee)) exitFee = minFee;
-
-    // profitAmt = Math.abs(exitAmount - entryAmt) - entryFee - exitFee
-    profitAmt = subtractBig(
-      subtractBig(mathBigNum.abs(subtractBig(exitAmount, entryAmt)), entryFee),
-      exitFee
-    );
   }
 
-  if (mathBigNum.larger(exitFee, minFee)) {
-    exitFee = mathBigNum.round(exitFee, precision);
-  }
-
-  return { exitPrice: profitPrice, exitFee: exitFee };
+  return { exitPrice, exitFee };
 };
