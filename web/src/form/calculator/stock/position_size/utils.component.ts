@@ -802,7 +802,7 @@ const adjustProfitPrice = (
 
   let exitPrice = profitPrice;
   let exitFee = profitFee;
-  let units = [0.001, 0.0001, 0.00001];
+  let units = [0.1, 0.01, 0.001, 0.0001, 0.00001];
 
   for (let i = 0; i < units.length; i++) {
     let isSmaller = false;
