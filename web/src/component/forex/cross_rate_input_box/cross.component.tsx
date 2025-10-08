@@ -12,12 +12,15 @@ import {
   supportedAssets,
 } from "../../../store/forex/forex.types";
 import { divideBig, mathBigNum } from "../../../common/number/math";
+import { FeeTyp } from "../../../form/calculator/forex/forex_calculator_form.type";
 
 type CrossRateInputProps = {
   accBaseCurrency: string;
   crossTyp: "BASE" | "QUOTE";
   isLoading: boolean;
   pair: string;
+  includeTradingFee: boolean;
+  feeTyp: FeeTyp;
   currencyRate: CurrencyRateMap;
   commodityRate: CommodityRateMap;
   isInvalid: boolean;
@@ -29,33 +32,52 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
   crossTyp,
   isLoading,
   pair,
+  includeTradingFee,
+  feeTyp,
   currencyRate,
   commodityRate,
   isInvalid,
   onChange,
 }) => {
   const [crossPair, setCrossPair] = useState("");
-  const [crossRate, setCrossRate] = useState("0");
+  const [crossRate, setCrossRate] = useState("1.00");
   const [step, setStep] = useState(0.0001);
 
   useEffect(() => {
-    if (isLoading) return;
-
     let tempCrossPair = "";
-    let tempCrossRateStr = "0";
+    let tempCrossRateStr = "1.00";
     let tempStep = 0.0001;
 
+    // Extract info from currency pair
     const { base, quote, isCommodity } = getBaseAndQuote(pair);
 
-    if (accBaseCurrency === quote || accBaseCurrency === base) return;
+    // Update default step size for commodity pair
+    if (isCommodity) tempStep = 0.01;
+
+    // Hide cross pair on loading or currency pair contains account base currency
+    if (isLoading || accBaseCurrency === quote || accBaseCurrency === base) {
+      setCrossPair(tempCrossPair);
+      setCrossRate(tempCrossRateStr);
+      setStep(tempStep);
+      return;
+    }
 
     if (crossTyp === "BASE") {
-      tempCrossPair = generateCurrencyPair(accBaseCurrency, base);
-      let isBaseFirst = false;
-      if (!(tempCrossPair in supportedAssets)) {
-        tempCrossPair = generateCurrencyPair(base, accBaseCurrency);
-        isBaseFirst = true;
+      if (!includeTradingFee || feeTyp === FeeTyp.COMMISSION_PER_100K) {
+        setCrossPair(tempCrossPair);
+        setCrossRate(tempCrossRateStr);
+        setStep(tempStep);
+        return;
       }
+
+      tempCrossPair = generateCurrencyPair(accBaseCurrency, base);
+      if (Object.hasOwn(supportedAssets, tempCrossPair)) {
+        setCrossPair(tempCrossPair);
+      } else {
+        tempCrossPair = generateCurrencyPair(base, accBaseCurrency);
+        setCrossPair(tempCrossPair);
+      }
+
       if (tempCrossPair in supportedAssets) {
         tempStep = supportedAssets[tempCrossPair].pip;
       }
@@ -111,8 +133,6 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     setCrossRate(tempCrossRateStr);
     setStep(tempStep);
   }, [accBaseCurrency, commodityRate, isLoading, crossTyp, currencyRate, pair]);
-
-  useEffect(() => {}, []);
 
   return (
     <>

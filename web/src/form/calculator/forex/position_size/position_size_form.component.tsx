@@ -16,7 +16,6 @@ import SelectBox from "../../../../component/common/select_box/select_box.compon
 import Button from "../../../../component/common/button/button.component";
 import { getBaseAndQuote } from "../../../../common/forex/forex";
 import { FOREX_LOADING_TYPES } from "../../../../store/forex/forex.types";
-import { parseNumberFromString } from "../../../../common/number/number";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
 import {
   calculateCrossHeight,
@@ -25,10 +24,8 @@ import {
 } from "./utils.component";
 import {
   ERROR_FIELD_POSITION_SIZE,
-  FeeTyp,
   ForexPositionSizeInputType,
   PositionSizeResultType,
-  ProfitGoalTyp,
 } from "./position_size.type";
 import LeverageSelectBox from "../../../../component/forex/leverage_select_box/leverage.component";
 import CurrencySelectBox from "../../../../component/forex/currency_select_box/currency.component";
@@ -37,6 +34,8 @@ import useCurrencyRates from "../hook/useCurrencyRates";
 import useCommodityRates from "../hook/useCommodityRates";
 import CrossRateInput from "../../../../component/forex/cross_rate_input_box/cross.component";
 import PipInputBox from "../../../../component/forex/pip_input_box/pip.component";
+import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
+import useCrossPairs from "../hook/useCrossPair";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -67,8 +66,8 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
 const ForexPositionSizeForm = () => {
   const supportedAssets = useSelector(selectForexSupportedAssets);
   const supportedCurrencies = useSelector(selectForexSupportedCurrencies);
-  const baseCurrencyRate = useSelector(selectForexCurrencyRates);
-  const usdCommodityRate = useSelector(selectForexCommodityRates);
+  const currencyRates = useSelector(selectForexCurrencyRates);
+  const commodityRates = useSelector(selectForexCommodityRates);
   const isLoading = useSelector(selectForexIsLoading);
 
   const [errorMessage, setErrorMessage] = useState("");
@@ -80,10 +79,26 @@ const ForexPositionSizeForm = () => {
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Fetch currency rates
-  const currCurrency = useCurrencyRates(input.accBaseCurrency);
+  useCurrencyRates(input.accBaseCurrency);
 
   // Fetch commodity rates
   useCommodityRates();
+
+  // Handling cross pairs
+  useCrossPairs(
+    input.accBaseCurrency,
+    input.currencyPair,
+    input.includeTradingFee,
+    input.feeTyp,
+    (data) =>
+      setInput((prev) => ({
+        ...prev,
+        basePair: data.basePair,
+        baseCrossRate: data.baseRate,
+        quotePair: data.quotePair,
+        quoteCrossRate: data.quoteRate,
+      }))
+  );
 
   // Submit handler
   const handleSubmit = (e: FormEvent) => {
@@ -119,6 +134,7 @@ const ForexPositionSizeForm = () => {
       baseCrossRate: prev.baseCrossRate,
       quotePair: prev.quotePair,
       quoteCrossRate: prev.quoteCrossRate,
+      pipSize: prev.pipSize,
       precision: prev.precision,
     }));
     setErrorField(null);
@@ -252,6 +268,7 @@ const ForexPositionSizeForm = () => {
             <div className={styles["form-group"]}>
               <div className={styles["cross-rate-container"]}>
                 <label>Cross Rate</label>
+
                 <CrossRateInput
                   accBaseCurrency={input.accBaseCurrency}
                   crossTyp="BASE"
@@ -263,8 +280,8 @@ const ForexPositionSizeForm = () => {
                     errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
                   }
                   pair={input.currencyPair}
-                  currencyRate={baseCurrencyRate}
-                  commodityRate={usdCommodityRate}
+                  currencyRate={currencyRates}
+                  commodityRate={commodityRates}
                   onChange={(pair, rate) =>
                     setInput((prev) => ({
                       ...prev,

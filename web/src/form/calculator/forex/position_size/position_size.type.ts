@@ -1,14 +1,5 @@
 import { BigNumber } from "mathjs";
-
-export enum ProfitGoalTyp {
-  PRICE_BASED,
-  PORTFOLIO_BASED,
-}
-
-export enum FeeTyp {
-  COMMISSION_PER_LOT,
-  COMMISSION_PER_100K,
-}
+import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
 
 export type ForexPositionSizeInputType = {
   portfolioCapital: string;

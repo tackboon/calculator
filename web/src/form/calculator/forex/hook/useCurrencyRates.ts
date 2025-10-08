@@ -15,8 +15,6 @@ const useCurrencyRates = (accBaseCurrency: string) => {
       dispatch(getCurrencyRates(bases));
     }
   }, [accBaseCurrency, dispatch]);
-
-  return currCurrency.current;
 };
 
 export default useCurrencyRates;
