@@ -8,44 +8,25 @@ import {
   subtractBig,
 } from "../../../../common/number/math";
 import {
-  convertToLocaleString,
   parseBigNumberFromString,
   parseNumberFromString,
 } from "../../../../common/number/number";
-import { checkMinMax } from "../../../../common/validation/calculator.validation";
 import {
   ERROR_FIELD_POSITION_SIZE,
-  FeeTyp,
   ForexPositionSizeInputType,
-  PositionSizeResultType,
-  ProfitGoalTyp,
 } from "./position_size.type";
+import { FeeTyp } from "../forex_calculator_form.type";
 
 export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
-  if (input.quotePair === "") return 0;
-  let height = 100;
+  if (input.basePair === "" && input.quotePair === "") return 0;
+  if (input.basePair !== "" && input.quotePair !== "") return 220;
+  return 135;
+};
 
-  if (input.basePair !== "") height = height + 55;
-
-  // if (
-  //   input.usdAccPair !== "" &&
-  //   ((input.includeTradingFee && input.feeTyp === FeeTyp.COMMISSION_PER_100K) ||
-  //     input.usdBasePair !== "")
-  // ) {
-  //   height = height + 55;
-  // }
-
-  // if (
-  //   input.usdQuotePair !== "" &&
-  //   input.includeTradingFee &&
-  //   input.feeTyp === FeeTyp.COMMISSION_PER_100K
-  // ) {
-  //   height = height + 55;
-  // }
-
-  // if (input.usdBasePair !== "") height = height + 55;
-
-  return height;
+export const calculateProfitHeight = (input: ForexPositionSizeInputType) => {
+  if (!input.includeProfitGoal) return 0;
+  if (input.isProfitPip) return 240;
+  return 200;
 };
 
 // export const calculateStopPriceFromPip = (

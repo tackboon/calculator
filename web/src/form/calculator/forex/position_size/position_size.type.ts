@@ -13,9 +13,11 @@ export type ForexPositionSizeInputType = {
   quoteCrossRate: string;
   openPrice: string;
   stopLoss: string;
+  isStopLossPip: boolean;
   includeProfitGoal: boolean;
   profitGoalTyp: ProfitGoalTyp;
   profitGoal: string;
+  isProfitPip: boolean;
   isLong: boolean;
   includeTradingFee: boolean;
   feeTyp: FeeTyp;

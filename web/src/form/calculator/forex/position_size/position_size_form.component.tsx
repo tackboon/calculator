@@ -19,6 +19,7 @@ import { FOREX_LOADING_TYPES } from "../../../../store/forex/forex.types";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
 import {
   calculateCrossHeight,
+  calculateProfitHeight,
   calculateResult,
   validatePositionSizeInput,
 } from "./utils.component";
@@ -35,7 +36,6 @@ import useCommodityRates from "../hook/useCommodityRates";
 import CrossRateInput from "../../../../component/forex/cross_rate_input_box/cross.component";
 import PipInputBox from "../../../../component/forex/pip_input_box/pip.component";
 import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
-import useCrossPairs from "../hook/useCrossPair";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -49,9 +49,11 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   quoteCrossRate: "1.00",
   openPrice: "0",
   stopLoss: "0",
+  isStopLossPip: false,
   includeProfitGoal: false,
   profitGoal: "0",
   profitGoalTyp: ProfitGoalTyp.PRICE_BASED,
+  isProfitPip: false,
   isLong: true,
   includeTradingFee: false,
   feeTyp: FeeTyp.COMMISSION_PER_LOT,
@@ -83,22 +85,6 @@ const ForexPositionSizeForm = () => {
 
   // Fetch commodity rates
   useCommodityRates();
-
-  // Handling cross pairs
-  useCrossPairs(
-    input.accBaseCurrency,
-    input.currencyPair,
-    input.includeTradingFee,
-    input.feeTyp,
-    (data) =>
-      setInput((prev) => ({
-        ...prev,
-        basePair: data.basePair,
-        baseCrossRate: data.baseRate,
-        quotePair: data.quotePair,
-        quoteCrossRate: data.quoteRate,
-      }))
-  );
 
   // Submit handler
   const handleSubmit = (e: FormEvent) => {
@@ -136,6 +122,8 @@ const ForexPositionSizeForm = () => {
       quoteCrossRate: prev.quoteCrossRate,
       pipSize: prev.pipSize,
       precision: prev.precision,
+      isStopLossPip: prev.isStopLossPip,
+      isProfitPip: prev.isProfitPip,
     }));
     setErrorField(null);
     setResult(null);
@@ -148,7 +136,7 @@ const ForexPositionSizeForm = () => {
   });
 
   const profitGoalStyles = useSpring({
-    height: input.includeProfitGoal ? 220 : 0,
+    height: calculateProfitHeight(input),
     opacity: input.includeProfitGoal ? 1 : 0,
     overflow: "hidden",
   });
@@ -160,12 +148,26 @@ const ForexPositionSizeForm = () => {
   });
 
   const stopLossOnChange = useCallback(
-    (val: string) => setInput((prev) => ({ ...prev, stopLoss: val })),
+    (val: string, isPip: boolean) =>
+      setInput((prev) => ({ ...prev, stopLoss: val, isStopLossPip: isPip })),
     []
   );
 
   const profitGoalOnChange = useCallback(
-    (val: string) => setInput((prev) => ({ ...prev, profitGoal: val })),
+    (val: string, isPip: boolean) =>
+      setInput((prev) => ({ ...prev, profitGoal: val, isProfitPip: isPip })),
+    []
+  );
+
+  const baseCrossRateOnChange = useCallback(
+    (pair: string, rate: string) =>
+      setInput((prev) => ({ ...prev, basePair: pair, baseCrossRate: rate })),
+    []
+  );
+
+  const quoteCrossRateOnChange = useCallback(
+    (pair: string, rate: string) =>
+      setInput((prev) => ({ ...prev, quotePair: pair, quoteCrossRate: rate })),
     []
   );
 
@@ -264,57 +266,47 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <animated.div style={crossRateStyles}>
-          {input.quotePair !== "" && (
-            <div className={styles["form-group"]}>
-              <div className={styles["cross-rate-container"]}>
-                <label>Cross Rate</label>
+          <div className={styles["form-group"]}>
+            <div className={styles["cross-rate-container"]}>
+              <label>Cross Rate</label>
 
-                <CrossRateInput
-                  accBaseCurrency={input.accBaseCurrency}
-                  crossTyp="BASE"
-                  isLoading={
-                    isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
-                    isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                  }
-                  isInvalid={
-                    errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
-                  }
-                  pair={input.currencyPair}
-                  currencyRate={currencyRates}
-                  commodityRate={commodityRates}
-                  onChange={(pair, rate) =>
-                    setInput((prev) => ({
-                      ...prev,
-                      baseCrossRate: rate,
-                      basePair: pair,
-                    }))
-                  }
-                />
+              <CrossRateInput
+                accBaseCurrency={input.accBaseCurrency}
+                crossTyp="BASE"
+                isLoading={
+                  isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
+                  isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                }
+                isInvalid={
+                  errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
+                }
+                pair={input.currencyPair}
+                includeTradingFee={input.includeTradingFee}
+                feeTyp={input.feeTyp}
+                currencyRate={currencyRates}
+                commodityRate={commodityRates}
+                onChange={baseCrossRateOnChange}
+              />
 
-                <CrossRateInput
-                  accBaseCurrency={input.accBaseCurrency}
-                  crossTyp="QUOTE"
-                  isLoading={
-                    isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
-                    isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
-                  }
-                  isInvalid={
-                    errorField === ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
-                  }
-                  pair={input.currencyPair}
-                  currencyRate={baseCurrencyRate}
-                  commodityRate={usdCommodityRate}
-                  onChange={(pair, rate) =>
-                    setInput((prev) => ({
-                      ...prev,
-                      quoteCrossRate: rate,
-                      quotePair: pair,
-                    }))
-                  }
-                />
-              </div>
+              <CrossRateInput
+                accBaseCurrency={input.accBaseCurrency}
+                crossTyp="QUOTE"
+                isLoading={
+                  isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
+                  isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
+                }
+                isInvalid={
+                  errorField === ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
+                }
+                pair={input.currencyPair}
+                includeTradingFee={input.includeTradingFee}
+                feeTyp={input.feeTyp}
+                currencyRate={currencyRates}
+                commodityRate={commodityRates}
+                onChange={quoteCrossRateOnChange}
+              />
             </div>
-          )}
+          </div>
         </animated.div>
 
         <div className={styles["form-group"]}>

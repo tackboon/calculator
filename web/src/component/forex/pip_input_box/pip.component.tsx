@@ -23,7 +23,7 @@ type PipInputBoxProps = {
   hintPrefix: string;
   price: string;
   isIncr: boolean;
-  onChange: (val: string) => void;
+  onChange: (val: string, isPip: boolean) => void;
 };
 
 const PipInputBox: FC<PipInputBoxProps> = ({
@@ -44,7 +44,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
   useEffect(() => {
     if (!isPip) {
       setHintPrice("");
-      onChange(value);
+      onChange(value, false);
       return;
     }
 
@@ -53,7 +53,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
       const pip = parseBigNumberFromString(value);
       if (mathBigNum.equal(pip, 0)) {
         setHintPrice(price);
-        onChange(price);
+        onChange(price, true);
         return;
       }
 
@@ -64,7 +64,7 @@ const PipInputBox: FC<PipInputBoxProps> = ({
       const calculatedPriceStr = convertToLocaleString(calulatedPrice, 2, 5);
 
       setHintPrice(calculatedPriceStr);
-      onChange(calculatedPriceStr);
+      onChange(calculatedPriceStr, true);
     } catch (err) {
       return;
     }

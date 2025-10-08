@@ -11,8 +11,9 @@ import {
   CurrencyRateMap,
   supportedAssets,
 } from "../../../store/forex/forex.types";
-import { divideBig, mathBigNum } from "../../../common/number/math";
+import { divideBig, multiplyBig } from "../../../common/number/math";
 import { FeeTyp } from "../../../form/calculator/forex/forex_calculator_form.type";
+import { convertToLocaleString } from "../../../common/number/number";
 
 type CrossRateInputProps = {
   accBaseCurrency: string;
@@ -59,80 +60,107 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
       setCrossPair(tempCrossPair);
       setCrossRate(tempCrossRateStr);
       setStep(tempStep);
+      onChange(tempCrossPair, tempCrossRateStr);
       return;
     }
 
     if (crossTyp === "BASE") {
-      if (!includeTradingFee || feeTyp === FeeTyp.COMMISSION_PER_100K) {
+      // Handling base cross pair
+      // Hide base cross pair if its not a commission_per_100k fee type
+      if (!includeTradingFee || feeTyp !== FeeTyp.COMMISSION_PER_100K) {
         setCrossPair(tempCrossPair);
         setCrossRate(tempCrossRateStr);
         setStep(tempStep);
+        onChange(tempCrossPair, tempCrossRateStr);
         return;
       }
 
+      // Determining cross pair
       tempCrossPair = generateCurrencyPair(accBaseCurrency, base);
-      if (Object.hasOwn(supportedAssets, tempCrossPair)) {
-        setCrossPair(tempCrossPair);
-      } else {
+      if (!Object.hasOwn(supportedAssets, tempCrossPair)) {
         tempCrossPair = generateCurrencyPair(base, accBaseCurrency);
-        setCrossPair(tempCrossPair);
       }
 
-      if (tempCrossPair in supportedAssets) {
+      // Getting pip size for cross pair
+      if (Object.hasOwn(supportedAssets, tempCrossPair)) {
         tempStep = supportedAssets[tempCrossPair].pip;
       }
 
       if (isCommodity) {
-        if (commodityRate && commodityRate[base]) {
-          const rate = commodityRate[base];
-          let usdToAccRate = 1;
-          if (quote !== "USD") {
-            if (currencyRate && currencyRate["USD"]) {
-              usdToAccRate = currencyRate["USD"].rates[accBaseCurrency];
-            } else {
-              usdToAccRate = 0;
-            }
+        // Getting cross rate for commodity pair
+        if (commodityRate && Object.hasOwn(commodityRate, base)) {
+          const tempCommodityRate = commodityRate[base].price;
+          if (accBaseCurrency === "USD") {
+            tempCrossRateStr = convertToLocaleString(tempCommodityRate, 2, 5);
+          } else if (currencyRate) {
+            const tempRate = currencyRate["USD"].rates[accBaseCurrency];
+            tempCrossRateStr = convertToLocaleString(
+              multiplyBig(tempCommodityRate, tempRate),
+              2,
+              5
+            );
           }
-
-          tempCrossRateStr = `${rate.price * usdToAccRate}`;
         }
       } else {
-        if (currencyRate && currencyRate[accBaseCurrency]) {
-          const accToBase = currencyRate[accBaseCurrency].rates[base];
-          let tempCrossRate = isBaseFirst
-            ? mathBigNum.bignumber(accToBase)
-            : divideBig(1, accToBase);
-
-          tempCrossRate = mathBigNum.round(tempCrossRate, 5);
-          tempCrossRateStr = `${tempCrossRate}`;
+        // Getting cross rate for currency pair
+        if (currencyRate && Object.hasOwn(currencyRate, accBaseCurrency)) {
+          const tempBaseRate = currencyRate[accBaseCurrency].rates[base];
+          const basePairInfo = getBaseAndQuote(tempCrossPair);
+          if (basePairInfo.base === accBaseCurrency) {
+            tempCrossRateStr = convertToLocaleString(tempBaseRate, 2, 5);
+          } else {
+            tempCrossRateStr = convertToLocaleString(
+              divideBig(1, tempBaseRate),
+              2,
+              5
+            );
+          }
         }
       }
     } else {
+      // Handling quote cross pair
+      // Determining cross pair
       tempCrossPair = generateCurrencyPair(accBaseCurrency, quote);
-      let isQuoteFirst = false;
-      if (!(tempCrossPair in supportedAssets)) {
+      if (!Object.hasOwn(supportedAssets, tempCrossPair)) {
         tempCrossPair = generateCurrencyPair(quote, accBaseCurrency);
-        isQuoteFirst = true;
       }
-      if (tempCrossPair in supportedAssets) {
+
+      // Getting pip size for cross pair
+      if (Object.hasOwn(supportedAssets, tempCrossPair)) {
         tempStep = supportedAssets[tempCrossPair].pip;
       }
 
-      if (currencyRate && currencyRate[accBaseCurrency]) {
-        const accToQuote = currencyRate[accBaseCurrency].rates[quote];
-        let tempCrossRate = isQuoteFirst
-          ? mathBigNum.bignumber(accToQuote)
-          : divideBig(1, accToQuote);
-
-        tempCrossRate = mathBigNum.round(tempCrossRate, 5);
-        tempCrossRateStr = `${tempCrossRate}`;
+      // Getting cross rate for currency pair
+      if (currencyRate && Object.hasOwn(currencyRate, accBaseCurrency)) {
+        const tempQuoteRate = currencyRate[accBaseCurrency].rates[quote];
+        const quotePairInfo = getBaseAndQuote(tempCrossPair);
+        if (quotePairInfo.base === accBaseCurrency) {
+          tempCrossRateStr = convertToLocaleString(tempQuoteRate, 2, 5);
+        } else {
+          tempCrossRateStr = convertToLocaleString(
+            divideBig(1, tempQuoteRate),
+            2,
+            5
+          );
+        }
       }
     }
 
     setCrossPair(tempCrossPair);
     setCrossRate(tempCrossRateStr);
     setStep(tempStep);
-  }, [accBaseCurrency, commodityRate, isLoading, crossTyp, currencyRate, pair]);
+    onChange(tempCrossPair, tempCrossRateStr);
+  }, [
+    accBaseCurrency,
+    commodityRate,
+    isLoading,
+    crossTyp,
+    currencyRate,
+    pair,
+    feeTyp,
+    includeTradingFee,
+    onChange,
+  ]);
 
   return (
     <>
@@ -140,13 +168,17 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
         <>
           <div className={styles["exchange-rate-label"]}>{crossPair + ":"}</div>
           <NumberInput
+            className={styles["exchange-rate-container"]}
             step={step}
             id="usd-quote-cross-rate"
             minDecimalPlace={2}
             maxDecimalPlace={5}
             isInvalid={isInvalid}
             value={crossRate}
-            onChangeHandler={(val) => setCrossRate(val)}
+            onChangeHandler={(val) => {
+              setCrossRate(val);
+              onChange(crossPair, val);
+            }}
             disabled={isLoading}
           />
         </>
