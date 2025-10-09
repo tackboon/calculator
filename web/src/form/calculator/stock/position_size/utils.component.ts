@@ -75,18 +75,15 @@ export const validatePositionSizeInput = (
   }
 
   if (input.includeProfitGoal) {
-    const profitGoalMinMaxOpt: CheckMinMaxOption = {};
     if (input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED) {
-      profitGoalMinMaxOpt.min = 0;
-      profitGoalMinMaxOpt.maxOrEqual = QUADRILLION;
-
-      if (!checkMinMax(input.profitGoal, profitGoalMinMaxOpt)) {
+      if (!checkMinMax(input.profitGoal, { min: 0, maxOrEqual: QUADRILLION })) {
         return {
           err: "Please enter a valid min portfolio profit.",
           field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
         };
       }
     } else {
+      const profitGoalMinMaxOpt: CheckMinMaxOption = {};
       if (input.profitGoalUnit === ProfitGoalUnit.PRICED_BASED) {
         if (input.isLong) {
           profitGoalMinMaxOpt.min = parseBigNumberFromString(input.entryPrice);
@@ -783,68 +780,68 @@ const adjustProfitPrice = (
     };
   }
 
-  // profitAmount = profitPrice * quantity
-  const grossProfitAmount = multiplyBig(profitPrice, quantity);
-
-  // profitFee = profitAmount * feeRate
-  let profitFee = multiplyBig(grossProfitAmount, feeRate);
-  if (profitFee < minFee) profitFee = minFee;
-  profitFee = mathBigNum.round(profitFee, precision);
-
-  // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - profitFee
-  let profitAmt = subtractBig(
-    subtractBig(
-      mathBigNum.abs(subtractBig(grossProfitAmount, entryAmt)),
-      entryFee
-    ),
-    profitFee
-  );
-
-  let exitPrice = profitPrice;
-  let exitFee = profitFee;
+  let profitFee = mathBigNum.bignumber(0);
   let units = [0.1, 0.01, 0.001, 0.0001, 0.00001];
-
   for (let i = 0; i < units.length; i++) {
     let isSmaller = false;
+    let tempProfitPrice = profitPrice;
+
+    // profitAmount = profitPrice * quantity
+    const grossProfitAmount = multiplyBig(tempProfitPrice, quantity);
+
+    // profitFee = profitAmount * feeRate
+    profitFee = multiplyBig(grossProfitAmount, feeRate);
+    if (profitFee < minFee) profitFee = minFee;
+    profitFee = mathBigNum.round(profitFee, precision);
+
+    // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - profitFee
+    let profitAmt = subtractBig(
+      subtractBig(
+        mathBigNum.abs(subtractBig(grossProfitAmount, entryAmt)),
+        entryFee
+      ),
+      profitFee
+    );
+
     while (!mathBigNum.equal(profitAmt, minProfit)) {
       if (mathBigNum.smaller(profitAmt, minProfit)) {
-        // profitPrice = isLong ? profitPrice + 0.00001: profitPrice - 0.00001
-        profitPrice = isLong
-          ? addBig(profitPrice, units[i])
-          : subtractBig(profitPrice, units[i]);
+        // tempProfitPrice = isLong ? tempProfitPrice + 0.00001: tempProfitPrice - 0.00001
+        tempProfitPrice = isLong
+          ? addBig(tempProfitPrice, units[i])
+          : subtractBig(tempProfitPrice, units[i]);
         isSmaller = true;
       } else {
         if (isSmaller) break;
 
-        // profitPrice = isLong ? profitPrice - 0.00001: profitPrice + 0.00001
-        profitPrice = isLong
-          ? subtractBig(profitPrice, units[i])
-          : addBig(profitPrice, units[i]);
+        // tempProfitPrice = isLong ? tempProfitPrice - 0.00001: tempProfitPrice + 0.00001
+        tempProfitPrice = isLong
+          ? subtractBig(tempProfitPrice, units[i])
+          : addBig(tempProfitPrice, units[i]);
       }
 
-      // grossProfitAmount = profitPrice * quantity;
-      const grossProfitAmount = multiplyBig(profitPrice, quantity);
+      // grossProfitAmount = tempProfitPrice * quantity;
+      const grossProfitAmount = multiplyBig(tempProfitPrice, quantity);
 
-      // profitFee = exitAmount * feeRate
-      let profitFee = multiplyBig(grossProfitAmount, feeRate);
-      if (mathBigNum.smaller(profitFee, minFee)) profitFee = minFee;
-      profitFee = mathBigNum.round(profitFee, precision);
+      // tempProfitFee = exitAmount * feeRate
+      let tempProfitFee = multiplyBig(grossProfitAmount, feeRate);
+      if (mathBigNum.smaller(tempProfitFee, minFee)) tempProfitFee = minFee;
+      tempProfitFee = mathBigNum.round(tempProfitFee, precision);
 
-      // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - profitFee
+      // profitAmt = Math.abs(grossProfitAmount - entryAmt) - entryFee - tempProfitFee
       profitAmt = subtractBig(
         subtractBig(
           mathBigNum.abs(subtractBig(grossProfitAmount, entryAmt)),
           entryFee
         ),
-        profitFee
+        tempProfitFee
       );
 
       if (mathBigNum.largerEq(profitAmt, minProfit)) {
-        exitPrice = profitPrice;
-        exitFee = profitFee;
+        profitPrice = tempProfitPrice;
+        profitFee = tempProfitFee;
       }
     }
   }
 
-  return { exitPrice, exitFee };
+  return { exitPrice: profitPrice, exitFee: profitFee };
 };

@@ -24,7 +24,7 @@ const LeverageSelectBox: FC<LeverageSelectBoxProps> = ({
       options={leverageOptions}
       defaultIndex={defaultIndex}
       onChangeHandler={(idx) => onChange(leverages[idx])}
-      isSearchable={true}
+      isSearchable={false}
     />
   );
 };

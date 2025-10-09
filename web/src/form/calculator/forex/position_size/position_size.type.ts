@@ -1,11 +1,13 @@
 import { BigNumber } from "mathjs";
 import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
+import { LotTyp } from "../../../../component/forex/lot_typ_input_box/lot_typ.component";
 
 export type ForexPositionSizeInputType = {
   portfolioCapital: string;
   maxPortfolioRisk: string;
   accBaseCurrency: string;
   currencyPair: string;
+  lotTyp: LotTyp;
   contractSize: string;
   basePair: string;
   baseCrossRate: string;
@@ -39,17 +41,20 @@ export enum ERROR_FIELD_POSITION_SIZE {
   STOP_LOSS,
   PROFIT_TARGET,
   EST_TRADING_FEE,
+  SWAP_FEE,
+  PERIOD,
 }
 
 export type PositionSizeResultType = {
   isLong: boolean;
   includeTradingFee: boolean;
   includeProfitGoal: boolean;
+  accBaseCurrency: string;
   entryPrice: BigNumber;
   stopPrice: BigNumber;
   profitPrice?: BigNumber;
-  quantity: BigNumber;
-  lot: BigNumber;
+  positionSize: BigNumber;
+  lotTyp: BigNumber;
   marginToHold: BigNumber;
   riskAmount: BigNumber;
   portfolioRisk: BigNumber;
@@ -57,8 +62,9 @@ export type PositionSizeResultType = {
   portfolioProfit?: BigNumber;
   riskRewardRatio?: BigNumber;
   breakEvenWinRate?: BigNumber;
-  commissionFee?: BigNumber;
+  entryFee?: BigNumber;
   stopFee?: BigNumber;
   profitFee?: BigNumber;
-  swapFee?: BigNumber;
+  stopSwapFee?: BigNumber;
+  profitSwapFee?: BigNumber;
 };

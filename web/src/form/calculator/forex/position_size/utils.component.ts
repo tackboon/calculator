@@ -2,9 +2,12 @@ import { BigNumber } from "mathjs";
 import { getBaseAndQuote } from "../../../../common/forex/forex";
 import {
   absBig,
+  addBig,
   divideBig,
   mathBigNum,
   multiplyBig,
+  QUADRILLION,
+  QUINTILLION,
   subtractBig,
 } from "../../../../common/number/math";
 import {
@@ -15,7 +18,12 @@ import {
   ERROR_FIELD_POSITION_SIZE,
   ForexPositionSizeInputType,
 } from "./position_size.type";
-import { FeeTyp } from "../forex_calculator_form.type";
+import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
+import {
+  checkMinMax,
+  CheckMinMaxOption,
+} from "../../../../common/validation/calculator.validation";
+import { LotTyp } from "../../../../component/forex/lot_typ_input_box/lot_typ.component";
 
 export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
   if (input.basePair === "" && input.quotePair === "") return 0;
@@ -29,166 +37,130 @@ export const calculateProfitHeight = (input: ForexPositionSizeInputType) => {
   return 200;
 };
 
-// export const calculateStopPriceFromPip = (
-//   input: ForexPositionSizeInputType
-// ) => {
-//   try {
-//     if (input.stopLossTyp !== StopLossTyp.PIP_BASED) return "";
-
-//     const openPrice = parseBigNumberFromString(input.openPrice);
-//     if (mathBigNum.equal(openPrice, 0)) return "0.00";
-
-//     const pip = parseBigNumberFromString(input.stopLoss);
-//     if (mathBigNum.equal(pip, 0)) return input.openPrice;
-
-//     if (input.isLong) {
-//       let stopPrice = mathBigNum.subtract(
-//         openPrice,
-//         mathBigNum.multiply(pip, input.pipSize)
-//       ) as BigNumber;
-//       stopPrice = mathBigNum.round(stopPrice, 5);
-
-//       return `${stopPrice}`;
-//     } else {
-//       let stopPrice = mathBigNum.add(
-//         openPrice,
-//         mathBigNum.multiply(pip, input.pipSize)
-//       ) as BigNumber;
-//       stopPrice = mathBigNum.round(stopPrice, 5);
-
-//       return `${stopPrice}`;
-//     }
-//   } catch (err) {
-//     return "";
-//   }
-// };
-
-// export const calculateProfitPriceFromPip = (
-//   input: ForexPositionSizeInputType
-// ) => {
-//   try {
-//     if (input.profitGoalTyp !== ProfitGoalTyp.PIP_BASED) return "";
-
-//     const openPrice = parseBigNumberFromString(input.openPrice);
-//     if (mathBigNum.equal(openPrice, 0)) return "0";
-
-//     const pip = parseBigNumberFromString(input.profitGoal);
-//     if (mathBigNum.equal(pip, 0)) return input.openPrice;
-
-//     if (input.isLong) {
-//       let profitPrice = mathBigNum.add(
-//         openPrice,
-//         mathBigNum.multiply(pip, input.pipSize)
-//       ) as BigNumber;
-//       profitPrice = mathBigNum.round(profitPrice, 5);
-
-//       return `${profitPrice}`;
-//     } else {
-//       let profitPrice = mathBigNum.subtract(
-//         openPrice,
-//         mathBigNum.multiply(pip, input.pipSize)
-//       ) as BigNumber;
-//       profitPrice = mathBigNum.round(profitPrice, 5);
-
-//       return `${profitPrice}`;
-//     }
-//   } catch (err) {
-//     return "";
-//   }
-// };
-
 export const validatePositionSizeInput = (
   input: ForexPositionSizeInputType
 ): { err: string; field: ERROR_FIELD_POSITION_SIZE | null } => {
-  // if (!checkMinMax(input.portfolioCapital, 0)) {
-  //   return {
-  //     err: "Please enter a valid portfolio capital.",
-  //     field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,
-  //   };
-  // }
+  if (
+    !checkMinMax(input.portfolioCapital, { min: 0, maxOrEqual: QUINTILLION })
+  ) {
+    return {
+      err: "Please enter a valid portfolio capital.",
+      field: ERROR_FIELD_POSITION_SIZE.PORTFOLIO_CAPITAL,
+    };
+  }
 
-  // if (!checkMinMax(input.maxPortfolioRisk, 0, 100)) {
-  //   return {
-  //     err: "Please enter a valid max portflio risk.",
-  //     field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
-  //   };
-  // }
+  if (!checkMinMax(input.maxPortfolioRisk, { min: 0, max: 100 })) {
+    return {
+      err: "Please enter a valid max portflio risk.",
+      field: ERROR_FIELD_POSITION_SIZE.MAX_PORTFOLIO_RISK,
+    };
+  }
 
-  // if (input.basePair !== "" && !checkMinMax(input.baseCrossRate, 0)) {
-  //   return {
-  //     err: "Please enter a valid cross rate.",
-  //     field: ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE,
-  //   };
-  // }
+  if (!checkMinMax(input.contractSize, { min: 0, max: 100000 })) {
+    return {
+      err: "Please enter a valid contract size.",
+      field: ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE,
+    };
+  }
 
-  // if (input.quotePair !== "" && !checkMinMax(input.quoteCrossRate, 0)) {
-  //   return {
-  //     err: "Please enter a valid cross rate.",
-  //     field: ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE,
-  //   };
-  // }
+  if (
+    input.basePair !== "" &&
+    !checkMinMax(input.baseCrossRate, { min: 0, maxOrEqual: QUADRILLION })
+  ) {
+    return {
+      err: "Please enter a valid cross rate.",
+      field: ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE,
+    };
+  }
 
-  // if (!checkMinMax(input.contractSize, 0)) {
-  //   return {
-  //     err: "Please enter a valid contract size.",
-  //     field: ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE,
-  //   };
-  // }
+  if (
+    input.quotePair !== "" &&
+    !checkMinMax(input.quoteCrossRate, { min: 0, maxOrEqual: QUADRILLION })
+  ) {
+    return {
+      err: "Please enter a valid cross rate.",
+      field: ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE,
+    };
+  }
 
-  // if (!checkMinMax(input.openPrice, 0)) {
-  //   return {
-  //     err: "Please enter a valid open price.",
-  //     field: ERROR_FIELD_POSITION_SIZE.OPEN_PRICE,
-  //   };
-  // }
+  if (!checkMinMax(input.openPrice, { min: 0, maxOrEqual: QUADRILLION })) {
+    return {
+      err: "Please enter a valid open price.",
+      field: ERROR_FIELD_POSITION_SIZE.OPEN_PRICE,
+    };
+  }
 
-  // let stopLossMin = mathBigNum.bignumber(0);
-  // let stopLossMax: BigNumber | undefined;
-  // if (input.isLong) {
-  //   stopLossMax = parseBigNumberFromString(input.openPrice);
-  // } else {
-  //   stopLossMin = parseBigNumberFromString(input.openPrice);
-  // }
-  // if (!checkMinMax(input.stopLoss, stopLossMin, stopLossMax)) {
-  //   return {
-  //     err: "Please enter a valid stop loss.",
-  //     field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,
-  //   };
-  // }
+  const stopLossMinMaxOpt: CheckMinMaxOption = {};
+  if (input.isLong) {
+    stopLossMinMaxOpt.min = 0;
+    stopLossMinMaxOpt.max = parseBigNumberFromString(input.openPrice);
+  } else {
+    stopLossMinMaxOpt.min = parseBigNumberFromString(input.openPrice);
+    stopLossMinMaxOpt.maxOrEqual = QUADRILLION;
+  }
+  if (!checkMinMax(input.stopLoss, stopLossMinMaxOpt)) {
+    return {
+      err: "Please enter a valid stop loss.",
+      field: ERROR_FIELD_POSITION_SIZE.STOP_LOSS,
+    };
+  }
 
-  // if (input.includeProfitGoal) {
-  //   let profitGoalMin = mathBigNum.bignumber(0);
-  //   let profitGoalMax: BigNumber | undefined;
-  //   if (input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED) {
-  //     if (!checkMinMax(input.profitGoal, profitGoalMin)) {
-  //       return {
-  //         err: "Please enter a valid min portfolio profit.",
-  //         field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
-  //       };
-  //     }
-  //   } else {
-  //     if (input.isLong) {
-  //       profitGoalMin = parseBigNumberFromString(input.openPrice);
-  //     } else {
-  //       profitGoalMax = parseBigNumberFromString(input.openPrice);
-  //     }
-  //     if (!checkMinMax(input.profitGoal, profitGoalMin, profitGoalMax)) {
-  //       return {
-  //         err: "Please enter a valid profit target.",
-  //         field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
-  //       };
-  //     }
-  //   }
-  // }
+  if (input.includeProfitGoal) {
+    if (input.profitGoalTyp === ProfitGoalTyp.PORTFOLIO_BASED) {
+      if (!checkMinMax(input.profitGoal, { min: 0, maxOrEqual: QUADRILLION })) {
+        return {
+          err: "Please enter a valid min portfolio profit.",
+          field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
+        };
+      }
+    } else {
+      const profitGoalMinMaxOpt: CheckMinMaxOption = {};
+      if (input.isLong) {
+        profitGoalMinMaxOpt.min = parseBigNumberFromString(input.openPrice);
+        profitGoalMinMaxOpt.maxOrEqual = QUADRILLION;
+      } else {
+        profitGoalMinMaxOpt.min = 0;
+        profitGoalMinMaxOpt.max = parseBigNumberFromString(input.openPrice);
+      }
 
-  // if (input.includeTradingFee) {
-  //   if (!checkMinMax(input.estTradingFee, 0)) {
-  //     return {
-  //       err: "Please estimates a valid trading fee.",
-  //       field: ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE,
-  //     };
-  //   }
-  // }
+      if (!checkMinMax(input.profitGoal, profitGoalMinMaxOpt)) {
+        return {
+          err: "Please enter a valid profit target.",
+          field: ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET,
+        };
+      }
+    }
+  }
+
+  if (input.includeTradingFee) {
+    if (
+      !checkMinMax(input.estTradingFee, { min: 0, maxOrEqual: QUADRILLION })
+    ) {
+      return {
+        err: "Please estimates a valid trading fee.",
+        field: ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE,
+      };
+    }
+
+    if (
+      !checkMinMax(input.swapFee, {
+        minOrEqual: QUADRILLION.negated(),
+        maxOrEqual: QUADRILLION,
+      })
+    ) {
+      return {
+        err: "Please estimates a valid swap fee.",
+        field: ERROR_FIELD_POSITION_SIZE.SWAP_FEE,
+      };
+    }
+
+    if (!checkMinMax(input.period, { min: 0, maxOrEqual: QUADRILLION })) {
+      return {
+        err: "Please estimates a valid swap fee.",
+        field: ERROR_FIELD_POSITION_SIZE.SWAP_FEE,
+      };
+    }
+  }
 
   return { err: "", field: null };
 };
@@ -207,40 +179,66 @@ export const calculateResult = (
   const contractSize = parseBigNumberFromString(input.contractSize);
   const commissionFee = parseBigNumberFromString(input.estTradingFee);
   const swapFee = parseBigNumberFromString(input.swapFee);
+  const period = parseBigNumberFromString(input.period);
 
   // Get currency pair info
   const pairInfo = getBaseAndQuote(input.currencyPair);
 
   // Get base rate (XXXUSD)
-  let baseRate = mathBigNum.bignumber(1);
+  let openBaseRate = mathBigNum.bignumber(1);
+  let stopBaseRate = mathBigNum.bignumber(1);
+  let profitBaseRate: BigNumber | undefined;
   if (input.basePair === "") {
     // acc base currency in the pair
     if (pairInfo.quote === input.accBaseCurrency) {
-      baseRate = input.isLong ? openPrice : stopLoss;
+      openBaseRate = openPrice;
+      stopBaseRate = stopLoss;
+
+      if (
+        input.includeProfitGoal &&
+        input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
+      ) {
+        profitBaseRate = profitGoal;
+      }
+    } else {
+      profitBaseRate = mathBigNum.bignumber(1);
     }
   } else {
     const baseRateInfo = getBaseAndQuote(input.basePair);
     const baseCrossRate = parseBigNumberFromString(input.baseCrossRate);
-    baseRate =
+    openBaseRate =
       baseRateInfo.quote === input.accBaseCurrency
         ? baseCrossRate
         : divideBig(1, baseCrossRate);
+    stopBaseRate = openBaseRate;
+    profitBaseRate = openBaseRate;
   }
 
   // Get quote rate (XXXUSD)
-  let quoteRate = mathBigNum.bignumber(1);
+  let stopQuoteRate = mathBigNum.bignumber(1);
+  let profitQuoteRate: BigNumber | undefined;
   if (input.quotePair === "") {
     // acc base currency in the pair
     if (pairInfo.base === input.accBaseCurrency) {
-      quoteRate = divideBig(1, stopLoss);
+      stopQuoteRate = divideBig(1, stopLoss);
+
+      if (
+        input.includeProfitGoal &&
+        input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED
+      ) {
+        profitQuoteRate = divideBig(1, profitGoal);
+      }
+    } else {
+      profitQuoteRate = mathBigNum.bignumber(1);
     }
   } else {
     const quoteRateInfo = getBaseAndQuote(input.quotePair);
     const quoteCrossRate = parseBigNumberFromString(input.quoteCrossRate);
-    quoteRate =
+    stopQuoteRate =
       quoteRateInfo.quote === input.accBaseCurrency
         ? quoteCrossRate
         : divideBig(1, quoteCrossRate);
+    profitQuoteRate = stopQuoteRate;
   }
 
   /*
@@ -255,58 +253,62 @@ export const calculateResult = (
   const priceDiff = absBig(subtractBig(stopLoss, openPrice));
 
   // Calculate lot size
+  let positionSize = mathBigNum.bignumber(0);
   let lotSize = mathBigNum.bignumber(0);
   let riskAmount = mathBigNum.bignumber(0);
   let entryFee: BigNumber | undefined;
   let stopFee: BigNumber | undefined;
+  let stopSwapFee: BigNumber | undefined;
   if (!input.includeTradingFee) {
-    lotSize = calcLotSize(maxLoss, contractSize, quoteRate, priceDiff);
+    // Calculate position size and lot size
+    lotSize = calcLotSize(
+      maxLoss,
+      input.lotTyp,
+      contractSize,
+      stopQuoteRate,
+      priceDiff
+    );
 
     // riskAmount = lotSize * contractSize * priceDiff * quoteRate
     riskAmount = multiplyBig(
       multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
-      quoteRate
+      stopQuoteRate
     );
   } else {
-    // swapFeeInAccBase = swapFee * quoteRate
-    let swapFeeInAccBase = multiplyBig(swapFee, quoteRate);
-    swapFeeInAccBase = mathBigNum.round(swapFeeInAccBase, 5);
+    // stopSwapFee = swapFee * stopQuoteRate * period
+    stopSwapFee = multiplyBig(multiplyBig(swapFee, stopQuoteRate), period);
+    stopSwapFee = mathBigNum.round(stopSwapFee, input.precision);
 
     if (input.feeTyp === FeeTyp.COMMISSION_PER_LOT) {
       lotSize = calcLotSizeWithLotBasedCommission(
         maxLoss,
+        input.lotTyp,
         contractSize,
-        quoteRate,
+        stopQuoteRate,
         priceDiff,
-        swapFeeInAccBase,
+        stopSwapFee,
         commissionFee
       );
 
       // fee = lotSize * commissionFee
-      let fee = mathBigNum.multiply(lotSize, commissionFee);
+      let fee = multiplyBig(lotSize, commissionFee);
 
-      // riskAmount = lotSize * contractSize * priceDiff * quoteRate + swapFeeInAccBase + fee * 2
-      riskAmount = mathBigNum.add(
-        mathBigNum.add(
-          mathBigNum.multiply(
-            mathBigNum.multiply(
-              mathBigNum.multiply(lotSize, contractSize),
-              priceDiff
-            ),
-            quoteRate
-          ),
-          mathBigNum.multiply(fee, 2)
+      // riskAmount = positionSize * priceDiff * quoteRate + stopSwapFee + fee * 2
+      riskAmount = addBig(
+        addBig(
+          multiplyBig(multiplyBig(positionSize, priceDiff), stopQuoteRate),
+          multiplyBig(fee, 2)
         ),
-        swapFeeInAccBase
-      ) as BigNumber;
+        stopSwapFee
+      );
 
       // Adjust lot size
       while (
         mathBigNum.larger(riskAmount, maxLoss) &&
         mathBigNum.larger(lotSize, 0)
       ) {
-        lotSize = mathBigNum.subtract(lotSize, 0.01) as BigNumber;
-        fee = mathBigNum.multiply(lotSize, commissionFee);
+        lotSize = subtractBig(lotSize, 0.01);
+        fee = multiplyBig(lotSize, commissionFee);
         riskAmount = mathBigNum.add(
           mathBigNum.add(
             mathBigNum.multiply(
@@ -427,56 +429,53 @@ export const calculateResult = (
 
 const calcLotSize = (
   maxLoss: BigNumber,
+  lotPrecision: number,
   contractSize: BigNumber,
   quoteRate: BigNumber,
   priceDiff: BigNumber
 ) => {
+  let lotSize = mathBigNum.bignumber(0);
+
   /* 
     maxLoss = priceDiff * lotSize * contractSize * quoteRate
-    lotSize = maxLoss / (priceDiff * quoteRate * contractSize)
+    lotSize = maxLoss / (priceDiff * contractSize * quoteRate)
   */
   const diff = multiplyBig(multiplyBig(priceDiff, quoteRate), contractSize);
-
-  let lotSize = mathBigNum.bignumber(0);
-  if (!mathBigNum.equal(diff, 0)) {
-    lotSize = divideBig(maxLoss, diff);
-    lotSize = mathBigNum.floor(lotSize, 2);
+  if (mathBigNum.equal(diff, 0)) {
+    return lotSize;
   }
+  lotSize = divideBig(maxLoss, diff);
+  lotSize = mathBigNum.floor(lotSize, lotPrecision);
 
   return lotSize;
 };
 
 const calcLotSizeWithLotBasedCommission = (
   maxLoss: BigNumber,
+  lotPrecision: number,
   contractSize: BigNumber,
   quoteRate: BigNumber,
   priceDiff: BigNumber,
   swapFeeInAccBase: BigNumber,
   commissionFee: BigNumber
 ) => {
-  /* 
-    maxLoss = 
-      priceDiff * lotSize * contractSize * quoteRate 
-      - swapFeeInAccBase
-      + lotSize * commissionFee * 2
+  let lotSize = mathBigNum.bignumber(0);
 
-    lotSize = 
-      (maxLoss + swapFeeInAccBase) /
+  /* 
+    maxLoss = priceDiff * lotSize * contractSize * quoteRate + lotSize * commissionFee * 2 - swapFeeInAccBase
+    lotSize = (maxLoss + swapFeeInAccBase) /
       ((priceDiff * contractSize * quoteRate) + commissionFee * 2)
   */
-  const diff = mathBigNum.multiply(
-    mathBigNum.multiply(priceDiff, contractSize),
-    quoteRate
-  ) as BigNumber;
-
-  let lotSize = mathBigNum.bignumber(0);
-  if (!mathBigNum.equal(diff, 0)) {
-    lotSize = mathBigNum.divide(
-      mathBigNum.add(maxLoss, swapFeeInAccBase),
-      mathBigNum.add(diff, mathBigNum.multiply(commissionFee, 2))
-    ) as BigNumber;
-    lotSize = mathBigNum.floor(lotSize, 2);
+  const diff = multiplyBig(multiplyBig(priceDiff, contractSize), quoteRate);
+  if (mathBigNum.equal(diff, 0)) {
+    return lotSize;
   }
+
+  lotSize = divideBig(
+    addBig(maxLoss, swapFeeInAccBase),
+    addBig(diff, multiplyBig(commissionFee, 2))
+  );
+  lotSize = mathBigNum.floor(lotSize, lotPrecision);
 
   return lotSize;
 };
@@ -537,4 +536,69 @@ const calcLotSizeWithUSDBasedCommission = (
   }
 
   return lotSize;
+};
+
+const adjustLotSize = (
+  getRiskAmountFn: (lotSize: BigNumber) => BigNumber,
+  maxLoss: BigNumber,
+  lotSize: BigNumber,
+  lotTyp: LotTyp
+) => {
+  let riskAmount = getRiskAmountFn(lotSize);
+  let units = [1, 0.1, 0.01, 0.001];
+
+  for (let i = 0; i <= lotTyp; i++) {
+    let tempLotSize = lotSize;
+
+    while (mathBigNum.equal(riskAmount, maxLoss)) {
+      if (mathBigNum.larger(riskAmount, maxLoss)) {
+        tempLotSize = subtractBig(tempLotSize, units[i]);
+      } else {
+      }
+    }
+  }
+};
+
+const adjustLotSizeWithLotBasedCommission = (
+  lotSize: BigNumber,
+  commissionFee: BigNumber,
+  contractSize: BigNumber,
+  priceDiff: BigNumber,
+  quoteRate: BigNumber,
+  swapFee: BigNumber,
+  maxLoss: BigNumber
+) => {
+  // fee = lotSize * commissionFee
+  let fee = multiplyBig(lotSize, commissionFee);
+
+  // riskAmount = lotSize * contractSize * priceDiff * quoteRate + swapFee + fee * 2
+  let riskAmount = addBig(
+    addBig(
+      multiplyBig(
+        multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
+        quoteRate
+      ),
+      multiplyBig(fee, 2)
+    ),
+    swapFee
+  );
+
+  // Adjust lot size
+  while (
+    mathBigNum.larger(riskAmount, maxLoss) &&
+    mathBigNum.larger(lotSize, 0)
+  ) {
+    lotSize = subtractBig(lotSize, 0.01);
+    fee = multiplyBig(lotSize, commissionFee);
+    riskAmount = mathBigNum.add(
+      mathBigNum.add(
+        mathBigNum.multiply(
+          mathBigNum.multiply(lotSize, contractSize),
+          priceDiff
+        ),
+        mathBigNum.multiply(fee, 2)
+      ),
+      swapFeeInAccBase
+    ) as BigNumber;
+  }
 };

@@ -36,12 +36,16 @@ import useCommodityRates from "../hook/useCommodityRates";
 import CrossRateInput from "../../../../component/forex/cross_rate_input_box/cross.component";
 import PipInputBox from "../../../../component/forex/pip_input_box/pip.component";
 import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
+import LotTypSelectBox, {
+  LotTyp,
+} from "../../../../component/forex/lot_typ_input_box/lot_typ.component";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
   maxPortfolioRisk: "0",
   accBaseCurrency: "USD",
   currencyPair: "EUR/USD",
+  lotTyp: LotTyp.MICRO_LOT,
   contractSize: "100,000",
   basePair: "",
   baseCrossRate: "1.00",
@@ -76,6 +80,7 @@ const ForexPositionSizeForm = () => {
   const [errorField, setErrorField] =
     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
   const [input, setInput] = useState<ForexPositionSizeInputType>(DEFAULT_INPUT);
+  const [resetSignal, setResetSignal] = useState(false);
 
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -116,6 +121,7 @@ const ForexPositionSizeForm = () => {
       includeTradingFee: prev.includeTradingFee,
       feeTyp: prev.feeTyp,
       leverage: prev.leverage,
+      lotTyp: prev.lotTyp,
       basePair: prev.basePair,
       baseCrossRate: prev.baseCrossRate,
       quotePair: prev.quotePair,
@@ -125,6 +131,7 @@ const ForexPositionSizeForm = () => {
       isStopLossPip: prev.isStopLossPip,
       isProfitPip: prev.isProfitPip,
     }));
+    setResetSignal((prev) => !prev);
     setErrorField(null);
     setResult(null);
   };
@@ -324,6 +331,20 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
+          <label htmlFor="lot-size">Lot Size</label>
+          <LotTypSelectBox
+            name="lot-size"
+            defaultIndex={LotTyp.MICRO_LOT}
+            onChange={(lotTyp) => {
+              setInput((prev) => ({
+                ...prev,
+                lotTyp,
+              }));
+            }}
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
           <label htmlFor="contract-size">Contract Size (Unit)</label>
           <NumberInput
             id="contract-size"
@@ -365,6 +386,7 @@ const ForexPositionSizeForm = () => {
             hintPrefix="Stop Loss Price: $"
             price={input.openPrice}
             isIncr={!input.isLong}
+            resetSignal={resetSignal}
             onChange={stopLossOnChange}
           />
         </div>
@@ -434,6 +456,7 @@ const ForexPositionSizeForm = () => {
                   hintPrefix="Profit Goal Price: $"
                   price={input.openPrice}
                   isIncr={input.isLong}
+                  resetSignal={resetSignal}
                   onChange={profitGoalOnChange}
                 />
               </div>
@@ -524,6 +547,7 @@ const ForexPositionSizeForm = () => {
                   id="swap-fee"
                   step={0.1}
                   preUnit="$"
+                  isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SWAP_FEE}
                   minDecimalPlace={2}
                   maxDecimalPlace={5}
                   value={input.swapFee}
@@ -538,6 +562,7 @@ const ForexPositionSizeForm = () => {
                 <div className={styles["input-with-switch"]}>
                   <NumberInput
                     id="period"
+                    isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.PERIOD}
                     minDecimalPlace={0}
                     maxDecimalPlace={0}
                     value={input.period}

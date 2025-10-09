@@ -23,6 +23,7 @@ type PipInputBoxProps = {
   hintPrefix: string;
   price: string;
   isIncr: boolean;
+  resetSignal: boolean;
   onChange: (val: string, isPip: boolean) => void;
 };
 
@@ -35,11 +36,16 @@ const PipInputBox: FC<PipInputBoxProps> = ({
   hintPrefix,
   price,
   isIncr,
+  resetSignal,
   onChange,
 }) => {
   const [isPip, setIsPip] = useState(defaultIsPip);
   const [value, setValue] = useState(defaultValue);
   const [hintPrice, setHintPrice] = useState("");
+
+  useEffect(() => {
+    setValue("0");
+  }, [resetSignal]);
 
   useEffect(() => {
     if (!isPip) {
