@@ -199,7 +199,7 @@ export const calculateResult = (
     input.isLong,
     input.precision
   );
-  if (quantity.isNaN()) {
+  if (quantity.isNaN() || !quantity.isFinite()) {
     quantity = mathBigNum.bignumber(0);
   }
 
@@ -578,38 +578,34 @@ const calculateQuantity = (
 ): BigNumber => {
   let quantity = mathBigNum.bignumber(0);
 
+  // diff = abs(entryPrice - stopLossPrice)
+  const diff = mathBigNum.abs(subtractBig(entryPrice, stopLossPrice));
+  if (mathBigNum.equal(diff, 0)) return quantity;
+
   // Compute entry amount without fees
   if (mathBigNum.equal(estFeeRate, 0) && mathBigNum.equal(minTradingFee, 0)) {
-    // quantity = maxLoss / Math.abs(entryPrice - stopLossPrice)
-    quantity = divideBig(
-      maxLoss,
-      mathBigNum.abs(subtractBig(entryPrice, stopLossPrice))
-    );
-
+    // quantity = maxLoss / diff
+    quantity = divideBig(maxLoss, diff);
     return mathBigNum.floor(quantity, 6);
   }
 
   // Compute entry amount with fixed fee
   if (mathBigNum.equal(estFeeRate, 0) && mathBigNum.larger(minTradingFee, 0)) {
-    // quantity = (maxLoss - minTradingFee * 2) / Math.abs(entryPrice - stopLossPrice)
+    // quantity = (maxLoss - minTradingFee * 2) / diff
     quantity = divideBig(
       subtractBig(maxLoss, multiplyBig(minTradingFee, 2)),
-      mathBigNum.abs(subtractBig(entryPrice, stopLossPrice))
+      diff
     );
-
     return mathBigNum.floor(quantity, 6);
   }
 
   // Compupte entry amount with estimation fees
   // Attempt 1: Assume both fees exceed minTradingFee
 
-  // quantity = maxLoss / (Math.abs(entryPrice - stopLossPrice) + estFeeRate * (entryPrice + stopLossPrice))
+  // quantity = maxLoss / (diff + estFeeRate * (entryPrice + stopLossPrice))
   quantity = divideBig(
     maxLoss,
-    addBig(
-      mathBigNum.abs(subtractBig(entryPrice, stopLossPrice)),
-      multiplyBig(estFeeRate, addBig(entryPrice, stopLossPrice))
-    )
+    addBig(diff, multiplyBig(estFeeRate, addBig(entryPrice, stopLossPrice)))
   );
   quantity = mathBigNum.floor(quantity, 6);
 
@@ -725,6 +721,10 @@ const adjustQuantity = (
   precision: number,
   unit: number
 ) => {
+  if (mathBigNum.equal(quantity, 0)) {
+    return quantity;
+  }
+
   let lossAmt = calculateCurrentLoss(
     quantity,
     entryPrice,

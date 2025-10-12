@@ -178,8 +178,9 @@ export const calculateResult = (
   const profitGoal = parseBigNumberFromString(input.profitGoal);
   const contractSize = parseBigNumberFromString(input.contractSize);
   const commissionFee = parseBigNumberFromString(input.estTradingFee);
-  const swapFee = parseBigNumberFromString(input.swapFee);
+  let swapRate = parseBigNumberFromString(input.swapFee);
   const period = parseBigNumberFromString(input.period);
+  swapRate = multiplyBig(swapRate, period);
 
   // Get currency pair info
   const pairInfo = getBaseAndQuote(input.currencyPair);
@@ -275,10 +276,6 @@ export const calculateResult = (
       stopQuoteRate
     );
   } else {
-    // stopSwapFee = swapFee * stopQuoteRate * period
-    stopSwapFee = multiplyBig(multiplyBig(swapFee, stopQuoteRate), period);
-    stopSwapFee = mathBigNum.round(stopSwapFee, input.precision);
-
     if (input.feeTyp === FeeTyp.COMMISSION_PER_LOT) {
       lotSize = calcLotSizeWithLotBasedCommission(
         maxLoss,
@@ -286,145 +283,156 @@ export const calculateResult = (
         contractSize,
         stopQuoteRate,
         priceDiff,
-        stopSwapFee,
-        commissionFee
+        swapRate,
+        commissionFee,
+        input.pipSize
       );
 
-      // fee = lotSize * commissionFee
-      let fee = multiplyBig(lotSize, commissionFee);
+      const getRiskAmountFn = (lotSize: BigNumber) => {
+        // fee = lotSize * commissionFee
+        let fee = multiplyBig(lotSize, commissionFee);
+        fee = mathBigNum.round(fee, input.precision);
 
-      // riskAmount = positionSize * priceDiff * quoteRate + stopSwapFee + fee * 2
-      riskAmount = addBig(
-        addBig(
-          multiplyBig(multiplyBig(positionSize, priceDiff), stopQuoteRate),
-          multiplyBig(fee, 2)
-        ),
-        stopSwapFee
-      );
+        // swapFee = swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+        let swapFee = divideBig(
+          multiplyBig(
+            multiplyBig(
+              multiplyBig(multiplyBig(swapRate, input.pipSize), lotSize),
+              contractSize
+            ),
+            stopQuoteRate
+          ),
+          10
+        );
+        swapFee = mathBigNum.round(swapFee, input.precision);
+
+        // riskAmount = lotSize * contractSize * priceDiff * quoteRate - swapFee + fee * 2
+        const riskAmt = subtractBig(
+          addBig(
+            multiplyBig(
+              multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
+              stopQuoteRate
+            ),
+            multiplyBig(fee, 2)
+          ),
+          swapFee
+        );
+
+        return {
+          riskAmount: riskAmt,
+          entryFee: fee,
+          stopFee: fee,
+          swapFee: swapFee,
+        };
+      };
 
       // Adjust lot size
-      while (
-        mathBigNum.larger(riskAmount, maxLoss) &&
-        mathBigNum.larger(lotSize, 0)
-      ) {
-        lotSize = subtractBig(lotSize, 0.01);
-        fee = multiplyBig(lotSize, commissionFee);
-        riskAmount = mathBigNum.add(
-          mathBigNum.add(
-            mathBigNum.multiply(
-              mathBigNum.multiply(lotSize, contractSize),
-              priceDiff
-            ),
-            mathBigNum.multiply(fee, 2)
-          ),
-          swapFeeInAccBase
-        ) as BigNumber;
-      }
+      const adjustedRes = adjustLotSize(
+        getRiskAmountFn,
+        maxLoss,
+        lotSize,
+        input.lotTyp
+      );
 
-      // entryFeeStr = convertToLocaleString(fee.toString(), 2, 5);
-      // stopFeeStr = entryFeeStr;
+      lotSize = adjustedRes.lotSize;
+      riskAmount = adjustedRes.riskAmount;
+      entryFee = adjustedRes.entryFee;
+      stopFee = adjustedRes.stopFee;
+      stopSwapFee = adjustedRes.swapFee;
     } else {
-      const commissionFeeRate = mathBigNum.divide(
-        commissionFee,
-        100000
-      ) as BigNumber;
+      const commissionFeeRate = divideBig(commissionFee, 100000);
 
-      // lotSize = calcLotSizeWithUSDBasedCommission(
-      //   maxLoss,
-      //   contractSize,
-      //   openPrice,
-      //   stopLoss,
-      //   quoteRate,
-      //   usdQuoteRate,
-      //   usdAccRate,
-      //   swapFeeInAccBase,
-      //   commissionFeeRate
-      // );
+      lotSize = calcLotSizeWith100KBasedCommission(
+        maxLoss,
+        input.lotTyp,
+        contractSize,
+        priceDiff,
+        stopBaseRate,
+        stopQuoteRate,
+        swapRate,
+        commissionFeeRate,
+        input.pipSize
+      );
 
-      // fee = openPrice * lotSize * contractSize * usdQuoteRate * commissionFeeRate * usdAccRate
-      // let feeRate = mathBigNum.multiply(
-      //   mathBigNum.multiply(
-      //     mathBigNum.multiply(
-      //       mathBigNum.multiply(lotSize, contractSize),
-      //       usdQuoteRate
-      //     ),
-      //     commissionFeeRate
-      //   ),
-      //   usdAccRate
-      // ) as BigNumber;
-      // let entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
-      // entryFee = mathBigNum.round(entryFee, 5);
-      // let stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
-      // stopFee = mathBigNum.round(stopFee, 5);
+      const getRiskAmountFn = (lotSize: BigNumber) => {
+        // entryFee = lotSize * contractSize * commissionFeeRate * openBaseRate
+        let entryFee = multiplyBig(
+          multiplyBig(multiplyBig(lotSize, contractSize), commissionFeeRate),
+          openBaseRate
+        );
+        entryFee = mathBigNum.round(entryFee, input.precision);
 
-      /* 
-      riskAmount = lotSize * contractSize * priceDiff * quoteRate + swapFeeInAccBase 
-        + entryFee + stopFee
-      */
-      // riskAmount = mathBigNum.add(
-      //   mathBigNum.add(
-      //     mathBigNum.add(
-      //       mathBigNum.multiply(
-      //         mathBigNum.multiply(
-      //           mathBigNum.multiply(lotSize, contractSize),
-      //           priceDiff
-      //         ),
-      //         quoteRate
-      //       ),
-      //       swapFeeInAccBase
-      //     ),
-      //     entryFee
-      //   ),
-      //   stopFee
-      // ) as BigNumber;
+        // stopFee = lotSize * contractSize * commissionFeeRate * stopBaseRate
+        let stopFee = multiplyBig(
+          multiplyBig(multiplyBig(lotSize, contractSize), commissionFeeRate),
+          stopBaseRate
+        );
+        stopFee = mathBigNum.round(stopFee, input.precision);
 
-      // while (
-      //   mathBigNum.larger(lotSize, 0) &&
-      //   mathBigNum.larger(riskAmount, maxLoss)
-      // ) {
-      //   lotSize = mathBigNum.subtract(lotSize, 0.01) as BigNumber;
+        // swapFee = swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+        let swapFee = divideBig(
+          multiplyBig(
+            multiplyBig(
+              multiplyBig(multiplyBig(swapRate, input.pipSize), lotSize),
+              contractSize
+            ),
+            stopQuoteRate
+          ),
+          10
+        );
+        swapFee = mathBigNum.round(swapFee, input.precision);
 
-      //   // Recompute fees
-      //   feeRate = mathBigNum.multiply(
-      //     mathBigNum.multiply(
-      //       mathBigNum.multiply(
-      //         mathBigNum.multiply(lotSize, contractSize),
-      //         usdQuoteRate
-      //       ),
-      //       commissionFeeRate
-      //     ),
-      //     usdAccRate
-      //   ) as BigNumber;
-      //   entryFee = mathBigNum.multiply(openPrice, feeRate) as BigNumber;
-      //   entryFee = mathBigNum.round(entryFee, 5);
-      //   stopFee = mathBigNum.multiply(stopLoss, feeRate) as BigNumber;
-      //   stopFee = mathBigNum.round(stopFee, 5);
+        /* 
+          riskAmount = 
+            lotSize * contractSize * priceDiff * quoteRate 
+            - swapFee + entryFee + stopFee
+        */
+        const riskAmt = addBig(
+          addBig(
+            subtractBig(
+              multiplyBig(
+                multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
+                stopQuoteRate
+              ),
+              swapFee
+            ),
+            entryFee
+          ),
+          stopFee
+        );
 
-      //   // Recompute risk amount
-      //   riskAmount = mathBigNum.add(
-      //     mathBigNum.add(
-      //       mathBigNum.add(
-      //         mathBigNum.multiply(
-      //           mathBigNum.multiply(
-      //             mathBigNum.multiply(lotSize, contractSize),
-      //             priceDiff
-      //           ),
-      //           quoteRate
-      //         ),
-      //         swapFeeInAccBase
-      //       ),
-      //       entryFee
-      //     ),
-      //     stopFee
-      //   ) as BigNumber;
-      // }
+        return {
+          riskAmount: riskAmt,
+          entryFee: entryFee,
+          stopFee: stopFee,
+          swapFee: swapFee,
+        };
+      };
 
-      // entryFeeStr = convertToLocaleString(entryFee.toString(), 2, 5);
-      // stopFeeStr = convertToLocaleString(stopFee.toString(), 2, 5);
+      // Adjust lot size
+      const adjustedRes = adjustLotSize(
+        getRiskAmountFn,
+        maxLoss,
+        lotSize,
+        input.lotTyp
+      );
+
+      lotSize = adjustedRes.lotSize;
+      riskAmount = adjustedRes.riskAmount;
+      entryFee = adjustedRes.entryFee;
+      stopFee = adjustedRes.stopFee;
+      stopSwapFee = adjustedRes.swapFee;
     }
   }
 
-  console.log(lotSize.toString(), entryFee?.toString(), stopFee?.toString());
+  console.log(
+    `
+    lot_size: ${lotSize.toString()},
+    entry_fee: ${entryFee?.toString()},
+    stop_fee: ${stopFee?.toString()},
+    swap_fee: ${stopSwapFee?.toString()},
+    risk_amount: ${riskAmount.toString()}`
+  );
 };
 
 const calcLotSize = (
@@ -456,149 +464,149 @@ const calcLotSizeWithLotBasedCommission = (
   contractSize: BigNumber,
   quoteRate: BigNumber,
   priceDiff: BigNumber,
-  swapFeeInAccBase: BigNumber,
-  commissionFee: BigNumber
+  swapRate: BigNumber,
+  commissionFee: BigNumber,
+  pipSize: number
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
   /* 
-    maxLoss = priceDiff * lotSize * contractSize * quoteRate + lotSize * commissionFee * 2 - swapFeeInAccBase
-    lotSize = (maxLoss + swapFeeInAccBase) /
-      ((priceDiff * contractSize * quoteRate) + commissionFee * 2)
+    maxLoss = 
+      priceDiff * lotSize * contractSize * quoteRate 
+      + lotSize * commissionFee * 2 
+      - swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+    
+    lotSize = maxLoss /
+      (
+        priceDiff * contractSize * quoteRate
+        + commissionFee * 2
+        - swapRate * pipSize * contractSize * quoteRate / 10
+      )
   */
   const diff = multiplyBig(multiplyBig(priceDiff, contractSize), quoteRate);
   if (mathBigNum.equal(diff, 0)) {
     return lotSize;
   }
 
-  lotSize = divideBig(
-    addBig(maxLoss, swapFeeInAccBase),
-    addBig(diff, multiplyBig(commissionFee, 2))
+  const commissionPart = multiplyBig(commissionFee, 2);
+  const swapPart = divideBig(
+    multiplyBig(
+      multiplyBig(multiplyBig(swapRate, pipSize), contractSize),
+      quoteRate
+    ),
+    10
   );
+  const divisor = subtractBig(addBig(diff, commissionPart), swapPart);
+  if (mathBigNum.equal(divisor, 0)) return lotSize;
+
+  lotSize = divideBig(maxLoss, divisor);
   lotSize = mathBigNum.floor(lotSize, lotPrecision);
 
   return lotSize;
 };
 
-const calcLotSizeWithUSDBasedCommission = (
+const calcLotSizeWith100KBasedCommission = (
   maxLoss: BigNumber,
+  lotPrecision: number,
   contractSize: BigNumber,
-  openPrice: BigNumber,
-  stopLoss: BigNumber,
+  priceDiff: BigNumber,
+  baseRate: BigNumber,
   quoteRate: BigNumber,
-  usdQuoteRate: BigNumber,
-  usdAccRate: BigNumber,
-  swapFeeInAccBase: BigNumber,
-  commissionFeeRate: BigNumber
+  swapRate: BigNumber,
+  commissionFeeRate: BigNumber,
+  pipSize: number
 ) => {
+  let lotSize = mathBigNum.bignumber(0);
+
   /*
     maxLoss = 
-      Math.abs(stopLoss - openPrice) * lotSize * contractSize * quoteRate
-      - swapFeeInAccBase 
-      + (openPrice + stopLoss) * lotSize * contractSize * usdQuoteRate *
-        commissionFeeRate * usdAccRate
+      priceDiff * lotSize * contractSize * quoteRate
+      - swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+      + lotSize * contractSize * commissionFeeRate * baseRate
 
-    lotSize = (maxLoss + swapFeeInAccBase) /
-      ((Math.abs(stopLoss - openPrice) * contractSize * quoteRate) + 
-      (openPrice + stopLoss) * contractSize * usdQuoteRate * commissionFeeRate * usdAccRate
+    lotSize = 
+      maxLoss /
+      (
+        priceDiff * contractSize * quoteRate 
+        + contractSize * commissionFeeRate * baseRate
+        - swapRate * pipsize * contractSize * quoteRate / 10
+      )
   */
 
-  const diff = mathBigNum.multiply(
-    mathBigNum.multiply(
-      mathBigNum.abs(mathBigNum.subtract(stopLoss, openPrice)),
-      contractSize
-    ),
-    quoteRate
+  const diff = multiplyBig(multiplyBig(priceDiff, contractSize), quoteRate);
+  if (mathBigNum.equal(diff, 0)) {
+    return lotSize;
+  }
+
+  const commissionPart = multiplyBig(
+    multiplyBig(contractSize, commissionFeeRate),
+    baseRate
   );
 
-  let lotSize = mathBigNum.bignumber(0);
-  if (!mathBigNum.equal(diff, 0)) {
-    lotSize = mathBigNum.divide(
-      mathBigNum.add(maxLoss, swapFeeInAccBase),
-      mathBigNum.add(
-        diff,
-        mathBigNum.multiply(
-          mathBigNum.multiply(
-            mathBigNum.multiply(
-              mathBigNum.multiply(
-                mathBigNum.add(openPrice, stopLoss),
-                contractSize
-              ),
-              usdQuoteRate
-            ),
-            commissionFeeRate
-          ),
-          usdAccRate
-        )
-      )
-    ) as BigNumber;
-    lotSize = mathBigNum.round(lotSize, 2);
-  }
+  const swapPart = divideBig(
+    multiplyBig(
+      multiplyBig(multiplyBig(swapRate, pipSize), contractSize),
+      quoteRate
+    ),
+    10
+  );
+
+  const divisor = subtractBig(addBig(diff, commissionPart), swapPart);
+  if (mathBigNum.equal(divisor, 0)) return lotSize;
+
+  lotSize = divideBig(maxLoss, divisor);
+  lotSize = mathBigNum.floor(lotSize, lotPrecision);
 
   return lotSize;
 };
 
 const adjustLotSize = (
-  getRiskAmountFn: (lotSize: BigNumber) => BigNumber,
+  getRiskAmountFn: (lotSize: BigNumber) => {
+    riskAmount: BigNumber;
+    entryFee: BigNumber | undefined;
+    stopFee: BigNumber | undefined;
+    swapFee: BigNumber | undefined;
+  },
   maxLoss: BigNumber,
   lotSize: BigNumber,
   lotTyp: LotTyp
 ) => {
-  let riskAmount = getRiskAmountFn(lotSize);
   let units = [1, 0.1, 0.01, 0.001];
+  let riskAmount = mathBigNum.bignumber(0);
+  let entryFee: BigNumber | undefined;
+  let stopFee: BigNumber | undefined;
+  let swapFee: BigNumber | undefined;
 
   for (let i = 0; i <= lotTyp; i++) {
+    let isSmaller = false;
     let tempLotSize = lotSize;
+    const res = getRiskAmountFn(tempLotSize);
+    riskAmount = res.riskAmount;
+    entryFee = res.entryFee;
+    stopFee = res.stopFee;
+    swapFee = res.swapFee;
 
-    while (mathBigNum.equal(riskAmount, maxLoss)) {
+    while (!mathBigNum.equal(riskAmount, maxLoss)) {
       if (mathBigNum.larger(riskAmount, maxLoss)) {
+        if (isSmaller) break;
+
         tempLotSize = subtractBig(tempLotSize, units[i]);
       } else {
+        isSmaller = true;
+        tempLotSize = addBig(tempLotSize, units[i]);
+      }
+
+      const res = getRiskAmountFn(tempLotSize);
+      riskAmount = res.riskAmount;
+
+      if (mathBigNum.smallerEq(riskAmount, maxLoss)) {
+        lotSize = tempLotSize;
+        entryFee = res.entryFee;
+        stopFee = res.stopFee;
+        swapFee = res.swapFee;
       }
     }
   }
-};
 
-const adjustLotSizeWithLotBasedCommission = (
-  lotSize: BigNumber,
-  commissionFee: BigNumber,
-  contractSize: BigNumber,
-  priceDiff: BigNumber,
-  quoteRate: BigNumber,
-  swapFee: BigNumber,
-  maxLoss: BigNumber
-) => {
-  // fee = lotSize * commissionFee
-  let fee = multiplyBig(lotSize, commissionFee);
-
-  // riskAmount = lotSize * contractSize * priceDiff * quoteRate + swapFee + fee * 2
-  let riskAmount = addBig(
-    addBig(
-      multiplyBig(
-        multiplyBig(multiplyBig(lotSize, contractSize), priceDiff),
-        quoteRate
-      ),
-      multiplyBig(fee, 2)
-    ),
-    swapFee
-  );
-
-  // Adjust lot size
-  while (
-    mathBigNum.larger(riskAmount, maxLoss) &&
-    mathBigNum.larger(lotSize, 0)
-  ) {
-    lotSize = subtractBig(lotSize, 0.01);
-    fee = multiplyBig(lotSize, commissionFee);
-    riskAmount = mathBigNum.add(
-      mathBigNum.add(
-        mathBigNum.multiply(
-          mathBigNum.multiply(lotSize, contractSize),
-          priceDiff
-        ),
-        mathBigNum.multiply(fee, 2)
-      ),
-      swapFeeInAccBase
-    ) as BigNumber;
-  }
+  return { lotSize, riskAmount, entryFee, stopFee, swapFee };
 };
