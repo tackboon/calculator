@@ -14,7 +14,7 @@ export function convertToLocaleString(
     if (num.isNaN() || mathBigNum.equal(num, 0)) return "0";
 
     num = mathBigNum.round(num, max);
-    const s = num.toString();
+    const s = num.toFixed();
     let [i, dRaw = ""] = s.split(".");
 
     if (max === 0) return i;

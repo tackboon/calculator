@@ -1,6 +1,10 @@
 import { create, all, BigNumber } from "mathjs";
 
-export const mathBigNum = create(all, { number: "BigNumber", precision: 64 });
+export const mathBigNum = create(all, {
+  number: "BigNumber",
+  numberFallback: "BigNumber",
+  precision: 64,
+});
 
 export const addBig = (x: BigNumber | number, y: BigNumber | number) => {
   return mathBigNum.add(x, y) as BigNumber;

@@ -6,6 +6,7 @@ import {
   parseBigNumberFromString,
 } from "../../../common/number/number";
 import { mathBigNum } from "../../../common/number/math";
+import { BigNumber } from "mathjs";
 
 type NumberInputProps = {
   preUnit?: string;
@@ -30,7 +31,7 @@ const evalInput = (
     input = input.replace(/(\d*\.\d*)\./g, "$1");
 
     // Evaluate equation
-    const res = mathBigNum.evaluate(input.replace(/,/g, ""));
+    const res = mathBigNum.evaluate(input.replace(/,/g, "")) as BigNumber;
     if (res) {
       return convertToLocaleString(res, minDecimalPlace, maxDecimalPlace);
     } else if (res === 0) {
@@ -63,7 +64,11 @@ const NumberInput: FC<NumberInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select(); // Select all content on focus
+    // Fix multiple dot entries (1.2.34 => 1.234)
+    e.target.value = e.target.value.replace(/,/g, "");
+
+    // Select all content on focus
+    e.target.select();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +90,7 @@ const NumberInput: FC<NumberInputProps> = ({
       minDecimalPlace,
       maxDecimalPlace
     );
+
     if (onChangeHandler) onChangeHandler(e.target.value);
     if (onBlur) onBlur(e);
   };

@@ -543,6 +543,32 @@ export const calculateResult = (
                 openPrice,
                 divideBig(minProfit, multiplyBig(positionSize, profitQuoteRate))
               );
+
+          // Construct get profit function
+          const getProfitAmountFn = (profitPrice: BigNumber) => {
+            // profitAmount = abs(profitPrice - entryPrice) * positionSize * quoteRate
+            const profitAmount = multiplyBig(
+              multiplyBig(
+                absBig(subtractBig(profitPrice, openPrice)),
+                positionSize
+              ),
+              profitQuoteRate
+            );
+
+            return {
+              profitAmount,
+              profitFee: mathBigNum.bignumber(0),
+              swapFee: mathBigNum.bignumber(0),
+            };
+          };
+
+          // Adjust profit price
+          adjustProfitPrice(
+            getProfitAmountFn,
+            minProfit,
+            profitPrice,
+            input.isLong
+          );
         } else {
           /*
             minProfit = isLong ? 
@@ -563,6 +589,32 @@ export const calculateResult = (
                 multiplyBig(openPrice, positionSize),
                 addBig(positionSize, minProfit)
               );
+
+          // Construct get profit function
+          const getProfitAmountFn = (profitPrice: BigNumber) => {
+            // profitAmount = abs(profitPrice - entryPrice) * positionSize / profitPrice
+            const profitAmount = divideBig(
+              multiplyBig(
+                absBig(subtractBig(profitPrice, openPrice)),
+                positionSize
+              ),
+              profitPrice
+            );
+
+            return {
+              profitAmount,
+              profitFee: mathBigNum.bignumber(0),
+              swapFee: mathBigNum.bignumber(0),
+            };
+          };
+
+          // Adjust profit price
+          adjustProfitPrice(
+            getProfitAmountFn,
+            minProfit,
+            profitPrice,
+            input.isLong
+          );
         }
       }
     }
