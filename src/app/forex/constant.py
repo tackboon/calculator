@@ -33,10 +33,11 @@ DEFAULT_CURRENCIES = {
 }
 
 DEFAULT_COMMODITIES = {
+  "HG": "Copper",
   "XAG": "Silver",
   "XAU": "Gold",
   "XPD": "Palladium",
-  "HG": "Copper"
+  "XPT": "Platinum"
 }
 
 DEFAULT_CURRENCY_PAIRS = [

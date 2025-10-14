@@ -7,7 +7,7 @@ const useCommodityRates = () => {
 
   useEffect(() => {
     // Get commodity rates
-    const symbols = ["XAU", "XAG"];
+    const symbols = ["XAU", "XAG", "XPD", "XPT"];
     dispatch(getCommodityRates(symbols));
   }, [dispatch]);
 };

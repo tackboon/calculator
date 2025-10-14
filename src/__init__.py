@@ -12,7 +12,7 @@ from src.app.user.repository import Repository as AuthRepo
 from src.config import config
 from src.extensions import (
   app_logger, auth_service, db_service, email_service, ip_service, redis_service,
-  frank_further_service, gold_api_service
+  frank_further_service, gold_api_service, gold_api_io_service
 )
 from src.middleware.access_log import AccessLogMiddleware
 from src.middleware.error import ErrorMiddleware
@@ -94,7 +94,7 @@ def create_app():
         url_prefix="/app/api/v1/auth"
       )
       api.register_blueprint(
-        init_forex_app(config, redis_service, frank_further_service, gold_api_service),
+        init_forex_app(config, redis_service, frank_further_service, gold_api_service, gold_api_io_service),
         url_prefix="/app/api/v1/forex"
       )
     case "http_internal":

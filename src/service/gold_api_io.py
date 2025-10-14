@@ -1,6 +1,5 @@
 import requests
 
-from datetime import datetime
 from dataclasses import dataclass
 from typing import Optional
 
@@ -13,48 +12,43 @@ class CommodityPriceResp:
   Data class representing commodity price response.
   """
 
-  name: str
   price: float
-  symbol: str
-  updated_at: int
+  metal: str
+  timestamp: int
 
 
-class GoldAPIServicer:
-  def __init__(self, log_path: str):
+class GoldAPIIOServicer:
+  def __init__(self, log_path: str, access_token: str):
     """
-    Initialize the gold-api.com service to get commodities price.
+    Initialize the goldapi.io service to get commodities price.
     """
 
-    self.basic_url = "https://api.gold-api.com"
+    self.basic_url = "https://www.goldapi.io"
+    self.access_token = access_token
 
     # Configure the logger with a JSON format for logging error
-    self.logger = create_logger("gold-api", "info", log_path, 
+    self.logger = create_logger("goldapi", "info", log_path, 
                                 BasicJSONFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
 
-  def get_commodities_price(self, symbol: str) -> Optional[CommodityPriceResp]:
+  def get_commodities_price(self, symbol: str, currency: str) -> Optional[CommodityPriceResp]:
     """
     Get commodity price based on the given symbol.
     """
 
-    url = f"{self.basic_url}/price/{symbol}"
+    url = f"{self.basic_url}/api/{symbol}/{currency}"
+    headers = {"x-access-token": self.access_token}
 
     # Send Get request with parameters
-    response = requests.get(url, timeout=10) # 10s timeout
+    response = requests.get(url, headers=headers, timeout=10) # 10s timeout
 
     # Handle response
     if response.status_code == 200:
       json_resp: dict = response.json()
 
-      updated_at = 0
-      update_time = json_resp.get("updatedAt", 0)
-      if update_time is not None:
-        updated_at = int(datetime.strptime(update_time, "%Y-%m-%dT%H:%M:%SZ").timestamp())
-
       return CommodityPriceResp(
-        name=json_resp.get("name", ""),
         price=json_resp.get("price", 0),
-        symbol=json_resp.get("symbol", ""),
-        updated_at=updated_at
+        metal=json_resp.get("metal", ""),
+        timestamp=json_resp.get("timestamp", 0)
       )
     
     self.logger.error(

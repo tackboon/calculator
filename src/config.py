@@ -13,6 +13,7 @@ class Config:
   cookie_domain: str # Auth cookies's domain
   cookie_samesite: str # Auth cookie's samesite
   debug_mode: bool
+  gold_api_io_token: str # Access token for goldapi.io
   log_base_dir: str # Log base directory
   log_level: str # Log level
   db_uri: str # Database connection URI
@@ -31,6 +32,7 @@ config = Config(
   cookie_domain = os.getenv("COOKIE_DOMAIN", ""),
   cookie_samesite = os.getenv("COOKIE_SAMESITE", "Lax"),
   debug_mode = os.getenv("FLASK_DEBUG", "1") == "1",
+  gold_api_io_token = os.getenv("GOLD_API_IO_TOKEN", ""),
   log_base_dir = os.getenv("LOG_BASE", ""),
   log_level = os.getenv("LOG_LEVEL", "DEBUG"),
   db_uri = os.getenv("DATABASE_URI", ""),
