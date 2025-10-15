@@ -368,6 +368,7 @@ export const calculateResult = (
         input.lotTyp,
         contractSize,
         stopPriceDiff,
+        openBaseRate,
         stopBaseRate,
         stopQuoteRate,
         swapRate,
@@ -553,39 +554,48 @@ export const calculateResult = (
                 :
                 (entryPrice - profitPrice) * positionSize / profitPrice
                 - 2 * entryFee
-                + swapRate * pipSize * positionSize / (10 * profitPrice)
-
-              minProfit + 2 * entryFee = 
-                (profitPrice * positionSize - entryPrice * positionSize) / profitPrice
-                + swapRate * pipSize * positionSize / (10 * profitPrice)
-
-              minProfit + 2 * entryFee = 
-                (
-                  profitPrice * positionSize - entryPrice * positionSize
-                  + swapRate * pipSize * positionSize / 10
-                ) / profitPrice
-                
-              profitPrice * minProfit + 2 * entryFee * profitPrice - profitPrice * positionSize = 
-                swapRate * pipSize * positionSize / 10
-                - entryPrice * positionSize
-              
-              
+                + swapRate * pipSize * positionSize / (10 * profitPrice)            
 
               profitPrice = isLong ?
-                entryPrice * positionSize / (positionSize - minProfit) :
-                entryPrice * positionSize / (positionSize + minProfit)
+                (positionSize * (swapRate * pipSize / 10 - entryPrice)) / (minProfit + 2 * entryFee - positionSize) :
+                (positionSize * (swapRate * pipSize / 10 + entryPrice)) / (minProfit + 2 * entryFee + positionSize)
             */
           }
         } else {
-        }
+          if (profitQuoteRate !== undefined) {
+            if (profitBaseRate !== undefined) {
+              /*
+                minProfit = isLong ? 
+                  (profitPrice - entryPrice) * positionSize * quoteRate
+                  - entryFee
+                  - position_size * (fee / 100,000) * exitBaseRate
+                  + swapRate * pipSize * positionSize * quoteRate / 10 
+                  :
+                  (entryPrice - profitPrice) * positionSize * quoteRate
+                  - entryFee
+                  - position_size * (fee / 100,000) * exitBaseRate
+                  + swapRate * pipSize * positionSize * quoteRate / 10  
 
-        if (profitQuoteRate !== undefined) {
-          if (profitBaseRate !== undefined) {
+                
+
+
+                profitPrice = isLong ?
+                  entryPrice + (
+                    minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
+                    / (positionSize * quoteRate)
+                  )
+                  :
+                  entryPrice - (
+                    minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
+                    / (positionSize * quoteRate)
+                  )
+              */
+            } else {
+            }
           } else {
-          }
-        } else {
-          if (profitBaseRate !== undefined) {
-          } else {
+            if (profitBaseRate !== undefined) {
+            } else {
+            }
           }
         }
       } else {
@@ -701,29 +711,6 @@ export const calculateResult = (
   );
 };
 
-const calcLotSize = (
-  maxLoss: BigNumber,
-  lotPrecision: number,
-  contractSize: BigNumber,
-  quoteRate: BigNumber,
-  priceDiff: BigNumber
-) => {
-  let lotSize = mathBigNum.bignumber(0);
-
-  /* 
-    maxLoss = priceDiff * lotSize * contractSize * quoteRate
-    lotSize = maxLoss / (priceDiff * contractSize * quoteRate)
-  */
-  const diff = multiplyBig(multiplyBig(priceDiff, quoteRate), contractSize);
-  if (mathBigNum.equal(diff, 0)) {
-    return lotSize;
-  }
-  lotSize = divideBig(maxLoss, diff);
-  lotSize = mathBigNum.floor(lotSize, lotPrecision);
-
-  return lotSize;
-};
-
 const calcSwapFee = (
   swapRate: BigNumber,
   pipSize: number,
@@ -746,6 +733,29 @@ const calcSwapFee = (
   swapFee = mathBigNum.round(swapFee, precision);
 
   return swapFee;
+};
+
+const calcLotSize = (
+  maxLoss: BigNumber,
+  lotPrecision: number,
+  contractSize: BigNumber,
+  quoteRate: BigNumber,
+  priceDiff: BigNumber
+) => {
+  let lotSize = mathBigNum.bignumber(0);
+
+  /* 
+    maxLoss = priceDiff * lotSize * contractSize * quoteRate
+    lotSize = maxLoss / (priceDiff * contractSize * quoteRate)
+  */
+  const diff = multiplyBig(multiplyBig(priceDiff, quoteRate), contractSize);
+  if (mathBigNum.equal(diff, 0)) {
+    return lotSize;
+  }
+  lotSize = divideBig(maxLoss, diff);
+  lotSize = mathBigNum.floor(lotSize, lotPrecision);
+
+  return lotSize;
 };
 
 const calcLotSizeWithLotBasedCommission = (
@@ -800,7 +810,8 @@ const calcLotSizeWith100KBasedCommission = (
   lotPrecision: number,
   contractSize: BigNumber,
   priceDiff: BigNumber,
-  baseRate: BigNumber,
+  entryBaseRate: BigNumber,
+  exitBaseRate: BigNumber,
   quoteRate: BigNumber,
   swapRate: BigNumber,
   commissionFeeRate: BigNumber,
@@ -812,13 +823,13 @@ const calcLotSizeWith100KBasedCommission = (
     maxLoss = 
       priceDiff * lotSize * contractSize * quoteRate
       - swapRate * pipSize * lotSize * contractSize * quoteRate / 10
-      + lotSize * contractSize * commissionFeeRate * baseRate
+      + lotSize * contractSize * commissionFeeRate * (entryBaseRate + exitBaseRate)
 
     lotSize = 
       maxLoss /
       (
         priceDiff * contractSize * quoteRate 
-        + contractSize * commissionFeeRate * baseRate
+        + contractSize * commissionFeeRate * (entryBaseRate + exitBaseRate)
         - swapRate * pipsize * contractSize * quoteRate / 10
       )
   */
@@ -830,7 +841,7 @@ const calcLotSizeWith100KBasedCommission = (
 
   const commissionPart = multiplyBig(
     multiplyBig(contractSize, commissionFeeRate),
-    baseRate
+    addBig(entryBaseRate, exitBaseRate)
   );
 
   const swapPart = divideBig(
@@ -882,11 +893,20 @@ const adjustLotSize = (
     let isSmaller = false;
     let tempLotSize = lotSize;
     let tempRiskAmount = riskAmount;
+    let j = 0;
 
     while (
       !mathBigNum.equal(tempRiskAmount, maxLoss) &&
       mathBigNum.larger(tempLotSize, 0)
     ) {
+      if (j >= 10000) {
+        console.warn(
+          `Max iterations reached (fn=forex_quantity, precision=${units[i]})`
+        );
+        break;
+      }
+      j++;
+
       if (mathBigNum.larger(riskAmount, maxLoss)) {
         if (isSmaller) break;
 
@@ -941,11 +961,20 @@ const adjustProfitPrice = (
     let isLarger = false;
     let tempProfitPrice = profitPrice;
     let tempProfitAmt = profitAmount;
+    let j = 0;
 
     while (
       !mathBigNum.equal(tempProfitAmt, minProfit) &&
       mathBigNum.larger(tempProfitPrice, 0)
     ) {
+      if (j >= 10000) {
+        console.warn(
+          `Max iterations reached (fn=forex_profit, precision=${units[i]})`
+        );
+        break;
+      }
+      j++;
+
       if (mathBigNum.larger(tempProfitAmt, minProfit)) {
         isLarger = true;
         tempProfitPrice = isLong

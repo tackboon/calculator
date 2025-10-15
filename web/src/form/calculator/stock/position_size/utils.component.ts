@@ -735,11 +735,20 @@ const adjustQuantity = (
   );
   let tempQuantity = quantity;
   let isSmaller = false;
+  let j = 0;
 
   while (
     !mathBigNum.equal(lossAmt, maxLoss) &&
     mathBigNum.larger(tempQuantity, 0)
   ) {
+    if (j >= 10000) {
+      console.warn(
+        `Max iterations reached (fn=stock_quantity, precision=${precision})`
+      );
+      return mathBigNum.bignumber(0);
+    }
+    j++;
+
     if (mathBigNum.larger(lossAmt, maxLoss)) {
       if (isSmaller) break;
       tempQuantity = subtractBig(tempQuantity, unit);
@@ -805,11 +814,23 @@ const adjustProfitPrice = (
     let isLarger = false;
     let tempProfitPrice = profitPrice;
     let tempProfitAmt = profitAmt;
+    let j = 0;
 
     while (
       !mathBigNum.equal(tempProfitAmt, minProfit) &&
       mathBigNum.larger(tempProfitPrice, 0)
     ) {
+      if (j >= 10000) {
+        console.warn(
+          `Max iterations reached (fn=stock_profit, precision=${units[i]})`
+        );
+        return {
+          exitPrice: mathBigNum.bignumber(0),
+          exitFee: mathBigNum.bignumber(0),
+        };
+      }
+      j++;
+
       if (mathBigNum.smaller(tempProfitAmt, minProfit)) {
         if (isLarger) break;
 
