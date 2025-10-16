@@ -535,16 +535,93 @@ export const calculateResult = (
                 + swapRate * pipSize * positionSize * quoteRate / 10  
 
               profitPrice = isLong ?
-                entryPrice + (
-                  minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
-                  / (positionSize * quoteRate)
-                )
+                entryPrice
+                + (minProfit + 2 * entryFee) / (positionSize * quoteRate)
+                - swapRate * pipSize / 10
                 :
-                entryPrice - (
-                  minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
-                  / (positionSize * quoteRate)
-                )
+                entryPrice 
+                - (minProfit + 2 * entryFee) / (positionSize * quoteRate)
+                + swapRate * pipSize / 10
             */
+
+            if (
+              !mathBigNum.equal(positionSize, 0) &&
+              !mathBigNum.equal(profitQuoteRate, 0)
+            ) {
+              profitPrice = input.isLong
+                ? subtractBig(
+                    addBig(
+                      openPrice,
+                      divideBig(
+                        addBig(minProfit, multiplyBig(entryFee, 2)),
+                        multiplyBig(positionSize, profitQuoteRate)
+                      )
+                    ),
+                    divideBig(multiplyBig(swapRate, input.pipSize), 10)
+                  )
+                : addBig(
+                    subtractBig(
+                      openPrice,
+                      divideBig(
+                        addBig(minProfit, multiplyBig(entryFee, 2)),
+                        multiplyBig(positionSize, profitQuoteRate)
+                      )
+                    ),
+                    divideBig(multiplyBig(swapRate, input.pipSize), 10)
+                  );
+
+              const getProfitAmountFn = (profitPrice: BigNumber) => {
+                if (profitQuoteRate === undefined)
+                  return {
+                    profitAmt: mathBigNum.bignumber(0),
+                    profitFee: mathBigNum.bignumber(0),
+                    swapFee: mathBigNum.bignumber(0),
+                  };
+
+                const profitFee = entryFee;
+                const swapFee = calcSwapFee(
+                  swapRate,
+                  input.pipSize,
+                  lotSize,
+                  contractSize,
+                  profitQuoteRate,
+                  input.precision
+                );
+
+                // profitAmt = abs(profitPrice - entryPrice) * positionSize * quoteRate - entryFee - profitFee - swapFee
+                const profitAmt = subtractBig(
+                  subtractBig(
+                    subtractBig(
+                      multiplyBig(
+                        multiplyBig(
+                          mathBigNum.abs(subtractBig(profitPrice, openPrice)),
+                          positionSize
+                        ),
+                        profitQuoteRate
+                      ),
+                      entryFee
+                    ),
+                    profitFee
+                  ),
+                  swapFee
+                );
+
+                return { profitAmt, profitFee, swapFee };
+              };
+
+              adjustProfitPrice(
+                getProfitAmountFn,
+                minProfit,
+                profitPrice,
+                input.isLong
+              );
+            } else {
+              profitPrice = mathBigNum.bignumber(0);
+              profitPip = mathBigNum.bignumber(0);
+              profitAmount = mathBigNum.bignumber(0);
+              profitFee = mathBigNum.bignumber(0);
+              profitSwapFee = mathBigNum.bignumber(0);
+            }
           } else {
             /*
               minProfit = isLong ? 
@@ -562,46 +639,141 @@ export const calculateResult = (
             */
           }
         } else {
+          const commissionFeeRate = divideBig(commissionFee, 100000);
+
           if (profitQuoteRate !== undefined) {
             if (profitBaseRate !== undefined) {
               /*
                 minProfit = isLong ? 
                   (profitPrice - entryPrice) * positionSize * quoteRate
                   - entryFee
-                  - position_size * (fee / 100,000) * exitBaseRate
+                  - positionSize * commissionFeeRate * exitBaseRate
                   + swapRate * pipSize * positionSize * quoteRate / 10 
                   :
                   (entryPrice - profitPrice) * positionSize * quoteRate
                   - entryFee
-                  - position_size * (fee / 100,000) * exitBaseRate
+                  - positionSize * commissionFeeRate * exitBaseRate
                   + swapRate * pipSize * positionSize * quoteRate / 10  
 
-                minProfit + entryFee + position_size * (fee / 100,000) * exitBaseRate
-                - swapRate * pipSize * positionSize * quoteRate / 10
-                + entryPrice * positionSize * quoteRate = profitPrice * positionSize * quoteRate
-
-                profitPrice = 
-                  (minProfit + entryFee 
-                  + positionSize * (fee / 100,000) * exitBaseRate
-                  - swapRate * pipSize * positionSize * quoteRate / 10
-                  + entryPrice * positionSize * quoteRate) / (positionSize * quoteRate)
-
-
                 profitPrice = isLong ?
-                  entryPrice + (
-                    minProfit + entryFee + positionSize * (fee / 100,000)
-                  )
+                  entryPrice 
+                  + (minProfit + entryFee) / (positionSize * quoteRate)
+                  + commissionFeeRate * exitBaseRate / quoteRate
+                  - swapRate * pipSize / 10
                   :
-                  entryPrice - (
-                    minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
-                    / (positionSize * quoteRate)
-                  )
+                  entryPrice 
+                  - (minProfit + entryFee) / (positionSize * quoteRate)
+                  - commissionFeeRate * exitBaseRate / quoteRate
+                  + swapRate * pipSize / 10
               */
             } else {
+              /*
+                minProfit = isLong ? 
+                  (profitPrice - entryPrice) * positionSize * quoteRate
+                  - entryFee
+                  - positionSize * commissionFeeRate * profitPrice
+                  + swapRate * pipSize * positionSize * quoteRate / 10 
+                  :
+                  (entryPrice - profitPrice) * positionSize * quoteRate
+                  - entryFee
+                  - positionSize * commissionFeeRate * profitPrice
+                  + swapRate * pipSize * positionSize * quoteRate / 10
+
+                profitPrice = isLong ?
+                  (
+                    positionSize * (
+                      entryPrice * quoteRate
+                      - swapRate * pipSize * quoteRate / 10 
+                    )
+                    + minProfit 
+                    + entryFee 
+                  ) / (
+                    positionSize * (quoteRate - commissionFeeRate)
+                  )
+                  :
+                  (
+                    positionSize * (
+                      entryPrice * quoteRate
+                      + swapRate * pipSize * quoteRate / 10 
+                    )
+                    - minProfit 
+                    - entryFee 
+                  ) / (
+                    positionSize * (quoteRate + commissionFeeRate)
+                  )
+              */
             }
           } else {
             if (profitBaseRate !== undefined) {
+              /*
+                minProfit = isLong ? 
+                  (profitPrice - entryPrice) * positionSize / profitPrice
+                  - entryFee
+                  - positionSize * commissionFeeRate * exitBaseRate
+                  + swapRate * pipSize * positionSize / (10 * profitPrice) 
+                  :
+                  (entryPrice - profitPrice) * positionSize / profitPrice
+                  - entryFee
+                  - positionSize * commissionFeeRate * exitBaseRate
+                  + swapRate * pipSize * positionSize / (10 * profitPrice)  
+
+                profitPrice = isLong ?
+                  positionSize * (swapRate * pipSize / 10 - entryPrice) / (
+                    minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate - 1)
+                  )
+                  :
+                  positionSize * (swapRate * pipSize / 10 + entryPrice) / (
+                    minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate + 1)
+                  )
+              */
             } else {
+              /*
+                minProfit = isLong ? 
+                  (profitPrice - entryPrice) * positionSize / profitPrice
+                  - entryFee
+                  - positionSize * commissionFeeRate * profitPrice
+                  + swapRate * pipSize * positionSize / (10 * profitPrice) 
+                  :
+                  (entryPrice - profitPrice) * positionSize / profitPrice
+                  - entryFee
+                  - positionSize * commissionFeeRate * profitPrice
+                  + swapRate * pipSize * positionSize / (10 * profitPrice)  
+
+                profitPrice = isLong ?
+                  minPositiveProfitAmt(
+                    (
+                      positionSize - minProfit - entryFee + sqrt(
+                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipSize / 10)
+                      )
+                    ) / (
+                      2 * positionSize * commissionFeeRate 
+                    ),
+                    (
+                      positionSize - minProfit - entryFee - sqrt(
+                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipSize / 10)
+                      )
+                    ) / (
+                      2 * positionSize * commissionFeeRate 
+                    )
+                  )
+                  :
+                  minPositiveProfitAmt(
+                    (
+                      -positionSize - minProfit - entryFee + sqrt(
+                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                      )
+                    ) / (
+                      2 * positionSize * commissionFeeRate 
+                    ),
+                    (
+                      -positionSize - minProfit - entryFee - sqrt(
+                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                      )
+                    ) / (
+                      2 * positionSize * commissionFeeRate 
+                    )
+                  )
+              */
             }
           }
         }
@@ -650,12 +822,16 @@ export const calculateResult = (
           };
 
           // Adjust profit price
-          adjustProfitPrice(
+          const adjustedRes = adjustProfitPrice(
             getProfitAmountFn,
             minProfit,
             profitPrice,
             input.isLong
           );
+          profitPrice = adjustedRes.profitPrice;
+          profitFee = adjustedRes.profitFee;
+          profitSwapFee = adjustedRes.swapFee;
+          profitAmount = adjustedRes.profitAmount;
         } else {
           /*
             minProfit = isLong ? 
@@ -696,12 +872,16 @@ export const calculateResult = (
           };
 
           // Adjust profit price
-          adjustProfitPrice(
+          const adjustedRes = adjustProfitPrice(
             getProfitAmountFn,
             minProfit,
             profitPrice,
             input.isLong
           );
+          profitPrice = adjustedRes.profitPrice;
+          profitFee = adjustedRes.profitFee;
+          profitSwapFee = adjustedRes.swapFee;
+          profitAmount = adjustedRes.profitAmount;
         }
       }
     }
@@ -712,8 +892,12 @@ export const calculateResult = (
     lot_size: ${lotSize.toString()},
     entry_fee: ${entryFee?.toString()},
     stop_fee: ${stopFee?.toString()},
-    swap_fee: ${stopSwapFee?.toString()},
-    risk_amount: ${riskAmount.toString()}
+    stop_swap_fee: ${stopSwapFee?.toString()},
+    risk_amount: ${riskAmount.toString()},
+    profit_price: ${profitPrice?.toString()},
+    profit_fee: ${profitFee?.toString()},
+    profit_swap_fee: ${profitSwapFee?.toString()},
+    profit_amount: ${profitAmount?.toString()} 
     `
   );
 };
