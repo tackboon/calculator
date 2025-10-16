@@ -576,13 +576,20 @@ export const calculateResult = (
                   - position_size * (fee / 100,000) * exitBaseRate
                   + swapRate * pipSize * positionSize * quoteRate / 10  
 
-                
+                minProfit + entryFee + position_size * (fee / 100,000) * exitBaseRate
+                - swapRate * pipSize * positionSize * quoteRate / 10
+                + entryPrice * positionSize * quoteRate = profitPrice * positionSize * quoteRate
+
+                profitPrice = 
+                  (minProfit + entryFee 
+                  + positionSize * (fee / 100,000) * exitBaseRate
+                  - swapRate * pipSize * positionSize * quoteRate / 10
+                  + entryPrice * positionSize * quoteRate) / (positionSize * quoteRate)
 
 
                 profitPrice = isLong ?
                   entryPrice + (
-                    minProfit + 2 * entryFee - swapRate * pipSize * positionSize * quoteRate / 10) 
-                    / (positionSize * quoteRate)
+                    minProfit + entryFee + positionSize * (fee / 100,000)
                   )
                   :
                   entryPrice - (
