@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useSpring, animated } from "@react-spring/web";
 
 import styles from "../forex_calculator_form.module.scss";
@@ -39,6 +39,11 @@ import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
 import LotTypSelectBox, {
   LotTyp,
 } from "../../../../component/forex/lot_typ_input_box/lot_typ.component";
+import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
+import Container from "../../../../component/common/container/container.component";
+import { convertToLocaleString } from "../../../../common/number/number";
+import { convertRatioToString } from "../../../../common/common";
+import { absBig, mathBigNum } from "../../../../common/number/math";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -51,7 +56,7 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   baseCrossRate: "1.00",
   quotePair: "",
   quoteCrossRate: "1.00",
-  openPrice: "0",
+  entryPrice: "0",
   stopLoss: "0",
   isStopLossPip: false,
   includeProfitGoal: false,
@@ -91,6 +96,13 @@ const ForexPositionSizeForm = () => {
   // Fetch commodity rates
   useCommodityRates();
 
+  // Scroll to result after it is updated
+  useEffect(() => {
+    if (result && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [result]);
+
   // Submit handler
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -102,9 +114,7 @@ const ForexPositionSizeForm = () => {
     if (err !== "") return;
 
     // Handle calculation
-    console.log(input);
-    calculateResult(input);
-    // setResult(calculateResult(input));
+    setResult(calculateResult(input));
   };
 
   const handleReset = (e: FormEvent) => {
@@ -368,9 +378,9 @@ const ForexPositionSizeForm = () => {
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
             minDecimalPlace={2}
             maxDecimalPlace={5}
-            value={input.openPrice}
+            value={input.entryPrice}
             onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, openPrice: val }))
+              setInput((prev) => ({ ...prev, entryPrice: val }))
             }
           />
         </div>
@@ -384,7 +394,7 @@ const ForexPositionSizeForm = () => {
             pipSize={input.pipSize}
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
             hintPrefix="Stop Loss Price: $"
-            price={input.openPrice}
+            price={input.entryPrice}
             isIncr={!input.isLong}
             resetSignal={resetSignal}
             onChange={stopLossOnChange}
@@ -454,7 +464,7 @@ const ForexPositionSizeForm = () => {
                     errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                   }
                   hintPrefix="Profit Goal Price: $"
-                  price={input.openPrice}
+                  price={input.entryPrice}
                   isIncr={input.isLong}
                   resetSignal={resetSignal}
                   onChange={profitGoalOnChange}
@@ -591,6 +601,247 @@ const ForexPositionSizeForm = () => {
         <Button className={styles["submit-btn"]} type="submit">
           Calculate
         </Button>
+      </div>
+
+      <div ref={resultRef}>
+        {result && (
+          <>
+            <div className={styles["precision-container"]}>
+              <label htmlFor="precision">Precision:</label>
+              <DefaultSelect
+                className={styles["select"]}
+                name="precision"
+                options={["0", "1", "2", "3", "4", "5"]}
+                defaultIndex={input.precision}
+                onChangeHandler={(idx) =>
+                  setInput((prev) => {
+                    const data = {
+                      ...prev,
+                      precision: idx,
+                    };
+
+                    setResult(calculateResult(data));
+                    return data;
+                  })
+                }
+              />
+            </div>
+            <Container
+              className={`${styles["result-container"]} ${styles["position-size"]}`}
+            >
+              <div className={styles["result-wrapper"]}>
+                <div className={styles["row"]}>
+                  <div>Open Price:</div>
+                  <div>${convertToLocaleString(result.entryPrice)}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Stop Price:</div>
+                  <div>${convertToLocaleString(result.stopPrice)}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Stop Loss (pips):</div>
+                  <div>
+                    {convertToLocaleString(result.stopPip, input.precision)}
+                  </div>
+                </div>
+
+                {result.profitPrice !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit Price:</div>
+                    <div>${convertToLocaleString(result.profitPrice)}</div>
+                  </div>
+                )}
+
+                {result.profitPip !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit (pips):</div>
+                    <div>
+                      {convertToLocaleString(result.profitPip, input.precision)}
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles["row"]}>
+                  <div>Lot Size:</div>
+                  <div>{convertToLocaleString(result.lotSize, 0)}</div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Position Size:</div>
+                  <div>{convertToLocaleString(result.positionSize, 0)}</div>
+                </div>
+
+                <br />
+
+                {result.entryFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Entry Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.entryFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.stopFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Stop Loss Execution Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.stopFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.stopSwapFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Swap @ Stop:</div>
+                    <div>
+                      {mathBigNum.largerEq(result.stopSwapFee, 0) ? "" : "-"}$
+                      {convertToLocaleString(
+                        absBig(result.stopSwapFee),
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.profitFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Profit-Taking Fee:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitFee,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.profitSwapFee !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Swap @ Take Profit:</div>
+                    <div>
+                      {mathBigNum.largerEq(result.profitSwapFee, 0) ? "" : "-"}$
+                      {convertToLocaleString(
+                        absBig(result.profitSwapFee),
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <br />
+
+                <div className={styles["row"]}>
+                  <div>Margin To Hold:</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.marginToHold,
+                      input.precision,
+                      input.precision
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Risk Amount:</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.riskAmount,
+                      input.precision,
+                      input.precision
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Portfolio Risk (%):</div>
+                  <div>
+                    {convertToLocaleString(
+                      result.portfolioRisk,
+                      input.precision,
+                      input.precision
+                    )}
+                    %
+                  </div>
+                </div>
+
+                {result.profitAmount !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Potential Profit:</div>
+                    <div>
+                      $
+                      {convertToLocaleString(
+                        result.profitAmount,
+                        input.precision,
+                        input.precision
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {result.portfolioProfit !== undefined && (
+                  <div className={styles["row"]}>
+                    <div>Potential Portfolio Return (%):</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.portfolioProfit,
+                        input.precision
+                      )}
+                      %
+                    </div>
+                  </div>
+                )}
+
+                {result.riskRewardRatio && (
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Risk/Reward Ratio:</div>
+                      <div>
+                        {convertRatioToString(
+                          result.riskRewardRatio,
+                          input.precision
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {result.breakEvenWinRate && (
+                  <div className={styles["row"]}>
+                    <div>Breakeven Win Rate:</div>
+                    <div>
+                      {convertToLocaleString(
+                        result.breakEvenWinRate,
+                        input.precision,
+                        input.precision
+                      )}
+                      %
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Container>
+          </>
+        )}
       </div>
     </form>
   );
