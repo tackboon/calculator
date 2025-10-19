@@ -6,9 +6,22 @@
   .tab-nav-bar {
     position: relative;
 
+    &.is-select {
+      width: 100%;
+    }
+
     .tab-nav-bar-container {
       display: flex;
       justify-content: center;
+
+      &.is-select {
+        width: 100%;
+      }
+
+      .select-container {
+        margin-top: 24px;
+        width: calc(100% - 48px);
+      }
 
       .tab-nav-item {
         display: inline-flex;

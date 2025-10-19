@@ -5,14 +5,21 @@ import PricePercentageForm from "../../form/calculator/stock/price_percentage/pr
 import PositionSizeForm from "../../form/calculator/stock/position_size/position_size_form.component";
 import RiskAndProfitForm from "../../form/calculator/stock/risk_and_profit/risk_and_profit.component";
 import ForexPositionSizeForm from "../../form/calculator/forex/position_size/position_size_form.component";
+import { useCheckIsLargeView } from "../../common/screen/size";
 
 const CalculatorPage = () => {
+  const isLargeView = useCheckIsLargeView();
+
   return (
     <div className={styles["container"]}>
-      <TabLayout minChildWidth={90} maxChildWidth={168}>
+      <TabLayout minChildWidth={90} maxChildWidth={168} showSelectBox={false}>
         <TabContent name="Stock">
           <div className={styles["child-container"]}>
-            <TabLayout minChildWidth={93} maxChildWidth={155}>
+            <TabLayout
+              minChildWidth={93}
+              maxChildWidth={155}
+              showSelectBox={!isLargeView}
+            >
               <TabContent name="Profit / Loss">
                 <ProfitLossForm />
               </TabContent>
@@ -30,7 +37,11 @@ const CalculatorPage = () => {
         </TabContent>
         <TabContent name="Forex">
           <div className={styles["child-container"]}>
-            <TabLayout minChildWidth={93} maxChildWidth={168}>
+            <TabLayout
+              minChildWidth={93}
+              maxChildWidth={168}
+              showSelectBox={!isLargeView}
+            >
               <TabContent name="Profit / Loss">
                 <ProfitLossForm />
               </TabContent>
@@ -38,7 +49,10 @@ const CalculatorPage = () => {
                 <ForexPositionSizeForm />
               </TabContent>
               <TabContent name="Pip Calculator">Pip Calculator</TabContent>
-              <TabContent name="Margin Calculator">Margin Calculator</TabContent>
+              <TabContent name="Margin Calculator">
+                Margin Calculator
+              </TabContent>
+              <TabContent name="Swaps Calculator">Swaps Calculator</TabContent>
             </TabLayout>
           </div>
         </TabContent>

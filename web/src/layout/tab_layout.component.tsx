@@ -3,6 +3,7 @@ import { useSpring, animated } from "@react-spring/web";
 
 import styles from "./tab_layout.module.scss";
 import { useGetViewSize } from "../common/screen/size";
+import SelectBox from "../component/common/select_box/select_box.component";
 
 type TabContentProps = {
   name: string;
@@ -14,6 +15,7 @@ export const TabContent: FC<TabContentProps> = ({ children }) => {
 };
 
 type TabLayoutProps = {
+  showSelectBox: boolean;
   minChildWidth: number;
   maxChildWidth: number;
   children: ReactElement<TabContentProps>[];
@@ -34,6 +36,7 @@ const TabLayout: FC<TabLayoutProps> = ({
   children,
   minChildWidth,
   maxChildWidth,
+  showSelectBox,
 }) => {
   const viewSize = useGetViewSize();
   const [activeTab, setActiveTab] = useState(0);
@@ -57,22 +60,42 @@ const TabLayout: FC<TabLayoutProps> = ({
 
   return (
     <div className={styles["tab-container"]}>
-      <div className={styles["tab-nav-bar"]}>
-        <div className={styles["tab-nav-bar-container"]}>
-          {children.map((tab, index) => (
-            <div
-              className={`${styles["tab-nav-item"]} ${
-                index === activeTab ? styles["active"] : ""
-              }`}
-              style={{ width: tabWidth }}
-              key={index}
-              onClick={() => setActiveTab(index)}
-            >
-              {tab.props.name}
+      <div
+        className={`${styles["tab-nav-bar"]} ${
+          showSelectBox ? styles["is-select"] : ""
+        }`}
+      >
+        <div
+          className={`${styles["tab-nav-bar-container"]} ${
+            showSelectBox ? styles["is-select"] : ""
+          }`}
+        >
+          {showSelectBox ? (
+            <div className={styles["select-container"]}>
+              <SelectBox
+                defaultIndex={activeTab}
+                options={children.map((tab) => tab.props.name)}
+                onChangeHandler={(idx) => setActiveTab(idx)}
+              />
             </div>
-          ))}
+          ) : (
+            children.map((tab, index) => (
+              <div
+                className={`${styles["tab-nav-item"]} ${
+                  index === activeTab ? styles["active"] : ""
+                }`}
+                style={{ width: tabWidth }}
+                key={index}
+                onClick={() => setActiveTab(index)}
+              >
+                {tab.props.name}
+              </div>
+            ))
+          )}
         </div>
-        <animated.div className={styles["slider"]} style={sliderStyle} />
+        {!showSelectBox && (
+          <animated.div className={styles["slider"]} style={sliderStyle} />
+        )}
       </div>
 
       <animated.div
