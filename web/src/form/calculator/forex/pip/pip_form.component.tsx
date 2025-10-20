@@ -107,11 +107,9 @@ const ForexPipForm = () => {
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
       <p className={styles["description"]}>
-        This calculator helps you quickly determine the price increase or
-        decrease based on a given percentage. Simply enter the stock price and
-        percentage, and the calculator will return the price levels for both
-        upward and downward movements. This tool is useful for setting price
-        targets, stop-loss levels, and evaluating potential price changes.
+        This calculator helps you determine the pip value for your forex trades.
+        It calculates how much each pip movement is worth based on your position
+        size, currency pair, and account currency.
       </p>
 
       <div>

@@ -110,11 +110,9 @@ const ForexSwapForm = () => {
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
       <p className={styles["description"]}>
-        This calculator helps you quickly determine the price increase or
-        decrease based on a given percentage. Simply enter the stock price and
-        percentage, and the calculator will return the price levels for both
-        upward and downward movements. This tool is useful for setting price
-        targets, stop-loss levels, and evaluating potential price changes.
+        This calculator helps you determine the swap value for your forex
+        trades. It calculates the interest earned or paid for holding a position
+        overnight based on the swap rate, position size, and holding period.
       </p>
 
       <div>

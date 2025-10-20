@@ -116,11 +116,10 @@ const PositionSizeForm = () => {
       onSubmit={handleSubmit}
     >
       <p className={styles["description"]}>
-        This calculator helps you determine the optimal number of shares to
-        trade based on your risk tolerance. Use it to calculate the ideal
-        position size for effective risk management. Additionally, you can enter
-        a profit target, and the calculator will determine the exit price needed
-        to achieve your desired profit.
+        This calculator helps you determine the optimal trade size based on your
+        risk tolerance. It calculates the ideal position size for effective risk
+        management and can also estimate the exit price required to reach your
+        desired profit target.
       </p>
 
       <div className={styles["switch-wrapper"]}>

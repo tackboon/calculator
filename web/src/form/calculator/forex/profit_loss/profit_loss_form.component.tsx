@@ -151,11 +151,11 @@ const ProfitLossForm = () => {
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
       <p className={styles["description"]}>
-        This calculator helps you calculate the profit or loss from your trades.
-        It takes your entry price, exit price, and quantity of assets to compute
-        the total gain or loss along with the percentage change. You can use
-        this calculator to evaluate your trades, determine if revenue covers
-        costs, or plan for future trades.
+        This calculator helps you determine the profit or loss from your forex
+        trades. It calculates the total gain or loss in your account currency
+        and shows the pip difference between entry and exit prices — allowing
+        you to assess trade performance, verify returns, and plan future
+        positions effectively.
       </p>
 
       <div className={styles["switch-wrapper"]}>
@@ -586,7 +586,8 @@ const ProfitLossForm = () => {
                       absBig(result.grossGained),
                       input.precision,
                       input.precision
-                    )}
+                    )}{" "}
+                    {result.accBaseCurrency}
                   </div>
                 </div>
 
@@ -605,7 +606,8 @@ const ProfitLossForm = () => {
                         absBig(result.netGained),
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}

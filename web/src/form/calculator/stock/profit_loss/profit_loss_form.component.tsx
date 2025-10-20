@@ -82,11 +82,10 @@ const ForexProfitLossForm = () => {
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
       <p className={styles["description"]}>
-        This calculator helps you calculate the profit or loss from your trades.
-        It takes your entry price, exit price, and quantity of assets to compute
-        the total gain or loss along with the percentage change. You can use
-        this calculator to evaluate your trades, determine if revenue covers
-        costs, or plan for future trades.
+        This calculator helps you determine the profit or loss from your trades.
+        It calculates both the total gain or loss and the percentage change,
+        allowing you to assess trade performance, check if returns cover costs,
+        and plan future positions effectively.
       </p>
 
       <div className={styles["switch-wrapper"]}>

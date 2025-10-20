@@ -94,11 +94,11 @@ const RiskAndProfitForm = () => {
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
       <p className={styles["description"]}>
-        This calculator helps you to evaluate the total risk and potential
-        profit across multiple trades. By entering your orders along with
-        stop-loss and profit targets, this calculator provides an overview of
-        your portfolio's risk exposure and potential returns. It's a valuable
-        tool for managing risk and optimizing your trading strategy.
+        This calculator helps you assess your overall account risk and potential
+        profit across multiple trades. By entering each order with its stop-loss
+        and profit target, the tool calculates your total portfolio risk
+        exposure and expected returns — helping you manage risk and optimize
+        your trading strategy.
       </p>
 
       <div>

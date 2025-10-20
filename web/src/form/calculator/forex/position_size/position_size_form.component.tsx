@@ -201,11 +201,9 @@ const ForexPositionSizeForm = () => {
       onSubmit={handleSubmit}
     >
       <p className={styles["description"]}>
-        This calculator helps you to determine the optimal position size and
-        stop-loss price for your trades. By inputting parameters such as total
-        capital, maximum allowable loss, stop-loss percentage, profit ratio, and
-        trade-in price, the calculator computes position size, stop price, and
-        profit target for you.
+        This calculator helps you determine the optimal trade size based on your
+        risk tolerance. It calculates the ideal position size for effective risk
+        management and can also estimate the profit target based on your inputs.
       </p>
 
       <div className={styles["switch-wrapper"]}>
