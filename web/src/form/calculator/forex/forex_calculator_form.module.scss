@@ -28,7 +28,8 @@
     flex-direction: column;
     margin-bottom: 1.5rem;
 
-    label {
+    label,
+    .label {
       font-weight: bold;
       margin-bottom: 0.5rem;
       color: #333;
@@ -42,6 +43,15 @@
 
       &:focus {
         border-color: #007bff;
+      }
+    }
+
+    .checkbox-label {
+      cursor: pointer;
+      user-select: none;
+
+      &:active {
+        opacity: 0.8;
       }
     }
   }

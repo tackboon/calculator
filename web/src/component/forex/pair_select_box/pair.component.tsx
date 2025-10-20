@@ -4,14 +4,14 @@ import SelectBox from "../../common/select_box/select_box.component";
 import { SupportedAsset } from "../../../store/forex/forex.types";
 
 type PairSelectBoxProps = {
-  name?: string;
+  id: string;
   defaultIndex: number;
   supportedAssets: SupportedAsset;
   onChange: (pair: string) => void;
 };
 
 const PairSelectBox: FC<PairSelectBoxProps> = ({
-  name,
+  id,
   defaultIndex,
   supportedAssets,
   onChange,
@@ -20,7 +20,7 @@ const PairSelectBox: FC<PairSelectBoxProps> = ({
 
   return (
     <SelectBox
-      name={name}
+      id={id}
       options={assetOptions}
       defaultIndex={defaultIndex}
       onChangeHandler={(idx) => onChange(assetOptions[idx])}

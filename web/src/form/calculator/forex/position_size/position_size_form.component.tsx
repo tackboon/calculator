@@ -67,10 +67,10 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   includeTradingFee: false,
   feeTyp: FeeTyp.COMMISSION_PER_LOT,
   estTradingFee: "0",
-  swapFee: "0",
+  swapPerLot: "0",
   period: "0",
   leverage: 100,
-  pipSize: 0.0001,
+  pipDecimal: "0.0001",
   precision: 2,
 };
 
@@ -136,7 +136,8 @@ const ForexPositionSizeForm = () => {
       baseCrossRate: prev.baseCrossRate,
       quotePair: prev.quotePair,
       quoteCrossRate: prev.quoteCrossRate,
-      pipSize: prev.pipSize,
+      pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
+      contractSize: supportedAssets[prev.currencyPair].lot,
       precision: prev.precision,
       isStopLossPip: prev.isStopLossPip,
       isProfitPip: prev.isProfitPip,
@@ -148,7 +149,12 @@ const ForexPositionSizeForm = () => {
 
   const crossRateStyles = useSpring({
     height: calculateCrossHeight(input),
-    opacity: input.quotePair === "" ? 0 : 1,
+    opacity: calculateCrossHeight(input) === 0 ? 0 : 1,
+    overflow: "hidden",
+  });
+
+  const stopLossStyles = useSpring({
+    height: input.isStopLossPip ? 152 : 82,
     overflow: "hidden",
   });
 
@@ -189,7 +195,11 @@ const ForexPositionSizeForm = () => {
   );
 
   return (
-    <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
+    <form
+      id="forex-position"
+      className={styles["form-wrapper"]}
+      onSubmit={handleSubmit}
+    >
       <p className={styles["description"]}>
         This calculator helps you to determine the optimal position size and
         stop-loss price for your trades. By inputting parameters such as total
@@ -248,9 +258,9 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="acc-base-currency">Account Currency</label>
+          <span className={styles["label"]}>Account Currency</span>
           <CurrencySelectBox
-            name="acc-base-currency"
+            id="acc-base-currency"
             defaultIndex={9}
             supportedCurrencies={supportedCurrencies}
             onChange={(currency) => {
@@ -263,9 +273,9 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="currency-pair">Currency Pair</label>
+          <span className={styles["label"]}>Currency Pair</span>
           <PairSelectBox
-            name="currency-pair"
+            id="currency-pair"
             defaultIndex={23}
             supportedAssets={supportedAssets}
             onChange={(pair) => {
@@ -273,7 +283,7 @@ const ForexPositionSizeForm = () => {
                 const pairInfo = supportedAssets[pair];
                 return {
                   ...prev,
-                  pipSize: pairInfo.pip,
+                  pipDecimal: `${pairInfo.pip}`,
                   contractSize: pairInfo.lot,
                   currencyPair: pair,
                 };
@@ -285,11 +295,12 @@ const ForexPositionSizeForm = () => {
         <animated.div style={crossRateStyles}>
           <div className={styles["form-group"]}>
             <div className={styles["cross-rate-container"]}>
-              <label>Cross Rate</label>
+              <span className={styles["label"]}>Cross Rate</span>
 
               <CrossRateInput
                 accBaseCurrency={input.accBaseCurrency}
                 crossTyp="BASE"
+                mode="POSITION_SIZE"
                 isLoading={
                   isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
                   isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
@@ -298,8 +309,6 @@ const ForexPositionSizeForm = () => {
                   errorField === ERROR_FIELD_POSITION_SIZE.BASE_CROSS_RATE
                 }
                 pair={input.currencyPair}
-                includeTradingFee={input.includeTradingFee}
-                feeTyp={input.feeTyp}
                 currencyRate={currencyRates}
                 commodityRate={commodityRates}
                 onChange={baseCrossRateOnChange}
@@ -308,6 +317,7 @@ const ForexPositionSizeForm = () => {
               <CrossRateInput
                 accBaseCurrency={input.accBaseCurrency}
                 crossTyp="QUOTE"
+                mode="POSITION_SIZE"
                 isLoading={
                   isLoading[FOREX_LOADING_TYPES.GET_COMMODITY_RATE] &&
                   isLoading[FOREX_LOADING_TYPES.GET_CURRENCY_RATE]
@@ -316,8 +326,6 @@ const ForexPositionSizeForm = () => {
                   errorField === ERROR_FIELD_POSITION_SIZE.QUOTE_CROSS_RATE
                 }
                 pair={input.currencyPair}
-                includeTradingFee={input.includeTradingFee}
-                feeTyp={input.feeTyp}
                 currencyRate={currencyRates}
                 commodityRate={commodityRates}
                 onChange={quoteCrossRateOnChange}
@@ -327,9 +335,9 @@ const ForexPositionSizeForm = () => {
         </animated.div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="leverage">Leverage for Margin</label>
+          <span className={styles["label"]}>Leverage for Margin</span>
           <LeverageSelectBox
-            name="leverage"
+            id="leverage"
             defaultIndex={9}
             onChange={(leverage) => {
               setInput((prev) => ({
@@ -341,9 +349,9 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="lot-size">Lot Size</label>
+          <span className={styles["label"]}>Lot Type</span>
           <LotTypSelectBox
-            name="lot-size"
+            id="lot-size"
             defaultIndex={LotTyp.MICRO_LOT}
             onChange={(lotTyp) => {
               setInput((prev) => ({
@@ -370,10 +378,26 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
+          <label htmlFor="pip-decimal">Pip in Decimals</label>
+          <NumberInput
+            id="pip-decimal"
+            step={0.0001}
+            maxLength={10}
+            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.PIP_DECIMAL}
+            minDecimalPlace={0}
+            maxDecimalPlace={5}
+            value={input.pipDecimal}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, pipDecimal: val }))
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
           <label htmlFor="open-price">Open Price</label>
           <NumberInput
             id="open-price"
-            step={input.pipSize}
+            step={input.pipDecimal}
             preUnit="$"
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
             minDecimalPlace={2}
@@ -385,21 +409,23 @@ const ForexPositionSizeForm = () => {
           />
         </div>
 
-        <div className={styles["form-group"]}>
-          <label htmlFor="stop-loss">Stop Loss</label>
-          <PipInputBox
-            id="stop-loss"
-            defaultIsPip={false}
-            defaultValue={DEFAULT_INPUT.stopLoss}
-            pipSize={input.pipSize}
-            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
-            hintPrefix="Stop Loss Price: $"
-            price={input.entryPrice}
-            isIncr={!input.isLong}
-            resetSignal={resetSignal}
-            onChange={stopLossOnChange}
-          />
-        </div>
+        <animated.div style={stopLossStyles}>
+          <div className={styles["form-group"]}>
+            <label htmlFor="stop-loss">Stop Loss</label>
+            <PipInputBox
+              id="stop-loss"
+              defaultIsPip={false}
+              defaultValue={DEFAULT_INPUT.stopLoss}
+              pipDecimal={input.pipDecimal}
+              isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
+              hintPrefix="Stop Loss Price:"
+              price={input.entryPrice}
+              isIncr={!input.isLong}
+              resetSignal={resetSignal}
+              onChange={stopLossOnChange}
+            />
+          </div>
+        </animated.div>
 
         <div
           className={styles["form-group"]}
@@ -410,6 +436,7 @@ const ForexPositionSizeForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="profit-check"
               isCheck={input.includeProfitGoal}
               onCheck={() =>
                 setInput((prev) => ({
@@ -420,7 +447,19 @@ const ForexPositionSizeForm = () => {
                 }))
               }
             />
-            <span>Include Profit Goal</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeProfitGoal: !prev.includeProfitGoal,
+                  profitGoal: DEFAULT_INPUT.profitGoal,
+                  profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
+                }))
+              }
+            >
+              Include Profit Goal
+            </span>
           </div>
         </div>
 
@@ -428,9 +467,9 @@ const ForexPositionSizeForm = () => {
           {input.includeProfitGoal && (
             <>
               <div className={styles["form-group"]}>
-                <label htmlFor="profit-strategy">Profit Strategy</label>
+                <span className={styles["label"]}>Profit Strategy</span>
                 <SelectBox
-                  name="profit-strategy"
+                  id="profit-strategy"
                   options={["Price-Based", "Portfolio-Based"]}
                   defaultIndex={ProfitGoalTyp.PRICE_BASED}
                   onChangeHandler={(idx) => {
@@ -459,11 +498,11 @@ const ForexPositionSizeForm = () => {
                   id="profit-goal"
                   defaultIsPip={false}
                   defaultValue={DEFAULT_INPUT.profitGoal}
-                  pipSize={input.pipSize}
+                  pipDecimal={input.pipDecimal}
                   isInvalid={
                     errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                   }
-                  hintPrefix="Profit Goal Price: $"
+                  hintPrefix="Profit Goal Price:"
                   price={input.entryPrice}
                   isIncr={input.isLong}
                   resetSignal={resetSignal}
@@ -482,8 +521,9 @@ const ForexPositionSizeForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="fee-check"
               isCheck={input.includeTradingFee}
-              onCheck={() => {
+              onCheck={() =>
                 setInput((prev) => ({
                   ...prev,
                   includeTradingFee: !input.includeTradingFee,
@@ -491,10 +531,24 @@ const ForexPositionSizeForm = () => {
                   estTradingFee: "0",
                   swapFee: "0",
                   period: "0",
-                }));
-              }}
+                }))
+              }
             />
-            <span>Include Commission Fee</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !input.includeTradingFee,
+                  feeTyp: DEFAULT_INPUT.feeTyp,
+                  estTradingFee: "0",
+                  swapFee: "0",
+                  period: "0",
+                }))
+              }
+            >
+              Include Commission Fee
+            </span>
           </div>
         </div>
 
@@ -502,9 +556,9 @@ const ForexPositionSizeForm = () => {
           {input.includeTradingFee && (
             <>
               <div className={styles["form-group"]}>
-                <label htmlFor="fee-type">Fee Type</label>
+                <span className={styles[".label"]}>Fee Type</span>
                 <SelectBox
-                  name="fee-type"
+                  id="fee-type"
                   options={[
                     "Commission fee per lot per side",
                     "Commission fee per $100k traded per side",
@@ -548,21 +602,23 @@ const ForexPositionSizeForm = () => {
               </div>
 
               <div className={styles["form-group"]}>
-                <label htmlFor="swap-fee">
+                <label htmlFor="swap-per-lot">
                   Total Swap {input.isLong ? "Long" : "Short"} (
                   {getBaseAndQuote(input.currencyPair).quote})
                 </label>
 
                 <NumberInput
-                  id="swap-fee"
-                  step={0.1}
+                  id="swap-per-lot"
+                  step={0.01}
                   preUnit="$"
-                  isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SWAP_FEE}
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.SWAP_PER_LOT
+                  }
                   minDecimalPlace={2}
                   maxDecimalPlace={5}
-                  value={input.swapFee}
+                  value={input.swapPerLot}
                   onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, swapFee: val }))
+                    setInput((prev) => ({ ...prev, swapPerLot: val }))
                   }
                 />
               </div>
@@ -610,7 +666,7 @@ const ForexPositionSizeForm = () => {
               <label htmlFor="precision">Precision:</label>
               <DefaultSelect
                 className={styles["select"]}
-                name="precision"
+                id="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
                 defaultIndex={input.precision}
                 onChangeHandler={(idx) =>
@@ -673,20 +729,22 @@ const ForexPositionSizeForm = () => {
                   <div>{convertToLocaleString(result.positionSize, 0)}</div>
                 </div>
 
-                <br />
-
                 {result.entryFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Entry Fee:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.entryFee,
-                        input.precision,
-                        input.precision
-                      )}
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Entry Fee:</div>
+                      <div>
+                        $
+                        {convertToLocaleString(
+                          result.entryFee,
+                          input.precision,
+                          input.precision
+                        )}{" "}
+                        {result.accBaseCurrency}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {result.stopFee !== undefined && (
@@ -698,21 +756,23 @@ const ForexPositionSizeForm = () => {
                         result.stopFee,
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}
 
-                {result.stopSwapFee !== undefined && (
+                {result.stopSwap !== undefined && (
                   <div className={styles["row"]}>
                     <div>Swap @ Stop:</div>
                     <div>
-                      {mathBigNum.largerEq(result.stopSwapFee, 0) ? "" : "-"}$
+                      {mathBigNum.largerEq(result.stopSwap, 0) ? "" : "-"}$
                       {convertToLocaleString(
-                        absBig(result.stopSwapFee),
+                        absBig(result.stopSwap),
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}
@@ -726,21 +786,23 @@ const ForexPositionSizeForm = () => {
                         result.profitFee,
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}
 
-                {result.profitSwapFee !== undefined && (
+                {result.profitSwap !== undefined && (
                   <div className={styles["row"]}>
                     <div>Swap @ Take Profit:</div>
                     <div>
-                      {mathBigNum.largerEq(result.profitSwapFee, 0) ? "" : "-"}$
+                      {mathBigNum.largerEq(result.profitSwap, 0) ? "" : "-"}$
                       {convertToLocaleString(
-                        absBig(result.profitSwapFee),
+                        absBig(result.profitSwap),
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}
@@ -755,7 +817,8 @@ const ForexPositionSizeForm = () => {
                       result.marginToHold,
                       input.precision,
                       input.precision
-                    )}
+                    )}{" "}
+                    {result.accBaseCurrency}
                   </div>
                 </div>
 
@@ -767,7 +830,8 @@ const ForexPositionSizeForm = () => {
                       result.riskAmount,
                       input.precision,
                       input.precision
-                    )}
+                    )}{" "}
+                    {result.accBaseCurrency}
                   </div>
                 </div>
 
@@ -792,7 +856,8 @@ const ForexPositionSizeForm = () => {
                         result.profitAmount,
                         input.precision,
                         input.precision
-                      )}
+                      )}{" "}
+                      {result.accBaseCurrency}
                     </div>
                   </div>
                 )}

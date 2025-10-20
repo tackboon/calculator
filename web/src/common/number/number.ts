@@ -17,6 +17,9 @@ export function convertToLocaleString(
     const s = num.toFixed();
     let [i, dRaw = ""] = s.split(".");
 
+    // Format integer part with commas (en-US)
+    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
     if (max === 0) return i;
 
     let d = dRaw;
@@ -27,9 +30,6 @@ export function convertToLocaleString(
       const trimmed = dRaw.replace(/0+$/, "");
       d = trimmed.length < min ? dRaw.slice(0, min) : trimmed;
     }
-
-    // Format integer part with commas (en-US)
-    i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
     return d.length
       ? `${i}.${d}`
@@ -66,5 +66,10 @@ export const parseBigNumberFromString = (
     str = str.replace(/,/g, "");
   }
 
-  return mathBigNum.bignumber(str);
+  let out = mathBigNum.bignumber(0);
+  try {
+    out = mathBigNum.bignumber(str);
+  } catch {}
+
+  return out;
 };

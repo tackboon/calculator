@@ -3,6 +3,7 @@ import { FC } from "react";
 import styles from "./checkbox.module.scss";
 
 type CheckboxProps = {
+  id: string;
   color?: "green" | "black";
   isCheck: boolean;
   disabled?: boolean;
@@ -10,6 +11,7 @@ type CheckboxProps = {
 };
 
 const Checkbox: FC<CheckboxProps> = ({
+  id,
   isCheck,
   disabled,
   onCheck,
@@ -23,12 +25,13 @@ const Checkbox: FC<CheckboxProps> = ({
 
   return (
     <label
+      htmlFor={id}
       className={`${styles["checkbox"]} ${isCheck ? styles["active"] : ""} ${
         disabled ? styles["disabled"] : ""
       } ${styles[color]}`}
       style={{ margin: 0 }}
     >
-      <input type="checkbox" checked={isCheck} onChange={handleCheck} />
+      <input id={id} type="checkbox" checked={isCheck} onChange={handleCheck} />
     </label>
   );
 };

@@ -205,7 +205,7 @@ const LoginForm: FC<FormProps> = ({
         {isRegister && (
           <div className={styles["form-group"]}>
             <div className={styles["checkbox-wrapper"]}>
-              <Checkbox isCheck={true} color="green" disabled />
+              <Checkbox id="tnc-check" isCheck={true} color="green" disabled />
               <div>
                 By proceeding to register, I agree to the{" "}
                 <Link>Terms and Conditions</Link>.

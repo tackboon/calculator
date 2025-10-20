@@ -10,13 +10,13 @@ export enum LotTyp {
 }
 
 type LotTypSelectBoxProps = {
-  name?: string;
+  id: string;
   defaultIndex: number;
   onChange: (lotTyp: LotTyp) => void;
 };
 
 const LotTypSelectBox: FC<LotTypSelectBoxProps> = ({
-  name,
+  id,
   defaultIndex,
   onChange,
 }) => {
@@ -24,7 +24,7 @@ const LotTypSelectBox: FC<LotTypSelectBoxProps> = ({
 
   return (
     <SelectBox
-      name={name}
+      id={id}
       options={lotTypOptions}
       defaultIndex={defaultIndex}
       onChangeHandler={(idx) => onChange(idx)}

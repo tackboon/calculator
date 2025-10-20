@@ -3,13 +3,13 @@ import { FC } from "react";
 import SelectBox from "../../common/select_box/select_box.component";
 
 type LeverageSelectBoxProps = {
-  name?: string;
+  id: string;
   defaultIndex: number;
   onChange: (leverage: number) => void;
 };
 
 const LeverageSelectBox: FC<LeverageSelectBoxProps> = ({
-  name,
+  id,
   defaultIndex,
   onChange,
 }) => {
@@ -20,7 +20,7 @@ const LeverageSelectBox: FC<LeverageSelectBoxProps> = ({
 
   return (
     <SelectBox
-      name={name}
+      id={id}
       options={leverageOptions}
       defaultIndex={defaultIndex}
       onChangeHandler={(idx) => onChange(leverages[idx])}

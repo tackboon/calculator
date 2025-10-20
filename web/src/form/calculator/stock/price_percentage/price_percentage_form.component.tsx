@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   calculateResult,
@@ -127,7 +127,7 @@ const PricePercentageForm = () => {
               <label htmlFor="precision">Precision:</label>
               <DefaultSelect
                 className={styles["select"]}
-                name="precision"
+                id="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
                 defaultIndex={decPrecision}
                 onChangeHandler={(idx) => setDecPrecision(idx)}

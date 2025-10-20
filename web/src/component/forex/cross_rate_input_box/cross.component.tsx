@@ -12,19 +12,20 @@ import {
   supportedAssets,
 } from "../../../store/forex/forex.types";
 import { divideBig, multiplyBig } from "../../../common/number/math";
-import { FeeTyp } from "../../../form/calculator/forex/forex_calculator_form.type";
 import { convertToLocaleString } from "../../../common/number/number";
+import { FeeTyp } from "../../../form/calculator/forex/forex_calculator_form.type";
 
 type CrossRateInputProps = {
   accBaseCurrency: string;
   crossTyp: "BASE" | "QUOTE";
   isLoading: boolean;
   pair: string;
-  includeTradingFee: boolean;
-  feeTyp: FeeTyp;
   currencyRate: CurrencyRateMap;
   commodityRate: CommodityRateMap;
   isInvalid: boolean;
+  mode?: "DEFAULT" | "POSITION_SIZE" | "PROFIT_LOSS";
+  includeTradingFee?: boolean;
+  feeTyp?: FeeTyp;
   onChange: (pair: string, rate: string) => void;
 };
 
@@ -33,11 +34,12 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
   crossTyp,
   isLoading,
   pair,
-  includeTradingFee,
-  feeTyp,
   currencyRate,
   commodityRate,
   isInvalid,
+  mode = "DEFAULT",
+  includeTradingFee = false,
+  feeTyp = FeeTyp.COMMISSION_PER_LOT,
   onChange,
 }) => {
   const [crossPair, setCrossPair] = useState("");
@@ -56,7 +58,14 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     if (isCommodity) tempStep = 0.01;
 
     // Hide cross pair on loading or currency pair contains account base currency
-    if (isLoading || accBaseCurrency === quote || accBaseCurrency === base) {
+    if (
+      isLoading ||
+      (mode === "DEFAULT" &&
+        ((crossTyp === "BASE" && accBaseCurrency === base) ||
+          (crossTyp === "QUOTE" && accBaseCurrency === quote))) ||
+      ((mode === "POSITION_SIZE" || mode === "PROFIT_LOSS") &&
+        (accBaseCurrency === quote || accBaseCurrency === base))
+    ) {
       setCrossPair(tempCrossPair);
       setCrossRate(tempCrossRateStr);
       setStep(tempStep);
@@ -66,8 +75,12 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
 
     if (crossTyp === "BASE") {
       // Handling base cross pair
+
       // Hide base cross pair if its not a commission_per_100k fee type
-      if (!includeTradingFee || feeTyp !== FeeTyp.COMMISSION_PER_100K) {
+      if (
+        mode === "PROFIT_LOSS" &&
+        (!includeTradingFee || feeTyp !== FeeTyp.COMMISSION_PER_100K)
+      ) {
         setCrossPair(tempCrossPair);
         setCrossRate(tempCrossRateStr);
         setStep(tempStep);
@@ -157,8 +170,9 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     crossTyp,
     currencyRate,
     pair,
-    feeTyp,
+    mode,
     includeTradingFee,
+    feeTyp,
     onChange,
   ]);
 
@@ -170,7 +184,7 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
           <NumberInput
             className={styles["exchange-rate-container"]}
             step={step}
-            id="usd-quote-cross-rate"
+            id={crossTyp === "BASE" ? "base-cross-rate" : "quote-cross-rate"}
             minDecimalPlace={2}
             maxDecimalPlace={5}
             isInvalid={isInvalid}

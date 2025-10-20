@@ -2,7 +2,7 @@ import { FC, useState } from "react";
 import Select, { SingleValue } from "react-select";
 
 type SelectBoxProps = {
-  name?: string;
+  id: string;
   options: string[];
   defaultIndex: number;
   isSearchable?: boolean;
@@ -10,7 +10,7 @@ type SelectBoxProps = {
 };
 
 const SelectBox: FC<SelectBoxProps> = ({
-  name,
+  id,
   defaultIndex,
   options,
   isSearchable = false,
@@ -48,7 +48,8 @@ const SelectBox: FC<SelectBoxProps> = ({
 
   return (
     <Select
-      name={name}
+      id={id}
+      name={id}
       options={opts}
       defaultValue={opts[defaultIndex]}
       isSearchable={isSearchable}

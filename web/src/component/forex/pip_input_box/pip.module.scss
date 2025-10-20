@@ -13,4 +13,25 @@
 
 .hint {
   margin-bottom: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  &.value {
+    word-break: break-all;
+    max-width: calc(100% - 110px);
+  }
+
+  &.unit {
+    max-width: 100px;
+  }
+
+  @media (min-width: 768px) {
+    &.value {
+      max-width: calc(100% - 152px);
+    }
+
+    &.unit {
+      max-width: 142px;
+    }
+  }
 }

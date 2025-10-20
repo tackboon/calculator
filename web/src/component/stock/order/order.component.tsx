@@ -60,8 +60,9 @@ const Order: FC<StockOrderType> = ({
       </div>
 
       <div className={styles["form-group"]}>
-        <label htmlFor={`entry-price-${idx}`}>Order Type</label>
+        <span className={styles["label"]}>Order Type</span>
         <SelectBox
+          id={`entry-typ-${idx}`}
           options={["Long", "Short"]}
           defaultIndex={0}
           onChangeHandler={(idx) =>
@@ -117,16 +118,28 @@ const Order: FC<StockOrderType> = ({
       <div className={styles["form-group"]}>
         <div className={styles["checkbox-wrapper"]}>
           <Checkbox
+            id={`fee-check-${idx}`}
             isCheck={input.includeProfitGoal}
-            onCheck={() => {
+            onCheck={() =>
               setInput((prev) => ({
                 ...prev,
                 includeProfitGoal: !input.includeProfitGoal,
                 profitGoal: DEFAULT_STOCK_ORDER_INPUT.profitGoal,
-              }));
-            }}
+              }))
+            }
           />
-          <span>Include Profit Goal</span>
+          <span
+            className={styles["checkbox-label"]}
+            onClick={() =>
+              setInput((prev) => ({
+                ...prev,
+                includeProfitGoal: !input.includeProfitGoal,
+                profitGoal: DEFAULT_STOCK_ORDER_INPUT.profitGoal,
+              }))
+            }
+          >
+            Include Profit Goal
+          </span>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
 import styles from "../stock_calculator_form.module.scss";
@@ -145,6 +145,7 @@ const RiskAndProfitForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="fee-check"
               isCheck={input.includeTradingFee}
               onCheck={() =>
                 setInput((prev) => ({
@@ -155,7 +156,19 @@ const RiskAndProfitForm = () => {
                 }))
               }
             />
-            <span>Include Trading Fee</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !prev.includeTradingFee,
+                  estTradingFee: DEFAULT_INPUT.estTradingFee,
+                  minTradingFee: DEFAULT_INPUT.minTradingFee,
+                }))
+              }
+            >
+              Include Trading Fee
+            </span>
           </div>
         </div>
 
@@ -227,7 +240,7 @@ const RiskAndProfitForm = () => {
               <label htmlFor="precision">Precision:</label>
               <DefaultSelect
                 className={styles["select"]}
-                name="precision"
+                id="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
                 defaultIndex={input.precision}
                 onChangeHandler={(idx) =>
@@ -445,6 +458,7 @@ const RiskAndProfitForm = () => {
                                 $
                                 {convertToLocaleString(
                                   order.entryFee,
+                                  input.precision,
                                   input.precision
                                 )}
                               </div>
@@ -459,6 +473,7 @@ const RiskAndProfitForm = () => {
                               $
                               {convertToLocaleString(
                                 order.stopLossFee,
+                                input.precision,
                                 input.precision
                               )}
                             </div>
@@ -472,6 +487,7 @@ const RiskAndProfitForm = () => {
                               $
                               {convertToLocaleString(
                                 order.profitFee,
+                                input.precision,
                                 input.precision
                               )}
                             </div>

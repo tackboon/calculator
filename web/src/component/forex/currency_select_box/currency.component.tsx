@@ -4,14 +4,14 @@ import SelectBox from "../../common/select_box/select_box.component";
 import { SupportedCurrency } from "../../../store/forex/forex.types";
 
 type CurrencySelectBoxProps = {
-  name?: string;
+  id: string;
   defaultIndex: number;
   supportedCurrencies: SupportedCurrency;
   onChange: (currency: string) => void;
 };
 
 const CurrencySelectBox: FC<CurrencySelectBoxProps> = ({
-  name,
+  id,
   defaultIndex,
   supportedCurrencies,
   onChange,
@@ -27,7 +27,7 @@ const CurrencySelectBox: FC<CurrencySelectBoxProps> = ({
 
   return (
     <SelectBox
-      name={name}
+      id={id}
       options={currencyNameOptions}
       defaultIndex={defaultIndex}
       onChangeHandler={(idx) => onChange(currencyOptions[idx])}

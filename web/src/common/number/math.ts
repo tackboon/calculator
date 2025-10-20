@@ -34,5 +34,6 @@ export const powBig = (x: BigNumber | number, y: BigNumber | number) => {
   return mathBigNum.pow(x, y) as BigNumber;
 };
 
+export const MILLION = mathBigNum.bignumber("1000000");
 export const QUADRILLION = mathBigNum.bignumber("1000000000000000");
 export const QUINTILLION = mathBigNum.bignumber("1000000000000000000");

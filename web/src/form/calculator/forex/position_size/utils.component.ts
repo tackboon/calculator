@@ -5,6 +5,7 @@ import {
   addBig,
   divideBig,
   mathBigNum,
+  MILLION,
   multiplyBig,
   powBig,
   QUADRILLION,
@@ -35,7 +36,7 @@ export const calculateCrossHeight = (input: ForexPositionSizeInputType) => {
 
 export const calculateProfitHeight = (input: ForexPositionSizeInputType) => {
   if (!input.includeProfitGoal) return 0;
-  if (input.isProfitPip) return 240;
+  if (input.isProfitPip) return 260;
   return 200;
 };
 
@@ -58,10 +59,17 @@ export const validatePositionSizeInput = (
     };
   }
 
-  if (!checkMinMax(input.contractSize, { min: 0, max: 100000 })) {
+  if (!checkMinMax(input.contractSize, { min: 0, maxOrEqual: MILLION })) {
     return {
       err: "Please enter a valid contract size.",
       field: ERROR_FIELD_POSITION_SIZE.CONTRACT_SIZE,
+    };
+  }
+
+  if (!checkMinMax(input.pipDecimal, { minOrEqual: 0, maxOrEqual: MILLION })) {
+    return {
+      err: "Please enter a valid pip decimal.",
+      field: ERROR_FIELD_POSITION_SIZE.PIP_DECIMAL,
     };
   }
 
@@ -139,27 +147,27 @@ export const validatePositionSizeInput = (
       !checkMinMax(input.estTradingFee, { min: 0, maxOrEqual: QUADRILLION })
     ) {
       return {
-        err: "Please estimates a valid trading fee.",
+        err: "Please enter a valid trading fee.",
         field: ERROR_FIELD_POSITION_SIZE.EST_TRADING_FEE,
       };
     }
 
     if (
-      !checkMinMax(input.swapFee, {
+      !checkMinMax(input.swapPerLot, {
         minOrEqual: QUADRILLION.negated(),
         maxOrEqual: QUADRILLION,
       })
     ) {
       return {
-        err: "Please estimates a valid swap fee.",
-        field: ERROR_FIELD_POSITION_SIZE.SWAP_FEE,
+        err: "Please enter a valid swap value.",
+        field: ERROR_FIELD_POSITION_SIZE.SWAP_PER_LOT,
       };
     }
 
     if (!checkMinMax(input.period, { min: 0, maxOrEqual: QUADRILLION })) {
       return {
-        err: "Please estimates a valid swap fee.",
-        field: ERROR_FIELD_POSITION_SIZE.SWAP_FEE,
+        err: "Please enter a valid period.",
+        field: ERROR_FIELD_POSITION_SIZE.PERIOD,
       };
     }
   }
@@ -179,8 +187,9 @@ export const calculateResult = (
   const stopLoss = parseBigNumberFromString(input.stopLoss);
   const profitGoal = parseBigNumberFromString(input.profitGoal);
   const contractSize = parseBigNumberFromString(input.contractSize);
+  const pipDecimal = parseBigNumberFromString(input.pipDecimal);
   const commissionFee = parseBigNumberFromString(input.estTradingFee);
-  let swapRate = parseBigNumberFromString(input.swapFee);
+  let swapRate = parseBigNumberFromString(input.swapPerLot);
   const period = parseBigNumberFromString(input.period);
   swapRate = multiplyBig(swapRate, period);
 
@@ -255,8 +264,8 @@ export const calculateResult = (
   // stopPriceDiff = Math.abs(stopLoss - entryPrice)
   const stopPriceDiff = absBig(subtractBig(stopLoss, entryPrice));
 
-  // stopPip = stopPriceDiff / pipSize
-  let stopPip = divideBig(stopPriceDiff, input.pipSize);
+  // stopPip = stopPriceDiff / pipDecimal
+  let stopPip = divideBig(stopPriceDiff, pipDecimal);
   stopPip = mathBigNum.round(stopPip, input.precision);
 
   // Calculate lot size
@@ -264,7 +273,7 @@ export const calculateResult = (
   let riskAmount = mathBigNum.bignumber(0);
   let entryFee: BigNumber | undefined;
   let stopFee: BigNumber | undefined;
-  let stopSwapFee: BigNumber | undefined;
+  let stopSwap: BigNumber | undefined;
   if (!input.includeTradingFee) {
     // Calculate lot size without commission fee
     lotSize = calcLotSize(
@@ -286,7 +295,7 @@ export const calculateResult = (
         riskAmount: riskAmt,
         entryFee: mathBigNum.bignumber(0),
         stopFee: mathBigNum.bignumber(0),
-        swapFee: mathBigNum.bignumber(0),
+        swapValue: mathBigNum.bignumber(0),
       };
     };
 
@@ -311,7 +320,7 @@ export const calculateResult = (
         stopPriceDiff,
         swapRate,
         commissionFee,
-        input.pipSize
+        pipDecimal
       );
 
       const getRiskAmountFn = (lotSize: BigNumber) => {
@@ -319,17 +328,17 @@ export const calculateResult = (
         let fee = multiplyBig(lotSize, commissionFee);
         fee = mathBigNum.round(fee, input.precision);
 
-        // Calculate swap fee
-        const swapFee = calcSwapFee(
+        // Calculate swap value
+        const swapValue = calcSwapValue(
           swapRate,
-          input.pipSize,
+          pipDecimal,
           lotSize,
           contractSize,
           stopQuoteRate,
           input.precision
         );
 
-        // riskAmount = lotSize * contractSize * stopPriceDiff * quoteRate - swapFee + fee * 2
+        // riskAmount = lotSize * contractSize * stopPriceDiff * quoteRate - swapValue + fee * 2
         const riskAmt = subtractBig(
           addBig(
             multiplyBig(
@@ -338,14 +347,14 @@ export const calculateResult = (
             ),
             multiplyBig(fee, 2)
           ),
-          swapFee
+          swapValue
         );
 
         return {
           riskAmount: riskAmt,
           entryFee: fee,
           stopFee: fee,
-          swapFee: swapFee,
+          swapValue: swapValue,
         };
       };
 
@@ -361,7 +370,7 @@ export const calculateResult = (
       riskAmount = adjustedRes.riskAmount;
       entryFee = adjustedRes.entryFee;
       stopFee = adjustedRes.stopFee;
-      stopSwapFee = adjustedRes.swapFee;
+      stopSwap = adjustedRes.swapValue;
     } else {
       // Calculate lot size with commission per 100k
       const commissionFeeRate = divideBig(commissionFee, 100000);
@@ -375,7 +384,7 @@ export const calculateResult = (
         stopQuoteRate,
         swapRate,
         commissionFeeRate,
-        input.pipSize
+        pipDecimal
       );
 
       const getRiskAmountFn = (lotSize: BigNumber) => {
@@ -393,10 +402,10 @@ export const calculateResult = (
         );
         stopFee = mathBigNum.round(stopFee, input.precision);
 
-        // Calculate swap fee
-        const swapFee = calcSwapFee(
+        // Calculate swap value
+        const swapValue = calcSwapValue(
           swapRate,
-          input.pipSize,
+          pipDecimal,
           lotSize,
           contractSize,
           stopQuoteRate,
@@ -406,7 +415,7 @@ export const calculateResult = (
         /* 
           riskAmount = 
             lotSize * contractSize * stopPriceDiff * quoteRate 
-            - swapFee + entryFee + stopFee
+            - swapValue + entryFee + stopFee
         */
         const riskAmt = addBig(
           addBig(
@@ -415,7 +424,7 @@ export const calculateResult = (
                 multiplyBig(multiplyBig(lotSize, contractSize), stopPriceDiff),
                 stopQuoteRate
               ),
-              swapFee
+              swapValue
             ),
             entryFee
           ),
@@ -426,7 +435,7 @@ export const calculateResult = (
           riskAmount: riskAmt,
           entryFee: entryFee,
           stopFee: stopFee,
-          swapFee: swapFee,
+          swapValue: swapValue,
         };
       };
 
@@ -442,7 +451,7 @@ export const calculateResult = (
       riskAmount = adjustedRes.riskAmount;
       entryFee = adjustedRes.entryFee;
       stopFee = adjustedRes.stopFee;
-      stopSwapFee = adjustedRes.swapFee;
+      stopSwap = adjustedRes.swapValue;
     }
   }
 
@@ -465,7 +474,7 @@ export const calculateResult = (
   let profitPip: BigNumber | undefined;
   let profitAmount: BigNumber | undefined;
   let profitFee: BigNumber | undefined;
-  let profitSwapFee: BigNumber | undefined;
+  let profitSwap: BigNumber | undefined;
   let portfolioProfit: BigNumber | undefined;
   if (input.includeProfitGoal) {
     if (input.profitGoalTyp === ProfitGoalTyp.PRICE_BASED) {
@@ -474,8 +483,8 @@ export const calculateResult = (
       // profitPriceDiff = abs(profitPrice - entryPrice)
       const profitPriceDiff = subtractBig(profitPrice, entryPrice);
 
-      // profitPip = profitPriceDiff / pipSize
-      profitPip = divideBig(profitPriceDiff, input.pipSize);
+      // profitPip = profitPriceDiff / pipDecimal
+      profitPip = divideBig(profitPriceDiff, pipDecimal);
       profitPip = mathBigNum.round(profitPip, input.precision);
 
       if (profitQuoteRate) {
@@ -505,10 +514,10 @@ export const calculateResult = (
             }
           }
 
-          // Calculate swap fee
-          profitSwapFee = calcSwapFee(
+          // Calculate swap value
+          profitSwap = calcSwapValue(
             swapRate,
-            input.pipSize,
+            pipDecimal,
             lotSize,
             contractSize,
             profitQuoteRate,
@@ -517,10 +526,10 @@ export const calculateResult = (
 
           if (entryFee && profitFee) {
             // Recalculate profit amount
-            // profitAmount = profitAmount - entryFee - profitFee + swapFee
+            // profitAmount = profitAmount - entryFee - profitFee + swapValue
             profitAmount = addBig(
               subtractBig(subtractBig(profitAmount, entryFee), profitFee),
-              profitSwapFee
+              profitSwap
             );
           }
         }
@@ -542,20 +551,20 @@ export const calculateResult = (
               minProfit = isLong ? 
                 (profitPrice - entryPrice) * positionSize * quoteRate
                 - 2 * entryFee
-                + swapRate * pipSize * positionSize * quoteRate / 10 
+                + swapRate * pipDecimal * positionSize * quoteRate / 10 
                 :
                 (entryPrice - profitPrice) * positionSize * quoteRate
                 - 2 * entryFee
-                + swapRate * pipSize * positionSize * quoteRate / 10  
+                + swapRate * pipDecimal * positionSize * quoteRate / 10  
 
               profitPrice = isLong ?
                 entryPrice
                 + (minProfit + 2 * entryFee) / (positionSize * quoteRate)
-                - swapRate * pipSize / 10
+                - swapRate * pipDecimal / 10
                 :
                 entryPrice 
                 - (minProfit + 2 * entryFee) / (positionSize * quoteRate)
-                + swapRate * pipSize / 10
+                + swapRate * pipDecimal / 10
             */
 
             if (
@@ -571,7 +580,7 @@ export const calculateResult = (
                       multiplyBig(positionSize, profitQuoteRate)
                     )
                   ),
-                  divideBig(multiplyBig(swapRate, input.pipSize), 10)
+                  divideBig(multiplyBig(swapRate, pipDecimal), 10)
                 );
                 profitPrice = mathBigNum.ceil(profitPrice, 5);
               } else {
@@ -583,7 +592,7 @@ export const calculateResult = (
                       multiplyBig(positionSize, profitQuoteRate)
                     )
                   ),
-                  divideBig(multiplyBig(swapRate, input.pipSize), 10)
+                  divideBig(multiplyBig(swapRate, pipDecimal), 10)
                 );
                 profitPrice = mathBigNum.floor(profitPrice, 5);
               }
@@ -593,13 +602,13 @@ export const calculateResult = (
                   return {
                     profitAmt: mathBigNum.bignumber(0),
                     profitFee: mathBigNum.bignumber(0),
-                    swapFee: mathBigNum.bignumber(0),
+                    swapValue: mathBigNum.bignumber(0),
                   };
 
                 const profitFee = entryFee;
-                const swapFee = calcSwapFee(
+                const swapValue = calcSwapValue(
                   swapRate,
-                  input.pipSize,
+                  pipDecimal,
                   lotSize,
                   contractSize,
                   profitQuoteRate,
@@ -611,7 +620,7 @@ export const calculateResult = (
                   profitPrice,
                   entryFee,
                   profitFee,
-                  swapFee,
+                  swapValue,
                   positionSize,
                   profitQuoteRate
                 );
@@ -626,27 +635,27 @@ export const calculateResult = (
               profitPrice = adjustedRes.profitPrice;
               profitAmount = adjustedRes.profitAmount;
               profitFee = adjustedRes.profitFee;
-              profitSwapFee = adjustedRes.swapFee;
+              profitSwap = adjustedRes.swapValue;
             } else {
               profitPrice = mathBigNum.bignumber(0);
               profitAmount = mathBigNum.bignumber(0);
               profitFee = mathBigNum.bignumber(0);
-              profitSwapFee = mathBigNum.bignumber(0);
+              profitSwap = mathBigNum.bignumber(0);
             }
           } else {
             /*
               minProfit = isLong ? 
                 (profitPrice - entryPrice) * positionSize / profitPrice 
                 - 2 * entryFee
-                + swapRate * pipSize * positionSize / (10 * profitPrice)
+                + swapRate * pipDecimal * positionSize / (10 * profitPrice)
                 :
                 (entryPrice - profitPrice) * positionSize / profitPrice
                 - 2 * entryFee
-                + swapRate * pipSize * positionSize / (10 * profitPrice)            
+                + swapRate * pipDecimal * positionSize / (10 * profitPrice)            
 
               profitPrice = isLong ?
-                (positionSize * (swapRate * pipSize / 10 - entryPrice)) / (minProfit + 2 * entryFee - positionSize) :
-                (positionSize * (swapRate * pipSize / 10 + entryPrice)) / (minProfit + 2 * entryFee + positionSize)
+                (positionSize * (swapRate * pipDecimal / 10 - entryPrice)) / (minProfit + 2 * entryFee - positionSize) :
+                (positionSize * (swapRate * pipDecimal / 10 + entryPrice)) / (minProfit + 2 * entryFee + positionSize)
             */
 
             const divisor = input.isLong
@@ -668,7 +677,7 @@ export const calculateResult = (
                   multiplyBig(
                     positionSize,
                     subtractBig(
-                      multiplyBig(swapRate, divideBig(input.pipSize, 10)),
+                      multiplyBig(swapRate, divideBig(pipDecimal, 10)),
                       entryPrice
                     )
                   ),
@@ -680,7 +689,7 @@ export const calculateResult = (
                   multiplyBig(
                     positionSize,
                     addBig(
-                      multiplyBig(swapRate, divideBig(input.pipSize, 10)),
+                      multiplyBig(swapRate, divideBig(pipDecimal, 10)),
                       entryPrice
                     )
                   ),
@@ -694,14 +703,14 @@ export const calculateResult = (
                   return {
                     profitAmt: mathBigNum.bignumber(0),
                     profitFee: mathBigNum.bignumber(0),
-                    swapFee: mathBigNum.bignumber(0),
+                    swapValue: mathBigNum.bignumber(0),
                   };
 
                 const profitFee = entryFee;
                 const profitQuoteRate = divideBig(1, profitPrice);
-                const swapFee = calcSwapFee(
+                const swapValue = calcSwapValue(
                   swapRate,
-                  input.pipSize,
+                  pipDecimal,
                   lotSize,
                   contractSize,
                   profitQuoteRate,
@@ -713,7 +722,7 @@ export const calculateResult = (
                   profitPrice,
                   entryFee,
                   profitFee,
-                  swapFee,
+                  swapValue,
                   positionSize,
                   profitQuoteRate
                 );
@@ -728,12 +737,12 @@ export const calculateResult = (
               profitPrice = adjustedRes.profitPrice;
               profitAmount = adjustedRes.profitAmount;
               profitFee = adjustedRes.profitFee;
-              profitSwapFee = adjustedRes.swapFee;
+              profitSwap = adjustedRes.swapValue;
             } else {
               profitPrice = mathBigNum.bignumber(0);
               profitAmount = mathBigNum.bignumber(0);
               profitFee = mathBigNum.bignumber(0);
-              profitSwapFee = mathBigNum.bignumber(0);
+              profitSwap = mathBigNum.bignumber(0);
             }
           }
         } else {
@@ -746,23 +755,23 @@ export const calculateResult = (
                   (profitPrice - entryPrice) * positionSize * quoteRate
                   - entryFee
                   - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipSize * positionSize * quoteRate / 10 
+                  + swapRate * pipDecimal * positionSize * quoteRate / 10 
                   :
                   (entryPrice - profitPrice) * positionSize * quoteRate
                   - entryFee
                   - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipSize * positionSize * quoteRate / 10  
+                  + swapRate * pipDecimal * positionSize * quoteRate / 10  
 
                 profitPrice = isLong ?
                   entryPrice 
                   + (minProfit + entryFee) / (positionSize * quoteRate)
                   + commissionFeeRate * exitBaseRate / quoteRate
-                  - swapRate * pipSize / 10
+                  - swapRate * pipDecimal / 10
                   :
                   entryPrice 
                   - (minProfit + entryFee) / (positionSize * quoteRate)
                   - commissionFeeRate * exitBaseRate / quoteRate
-                  + swapRate * pipSize / 10
+                  + swapRate * pipDecimal / 10
               */
 
               if (
@@ -784,7 +793,7 @@ export const calculateResult = (
                         divideBig(profitBaseRate, profitQuoteRate)
                       )
                     ),
-                    multiplyBig(swapRate, divideBig(input.pipSize, 10))
+                    multiplyBig(swapRate, divideBig(pipDecimal, 10))
                   );
                   profitPrice = mathBigNum.ceil(profitPrice, 5);
                 } else {
@@ -802,7 +811,7 @@ export const calculateResult = (
                         divideBig(profitBaseRate, profitQuoteRate)
                       )
                     ),
-                    multiplyBig(swapRate, divideBig(input.pipSize, 10))
+                    multiplyBig(swapRate, divideBig(pipDecimal, 10))
                   );
                   profitPrice = mathBigNum.floor(profitPrice, 5);
                 }
@@ -816,7 +825,7 @@ export const calculateResult = (
                     return {
                       profitAmt: mathBigNum.bignumber(0),
                       profitFee: mathBigNum.bignumber(0),
-                      swapFee: mathBigNum.bignumber(0),
+                      swapValue: mathBigNum.bignumber(0),
                     };
                   }
 
@@ -824,9 +833,9 @@ export const calculateResult = (
                     multiplyBig(positionSize, commissionFeeRate),
                     profitBaseRate
                   );
-                  const swapFee = calcSwapFee(
+                  const swapValue = calcSwapValue(
                     swapRate,
-                    input.pipSize,
+                    pipDecimal,
                     lotSize,
                     contractSize,
                     profitQuoteRate,
@@ -838,7 +847,7 @@ export const calculateResult = (
                     profitPrice,
                     entryFee,
                     profitFee,
-                    swapFee,
+                    swapValue,
                     positionSize,
                     profitQuoteRate
                   );
@@ -853,12 +862,12 @@ export const calculateResult = (
                 profitPrice = adjustedRes.profitPrice;
                 profitAmount = adjustedRes.profitAmount;
                 profitFee = adjustedRes.profitFee;
-                profitSwapFee = adjustedRes.swapFee;
+                profitSwap = adjustedRes.swapValue;
               } else {
                 profitPrice = mathBigNum.bignumber(0);
                 profitAmount = mathBigNum.bignumber(0);
                 profitFee = mathBigNum.bignumber(0);
-                profitSwapFee = mathBigNum.bignumber(0);
+                profitSwap = mathBigNum.bignumber(0);
               }
             } else {
               /*
@@ -866,18 +875,18 @@ export const calculateResult = (
                   (profitPrice - entryPrice) * positionSize * quoteRate
                   - entryFee
                   - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipSize * positionSize * quoteRate / 10 
+                  + swapRate * pipDecimal * positionSize * quoteRate / 10 
                   :
                   (entryPrice - profitPrice) * positionSize * quoteRate
                   - entryFee
                   - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipSize * positionSize * quoteRate / 10
+                  + swapRate * pipDecimal * positionSize * quoteRate / 10
 
                 profitPrice = isLong ?
                   (
                     positionSize * (
                       entryPrice * quoteRate
-                      - swapRate * pipSize * quoteRate / 10 
+                      - swapRate * pipDecimal * quoteRate / 10 
                     )
                     + minProfit 
                     + entryFee 
@@ -888,7 +897,7 @@ export const calculateResult = (
                   (
                     positionSize * (
                       entryPrice * quoteRate
-                      + swapRate * pipSize * quoteRate / 10 
+                      + swapRate * pipDecimal * quoteRate / 10 
                     )
                     - minProfit 
                     - entryFee 
@@ -917,7 +926,7 @@ export const calculateResult = (
                           subtractBig(
                             multiplyBig(entryPrice, profitQuoteRate),
                             multiplyBig(
-                              multiplyBig(swapRate, input.pipSize),
+                              multiplyBig(swapRate, pipDecimal),
                               divideBig(profitQuoteRate, 10)
                             )
                           )
@@ -938,7 +947,7 @@ export const calculateResult = (
                           addBig(
                             multiplyBig(entryPrice, profitQuoteRate),
                             multiplyBig(
-                              multiplyBig(swapRate, input.pipSize),
+                              multiplyBig(swapRate, pipDecimal),
                               divideBig(profitQuoteRate, 10)
                             )
                           )
@@ -957,7 +966,7 @@ export const calculateResult = (
                     return {
                       profitAmt: mathBigNum.bignumber(0),
                       profitFee: mathBigNum.bignumber(0),
-                      swapFee: mathBigNum.bignumber(0),
+                      swapValue: mathBigNum.bignumber(0),
                     };
                   }
 
@@ -966,9 +975,9 @@ export const calculateResult = (
                     multiplyBig(positionSize, commissionFeeRate),
                     profitBaseRate
                   );
-                  const swapFee = calcSwapFee(
+                  const swapValue = calcSwapValue(
                     swapRate,
-                    input.pipSize,
+                    pipDecimal,
                     lotSize,
                     contractSize,
                     profitQuoteRate,
@@ -980,7 +989,7 @@ export const calculateResult = (
                     profitPrice,
                     entryFee,
                     profitFee,
-                    swapFee,
+                    swapValue,
                     positionSize,
                     profitQuoteRate
                   );
@@ -995,12 +1004,12 @@ export const calculateResult = (
                 profitPrice = adjustedRes.profitPrice;
                 profitAmount = adjustedRes.profitAmount;
                 profitFee = adjustedRes.profitFee;
-                profitSwapFee = adjustedRes.swapFee;
+                profitSwap = adjustedRes.swapValue;
               } else {
                 profitPrice = mathBigNum.bignumber(0);
                 profitAmount = mathBigNum.bignumber(0);
                 profitFee = mathBigNum.bignumber(0);
-                profitSwapFee = mathBigNum.bignumber(0);
+                profitSwap = mathBigNum.bignumber(0);
               }
             }
           } else {
@@ -1010,19 +1019,19 @@ export const calculateResult = (
                   (profitPrice - entryPrice) * positionSize / profitPrice
                   - entryFee
                   - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipSize * positionSize / (10 * profitPrice) 
+                  + swapRate * pipDecimal * positionSize / (10 * profitPrice) 
                   :
                   (entryPrice - profitPrice) * positionSize / profitPrice
                   - entryFee
                   - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipSize * positionSize / (10 * profitPrice)  
+                  + swapRate * pipDecimal * positionSize / (10 * profitPrice)  
 
                 profitPrice = isLong ?
-                  positionSize * (swapRate * pipSize / 10 - entryPrice) / (
+                  positionSize * (swapRate * pipDecimal / 10 - entryPrice) / (
                     minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate - 1)
                   )
                   :
-                  positionSize * (swapRate * pipSize / 10 + entryPrice) / (
+                  positionSize * (swapRate * pipDecimal / 10 + entryPrice) / (
                     minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate + 1)
                   )
               */
@@ -1055,7 +1064,7 @@ export const calculateResult = (
                     multiplyBig(
                       positionSize,
                       subtractBig(
-                        multiplyBig(swapRate, divideBig(input.pipSize, 10)),
+                        multiplyBig(swapRate, divideBig(pipDecimal, 10)),
                         entryPrice
                       )
                     ),
@@ -1067,7 +1076,7 @@ export const calculateResult = (
                     multiplyBig(
                       positionSize,
                       addBig(
-                        multiplyBig(swapRate, divideBig(input.pipSize, 10)),
+                        multiplyBig(swapRate, divideBig(pipDecimal, 10)),
                         entryPrice
                       )
                     ),
@@ -1081,7 +1090,7 @@ export const calculateResult = (
                     return {
                       profitAmt: mathBigNum.bignumber(0),
                       profitFee: mathBigNum.bignumber(0),
-                      swapFee: mathBigNum.bignumber(0),
+                      swapValue: mathBigNum.bignumber(0),
                     };
                   }
 
@@ -1090,9 +1099,9 @@ export const calculateResult = (
                     multiplyBig(positionSize, commissionFeeRate),
                     profitBaseRate
                   );
-                  const swapFee = calcSwapFee(
+                  const swapValue = calcSwapValue(
                     swapRate,
-                    input.pipSize,
+                    pipDecimal,
                     lotSize,
                     contractSize,
                     profitQuoteRate,
@@ -1104,7 +1113,7 @@ export const calculateResult = (
                     profitPrice,
                     entryFee,
                     profitFee,
-                    swapFee,
+                    swapValue,
                     positionSize,
                     profitQuoteRate
                   );
@@ -1119,12 +1128,12 @@ export const calculateResult = (
                 profitPrice = adjustedRes.profitPrice;
                 profitAmount = adjustedRes.profitAmount;
                 profitFee = adjustedRes.profitFee;
-                profitSwapFee = adjustedRes.swapFee;
+                profitSwap = adjustedRes.swapValue;
               } else {
                 profitPrice = mathBigNum.bignumber(0);
                 profitAmount = mathBigNum.bignumber(0);
                 profitFee = mathBigNum.bignumber(0);
-                profitSwapFee = mathBigNum.bignumber(0);
+                profitSwap = mathBigNum.bignumber(0);
               }
             } else {
               /*
@@ -1132,25 +1141,25 @@ export const calculateResult = (
                   (profitPrice - entryPrice) * positionSize / profitPrice
                   - entryFee
                   - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipSize * positionSize / (10 * profitPrice) 
+                  + swapRate * pipDecimal * positionSize / (10 * profitPrice) 
                   :
                   (entryPrice - profitPrice) * positionSize / profitPrice
                   - entryFee
                   - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipSize * positionSize / (10 * profitPrice)  
+                  + swapRate * pipDecimal * positionSize / (10 * profitPrice)  
 
                 profitPrice = isLong ?
                   minPositiveProfitPrice(
                     (
                       positionSize - minProfit - entryFee + sqrt(
-                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipSize / 10)
+                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipDecimal / 10)
                       )
                     ) / (
                       2 * positionSize * commissionFeeRate 
                     ),
                     (
                       positionSize - minProfit - entryFee - sqrt(
-                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipSize / 10)
+                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipDecimal / 10)
                       )
                     ) / (
                       2 * positionSize * commissionFeeRate 
@@ -1160,14 +1169,14 @@ export const calculateResult = (
                   maxPositiveProfitPrice(
                     (
                       -positionSize - minProfit - entryFee + sqrt(
-                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
                       )
                     ) / (
                       2 * positionSize * commissionFeeRate 
                     ),
                     (
                       -positionSize - minProfit - entryFee - sqrt(
-                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
                       )
                     ) / (
                       2 * positionSize * commissionFeeRate 
@@ -1201,7 +1210,7 @@ export const calculateResult = (
                         ),
                         subtractBig(
                           entryPrice,
-                          multiplyBig(swapRate, divideBig(input.pipSize, 10))
+                          multiplyBig(swapRate, divideBig(pipDecimal, 10))
                         )
                       )
                     )
@@ -1256,14 +1265,14 @@ export const calculateResult = (
                   // maxPositiveProfitPrice(
                   //   (
                   //     -positionSize - minProfit - entryFee + sqrt(
-                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
                   //     )
                   //   ) / (
                   //     2 * positionSize * commissionFeeRate
                   //   ),
                   //   (
                   //     -positionSize - minProfit - entryFee - sqrt(
-                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipSize / 10)
+                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
                   //     )
                   //   ) / (
                   //     2 * positionSize * commissionFeeRate
@@ -1286,7 +1295,7 @@ export const calculateResult = (
                         ),
                         addBig(
                           entryPrice,
-                          multiplyBig(swapRate, divideBig(input.pipSize, 10))
+                          multiplyBig(swapRate, divideBig(pipDecimal, 10))
                         )
                       )
                     )
@@ -1358,7 +1367,7 @@ export const calculateResult = (
                     return {
                       profitAmt: mathBigNum.bignumber(0),
                       profitFee: mathBigNum.bignumber(0),
-                      swapFee: mathBigNum.bignumber(0),
+                      swapValue: mathBigNum.bignumber(0),
                     };
                   }
 
@@ -1368,9 +1377,9 @@ export const calculateResult = (
                     multiplyBig(positionSize, commissionFeeRate),
                     profitBaseRate
                   );
-                  const swapFee = calcSwapFee(
+                  const swapValue = calcSwapValue(
                     swapRate,
-                    input.pipSize,
+                    pipDecimal,
                     lotSize,
                     contractSize,
                     profitQuoteRate,
@@ -1382,7 +1391,7 @@ export const calculateResult = (
                     profitPrice,
                     entryFee,
                     profitFee,
-                    swapFee,
+                    swapValue,
                     positionSize,
                     profitQuoteRate
                   );
@@ -1397,12 +1406,12 @@ export const calculateResult = (
                 profitPrice = adjustedRes.profitPrice;
                 profitAmount = adjustedRes.profitAmount;
                 profitFee = adjustedRes.profitFee;
-                profitSwapFee = adjustedRes.swapFee;
+                profitSwap = adjustedRes.swapValue;
               } else {
                 profitPrice = mathBigNum.bignumber(0);
                 profitAmount = mathBigNum.bignumber(0);
                 profitFee = mathBigNum.bignumber(0);
-                profitSwapFee = mathBigNum.bignumber(0);
+                profitSwap = mathBigNum.bignumber(0);
               }
             }
           }
@@ -1454,7 +1463,7 @@ export const calculateResult = (
               return {
                 profitAmt,
                 profitFee: mathBigNum.bignumber(0),
-                swapFee: mathBigNum.bignumber(0),
+                swapValue: mathBigNum.bignumber(0),
               };
             };
 
@@ -1467,12 +1476,12 @@ export const calculateResult = (
             );
             profitPrice = adjustedRes.profitPrice;
             profitFee = adjustedRes.profitFee;
-            profitSwapFee = adjustedRes.swapFee;
+            profitSwap = adjustedRes.swapValue;
             profitAmount = adjustedRes.profitAmount;
           } else {
             profitPrice = mathBigNum.bignumber(0);
             profitFee = mathBigNum.bignumber(0);
-            profitSwapFee = mathBigNum.bignumber(0);
+            profitSwap = mathBigNum.bignumber(0);
             profitAmount = mathBigNum.bignumber(0);
           }
         } else {
@@ -1519,7 +1528,7 @@ export const calculateResult = (
               return {
                 profitAmt,
                 profitFee: mathBigNum.bignumber(0),
-                swapFee: mathBigNum.bignumber(0),
+                swapValue: mathBigNum.bignumber(0),
               };
             };
 
@@ -1532,12 +1541,12 @@ export const calculateResult = (
             );
             profitPrice = adjustedRes.profitPrice;
             profitFee = adjustedRes.profitFee;
-            profitSwapFee = adjustedRes.swapFee;
+            profitSwap = adjustedRes.swapValue;
             profitAmount = adjustedRes.profitAmount;
           } else {
             profitPrice = mathBigNum.bignumber(0);
             profitFee = mathBigNum.bignumber(0);
-            profitSwapFee = mathBigNum.bignumber(0);
+            profitSwap = mathBigNum.bignumber(0);
             profitAmount = mathBigNum.bignumber(0);
           }
         }
@@ -1549,8 +1558,8 @@ export const calculateResult = (
         subtractBig(entryPrice, profitPrice)
       );
 
-      // profitPip = profitPriceDiff / pipSize
-      profitPip = divideBig(profitPriceDiff, input.pipSize);
+      // profitPip = profitPriceDiff / pipDecimal
+      profitPip = divideBig(profitPriceDiff, pipDecimal);
       profitPip = mathBigNum.round(profitPip, input.precision);
 
       // portfolioProfit = (profitAmount / portfolioCapital) * 100
@@ -1600,33 +1609,30 @@ export const calculateResult = (
     entryFee: entryFee,
     stopFee: stopFee,
     profitFee: profitFee,
-    stopSwapFee: stopSwapFee,
-    profitSwapFee: profitSwapFee,
+    stopSwap: stopSwap,
+    profitSwap: profitSwap,
   };
 };
 
-const calcSwapFee = (
+const calcSwapValue = (
   swapRate: BigNumber,
-  pipSize: number,
+  pipDecimal: BigNumber,
   lotSize: BigNumber,
   contractSize: BigNumber,
   quoteRate: BigNumber,
   precision: number
 ) => {
-  // swapFee = swapRate * pipSize * lotSize * contractSize * quoteRate / 10
-  let swapFee = divideBig(
+  // swapValue = swapRate * pipDecimal * lotSize * contractSize * quoteRate / 10
+  let swapValue = multiplyBig(
     multiplyBig(
-      multiplyBig(
-        multiplyBig(multiplyBig(swapRate, pipSize), lotSize),
-        contractSize
-      ),
-      quoteRate
+      multiplyBig(swapRate, pipDecimal),
+      multiplyBig(lotSize, contractSize)
     ),
-    10
+    divideBig(quoteRate, 10)
   );
-  swapFee = mathBigNum.round(swapFee, precision);
+  swapValue = mathBigNum.round(swapValue, precision);
 
-  return swapFee;
+  return swapValue;
 };
 
 const calcLotSize = (
@@ -1660,7 +1666,7 @@ const calcLotSizeWithLotBasedCommission = (
   priceDiff: BigNumber,
   swapRate: BigNumber,
   commissionFee: BigNumber,
-  pipSize: number
+  pipDecimal: BigNumber
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
@@ -1668,13 +1674,13 @@ const calcLotSizeWithLotBasedCommission = (
     maxLoss = 
       priceDiff * lotSize * contractSize * quoteRate 
       + lotSize * commissionFee * 2 
-      - swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+      - swapRate * pipDecimal * lotSize * contractSize * quoteRate / 10
     
     lotSize = maxLoss /
       (
         priceDiff * contractSize * quoteRate
         + commissionFee * 2
-        - swapRate * pipSize * contractSize * quoteRate / 10
+        - swapRate * pipDecimal * contractSize * quoteRate / 10
       )
   */
   const diff = multiplyBig(multiplyBig(priceDiff, contractSize), quoteRate);
@@ -1685,7 +1691,7 @@ const calcLotSizeWithLotBasedCommission = (
   const commissionPart = multiplyBig(commissionFee, 2);
   const swapPart = divideBig(
     multiplyBig(
-      multiplyBig(multiplyBig(swapRate, pipSize), contractSize),
+      multiplyBig(multiplyBig(swapRate, pipDecimal), contractSize),
       quoteRate
     ),
     10
@@ -1709,14 +1715,14 @@ const calcLotSizeWith100KBasedCommission = (
   quoteRate: BigNumber,
   swapRate: BigNumber,
   commissionFeeRate: BigNumber,
-  pipSize: number
+  pipDecimal: BigNumber
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
   /*
     maxLoss = 
       priceDiff * lotSize * contractSize * quoteRate
-      - swapRate * pipSize * lotSize * contractSize * quoteRate / 10
+      - swapRate * pipDecimal * lotSize * contractSize * quoteRate / 10
       + lotSize * contractSize * commissionFeeRate * (entryBaseRate + exitBaseRate)
 
     lotSize = 
@@ -1724,7 +1730,7 @@ const calcLotSizeWith100KBasedCommission = (
       (
         priceDiff * contractSize * quoteRate 
         + contractSize * commissionFeeRate * (entryBaseRate + exitBaseRate)
-        - swapRate * pipsize * contractSize * quoteRate / 10
+        - swapRate * pipDecimal * contractSize * quoteRate / 10
       )
   */
 
@@ -1740,7 +1746,7 @@ const calcLotSizeWith100KBasedCommission = (
 
   const swapPart = divideBig(
     multiplyBig(
-      multiplyBig(multiplyBig(swapRate, pipSize), contractSize),
+      multiplyBig(multiplyBig(swapRate, pipDecimal), contractSize),
       quoteRate
     ),
     10
@@ -1760,7 +1766,7 @@ const adjustLotSize = (
     riskAmount: BigNumber;
     entryFee: BigNumber;
     stopFee: BigNumber;
-    swapFee: BigNumber;
+    swapValue: BigNumber;
   },
   maxLoss: BigNumber,
   lotSize: BigNumber,
@@ -1772,7 +1778,7 @@ const adjustLotSize = (
       riskAmount: mathBigNum.bignumber(0),
       entryFee: mathBigNum.bignumber(0),
       stopFee: mathBigNum.bignumber(0),
-      swapFee: mathBigNum.bignumber(0),
+      swapValue: mathBigNum.bignumber(0),
     };
   }
 
@@ -1780,7 +1786,7 @@ const adjustLotSize = (
   let riskAmount = res.riskAmount;
   let entryFee = res.entryFee;
   let stopFee = res.stopFee;
-  let swapFee = res.swapFee;
+  let swapValue = res.swapValue;
 
   const units = [1, 0.1, 0.01, 0.001];
   for (let i = 0; i <= lotTyp; i++) {
@@ -1817,7 +1823,7 @@ const adjustLotSize = (
         lotSize = tempLotSize;
         entryFee = res.entryFee;
         stopFee = res.stopFee;
-        swapFee = res.swapFee;
+        swapValue = res.swapValue;
         riskAmount = res.riskAmount;
       }
     }
@@ -1825,14 +1831,14 @@ const adjustLotSize = (
 
   lotSize = mathBigNum.floor(lotSize, lotTyp);
 
-  return { lotSize, riskAmount, entryFee, stopFee, swapFee };
+  return { lotSize, riskAmount, entryFee, stopFee, swapValue };
 };
 
 const adjustProfitPrice = (
   getProfitAmountFn: (profitPrice: BigNumber) => {
     profitAmt: BigNumber;
     profitFee: BigNumber;
-    swapFee: BigNumber;
+    swapValue: BigNumber;
   },
   minProfit: BigNumber,
   profitPrice: BigNumber,
@@ -1843,14 +1849,14 @@ const adjustProfitPrice = (
       profitAmount: mathBigNum.bignumber(0),
       profitPrice,
       profitFee: mathBigNum.bignumber(0),
-      swapFee: mathBigNum.bignumber(0),
+      swapValue: mathBigNum.bignumber(0),
     };
   }
 
   const res = getProfitAmountFn(profitPrice);
   let profitAmount = res.profitAmt;
   let profitFee = res.profitFee;
-  let swapFee = res.swapFee;
+  let swapValue = res.swapValue;
 
   const units = [0.1, 0.01, 0.001, 0.0001, 0.00001];
   for (let i = 0; i <= units.length; i++) {
@@ -1889,12 +1895,12 @@ const adjustProfitPrice = (
       if (mathBigNum.largerEq(tempProfitAmt, minProfit)) {
         profitAmount = res.profitAmt;
         profitFee = res.profitFee;
-        swapFee = res.swapFee;
+        swapValue = res.swapValue;
       }
     }
   }
 
-  return { profitAmount, profitPrice, profitFee, swapFee };
+  return { profitAmount, profitPrice, profitFee, swapValue };
 };
 
 const getProfitAmount = (
@@ -1902,11 +1908,11 @@ const getProfitAmount = (
   profitPrice: BigNumber,
   entryFee: BigNumber,
   profitFee: BigNumber,
-  swapFee: BigNumber,
+  swapValue: BigNumber,
   positionSize: BigNumber,
   quoteRate: BigNumber
 ) => {
-  // profitAmt = abs(profitPrice - entryPrice) * positionSize * quoteRate - entryFee - profitFee - swapFee
+  // profitAmt = abs(profitPrice - entryPrice) * positionSize * quoteRate - entryFee - profitFee - swapValue
   const profitAmt = subtractBig(
     subtractBig(
       subtractBig(
@@ -1921,8 +1927,8 @@ const getProfitAmount = (
       ),
       profitFee
     ),
-    swapFee
+    swapValue
   );
 
-  return { profitAmt, profitFee, swapFee };
+  return { profitAmt, profitFee, swapValue };
 };

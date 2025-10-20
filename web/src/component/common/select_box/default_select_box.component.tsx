@@ -1,14 +1,14 @@
 import { FC, ChangeEvent, SelectHTMLAttributes } from "react";
 
 type DefaultSelectProps = {
-  name?: string;
+  id: string;
   options: string[];
   defaultIndex: number;
   onChangeHandler: (idx: number) => void;
 } & SelectHTMLAttributes<HTMLSelectElement>;
 
 const DefaultSelect: FC<DefaultSelectProps> = ({
-  name,
+  id,
   className,
   options,
   defaultIndex,
@@ -22,7 +22,8 @@ const DefaultSelect: FC<DefaultSelectProps> = ({
 
   return (
     <select
-      name={name}
+      id={id}
+      name={id}
       className={className}
       value={options[defaultIndex]}
       onChange={handleChange}

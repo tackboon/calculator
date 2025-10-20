@@ -110,7 +110,11 @@ const PositionSizeForm = () => {
   });
 
   return (
-    <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
+    <form
+      id="stock-position"
+      className={styles["form-wrapper"]}
+      onSubmit={handleSubmit}
+    >
       <p className={styles["description"]}>
         This calculator helps you determine the optimal number of shares to
         trade based on your risk tolerance. Use it to calculate the ideal
@@ -182,9 +186,9 @@ const PositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="unit-type">Unit Type</label>
+          <span className={styles["label"]}>Unit Type</span>
           <SelectBox
-            name="unit-type"
+            id="unit-type"
             options={["Fractional Share", "Unit", "Round Lot"]}
             defaultIndex={UnitType.UNIT}
             onChangeHandler={(idx) =>
@@ -252,6 +256,7 @@ const PositionSizeForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="profit-check"
               isCheck={input.includeProfitGoal}
               onCheck={() =>
                 setInput((prev) => ({
@@ -262,7 +267,19 @@ const PositionSizeForm = () => {
                 }))
               }
             />
-            <span>Include Profit Goal</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeProfitGoal: !prev.includeProfitGoal,
+                  profitGoal: DEFAULT_INPUT.profitGoal,
+                  profitGoalTyp: DEFAULT_INPUT.profitGoalTyp,
+                }))
+              }
+            >
+              Include Profit Goal
+            </span>
           </div>
         </div>
 
@@ -270,9 +287,9 @@ const PositionSizeForm = () => {
           {input.includeProfitGoal && (
             <>
               <div className={styles["form-group"]}>
-                <label htmlFor="profit-strategy">Profit Strategy</label>
+                <span className={styles["label"]}>Profit Strategy</span>
                 <SelectBox
-                  name="profit-strategy"
+                  id="profit-strategy"
                   options={["Priced-Based", "Portfolio-Based"]}
                   defaultIndex={ProfitGoalTyp.PRICED_BASED}
                   onChangeHandler={(idx) => {
@@ -368,6 +385,7 @@ const PositionSizeForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="fee-check"
               isCheck={input.includeTradingFee}
               onCheck={() =>
                 setInput((prev) => ({
@@ -378,7 +396,19 @@ const PositionSizeForm = () => {
                 }))
               }
             />
-            <span>Include Trading Fee</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !prev.includeTradingFee,
+                  estTradingFee: DEFAULT_INPUT.estTradingFee,
+                  minTradingFee: DEFAULT_INPUT.minTradingFee,
+                }))
+              }
+            >
+              Include Trading Fee
+            </span>
           </div>
         </div>
 
@@ -450,7 +480,7 @@ const PositionSizeForm = () => {
               <label htmlFor="precision">Precision:</label>
               <DefaultSelect
                 className={styles["select"]}
-                name="precision"
+                id="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
                 defaultIndex={input.precision}
                 onChangeHandler={(idx) =>
@@ -513,20 +543,21 @@ const PositionSizeForm = () => {
                   <div>{result.quantity}</div>
                 </div>
 
-                <br />
-
                 {result.entryFee !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Entry Fee:</div>
-                    <div>
-                      $
-                      {convertToLocaleString(
-                        result.entryFee,
-                        input.precision,
-                        input.precision
-                      )}
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Entry Fee:</div>
+                      <div>
+                        $
+                        {convertToLocaleString(
+                          result.entryFee,
+                          input.precision,
+                          input.precision
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {result.stopFee !== undefined && (

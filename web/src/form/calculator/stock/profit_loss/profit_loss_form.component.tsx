@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
 import { calculateResult, validateProfitLossInput } from "./utils.component";
@@ -29,7 +29,7 @@ const DEFAULT_INPUT: ProfitLossInputType = {
   precision: 2,
 };
 
-const ProfitLossForm = () => {
+const ForexProfitLossForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorField, setErrorField] = useState<ERROR_FIELD_PROFIT_LOSS | null>(
     null
@@ -159,6 +159,7 @@ const ProfitLossForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
+              id="fee-check"
               isCheck={input.includeTradingFee}
               onCheck={() =>
                 setInput((prev) => ({
@@ -169,7 +170,19 @@ const ProfitLossForm = () => {
                 }))
               }
             />
-            <span>Include Trading Fee</span>
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeTradingFee: !input.includeTradingFee,
+                  estTradingFee: DEFAULT_INPUT.estTradingFee,
+                  minTradingFee: DEFAULT_INPUT.minTradingFee,
+                }))
+              }
+            >
+              Include Trading Fee
+            </span>
           </div>
         </div>
 
@@ -241,7 +254,7 @@ const ProfitLossForm = () => {
               <label htmlFor="precision">Precision:</label>
               <DefaultSelect
                 className={styles["select"]}
-                name="precision"
+                id="precision"
                 options={["0", "1", "2", "3", "4", "5"]}
                 defaultIndex={input.precision}
                 onChangeHandler={(idx) =>
@@ -293,6 +306,7 @@ const ProfitLossForm = () => {
                         $
                         {convertToLocaleString(
                           result.entryFee,
+                          input.precision,
                           input.precision
                         )}
                       </div>
@@ -304,7 +318,12 @@ const ProfitLossForm = () => {
                   <div className={styles["row"]}>
                     <div>Closing Fee:</div>
                     <div>
-                      ${convertToLocaleString(result.exitFee, input.precision)}
+                      $
+                      {convertToLocaleString(
+                        result.exitFee,
+                        input.precision,
+                        input.precision
+                      )}
                     </div>
                   </div>
                 )}
@@ -395,4 +414,4 @@ const ProfitLossForm = () => {
   );
 };
 
-export default ProfitLossForm;
+export default ForexProfitLossForm;

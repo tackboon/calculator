@@ -73,6 +73,7 @@ const TabLayout: FC<TabLayoutProps> = ({
           {showSelectBox ? (
             <div className={styles["select-container"]}>
               <SelectBox
+                id={"calculator-selector"}
                 defaultIndex={activeTab}
                 options={children.map((tab) => tab.props.name)}
                 onChangeHandler={(idx) => setActiveTab(idx)}
