@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import NavLayout from "../layout/nav_layout.component";
 import CalculatorPage from "../page/calculator/calculator.component";
 import NotFoundPage from "../page/not_found/not_found.component";
+import TotoPage from "../page/toto/toto.component";
 // import { sessionLoader } from "./loader";
 
 const router = createBrowserRouter([
@@ -17,6 +18,11 @@ const router = createBrowserRouter([
       {
         path: "/trading-calculator",
         element: <CalculatorPage />,
+        // loader: () => sessionLoader(false),
+      },
+      {
+        path: "/toto-generator",
+        element: <TotoPage />,
         // loader: () => sessionLoader(false),
       },
       // {

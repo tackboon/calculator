@@ -75,8 +75,10 @@ const NavLayout = () => {
           )}
 
           <ul>
-            <li onClick={() => toggleNav("/trading-calculator")}>Trading Calculator</li>
-
+            <li onClick={() => toggleNav("/trading-calculator")}>
+              Trading Calculator
+            </li>
+            <li onClick={() => toggleNav("/toto-generator")}>Toto Generator</li>
             {/* {currentUser ? (
               <li onClick={() => dispatch(logout())}>Logout</li>
             ) : (
