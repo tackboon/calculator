@@ -34,7 +34,8 @@ class ForexService:
       for future in as_completed(futures):
         price = future.result()
         if price is None:
-          raise Exception(f"Failed to get commodity price, symbols: {futures[future]}")
+          print(f"Failed to get commodity price, symbols: {futures[future]}")
+          continue
         resp.append(price)
     
     return resp

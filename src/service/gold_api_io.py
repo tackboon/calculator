@@ -27,7 +27,7 @@ class GoldAPIIOServicer:
     self.access_token = access_token
 
     # Configure the logger with a JSON format for logging error
-    self.logger = create_logger("goldapi", "info", log_path, 
+    self.logger = create_logger("gold_api_io", "info", log_path, 
                                 BasicJSONFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
 
   def get_commodities_price(self, symbol: str, currency: str) -> Optional[CommodityPriceResp]:
@@ -43,13 +43,18 @@ class GoldAPIIOServicer:
 
     # Handle response
     if response.status_code == 200:
-      json_resp: dict = response.json()
-
-      return CommodityPriceResp(
-        price=json_resp.get("price", 0),
-        metal=json_resp.get("metal", ""),
-        timestamp=json_resp.get("timestamp", 0)
-      )
+      try:
+        json_resp: dict = response.json()
+        return CommodityPriceResp(
+          price=json_resp.get("price", 0),
+          metal=json_resp.get("metal", ""),
+          timestamp=json_resp.get("timestamp", 0)
+        )
+      except ValueError:
+        self.logger.error(
+          f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Error: Invalid JSON."
+        )
+        return None
     
     self.logger.error(
       f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Response: {response.text}"

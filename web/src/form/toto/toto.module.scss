@@ -4,6 +4,10 @@
   width: 100%;
   max-width: 1024px;
 
+  .title {
+    text-align: center;
+  }
+
   .description {
     font-size: 1rem;
     color: #555;
@@ -14,13 +18,6 @@
       font-size: 1.2rem;
       margin-bottom: 40px;
     }
-  }
-
-  .switch-wrapper {
-    width: 100%;
-    text-align: center;
-    margin-top: 2rem;
-    margin-bottom: 2.5rem;
   }
 
   .form-group {
@@ -96,14 +93,8 @@
   }
 }
 
-.input-with-switch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
 .result-container {
+  margin-top: 2.5rem;
   background-color: #f9f9f9;
   border: 1px solid #eee;
   border-radius: 8px;
@@ -119,6 +110,7 @@
   white-space: nowrap;
 
   @media (min-width: 768px) {
+    margin-top: 5rem;
     margin-bottom: 2rem;
     padding: 2rem;
   }
@@ -158,50 +150,21 @@
   }
 }
 
-.precision-container {
-  margin-top: 2.5rem;
-  margin-bottom: 8px;
-  margin-right: 1px;
+.conditional-container {
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-
-  label {
-    margin-right: 5px;
-    font-weight: 300;
-  }
-
-  .select {
-    padding: 5px 8px;
-  }
-
-  @media (min-width: 768px) {
-    margin-top: 5rem;
-  }
-}
-
-.checkbox-wrapper {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  padding-top: 5px;
-  color: #3a3b3c;
 
-  span {
-    font-weight: 700;
+  .conditional-label {
+    font-size: 0.9rem;
+    padding-left: 12px;
+    width: 5rem;
+    font-weight: 500;
+    margin-bottom: 0 !important;
   }
-}
 
-.order-container {
-  margin-top: 2rem;
-}
-
-.add-more-order-container {
-  text-align: center;
-
-  .link {
-    font-weight: 600;
+  .conditional-child {
+    width: calc(100% - 10px);
+    padding-left: 10px;
   }
 }

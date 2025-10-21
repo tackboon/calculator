@@ -1,15 +1,33 @@
-import { BigNumber, number } from "mathjs";
+export enum TOTO_RANGE {
+  FOURTY_NINE,
+  FIFTY,
+  FIFTY_FIVE,
+  FIFTY_EIGHT,
+  SIXTY_NINE,
+}
 
 export type TotoInputType = {
-  price: string;
-  percentage: string;
+  count: string;
+  system: number;
+  numberRange: number;
+  mustIncludes: string;
+  mustExcludes: string;
+  conditionalGroups: string;
+  conditionalCount: string;
+  oddEven: string;
+  lowHigh: string;
 };
 
 export enum ERROR_FIELD_TOTO {
-  PRICE,
-  PERCENTAGE,
+  COUNT,
+  MUST_INCLUDES,
+  MUST_EXCLUDES,
+  CONDITIONAL_GROUPS,
+  CONDITIONAL_COUNT,
+  ODD_EVEN,
+  LOW_HIGH,
 }
 
 export type TotoResultType = {
-  numbers: number[];
+  combinations: number[];
 };

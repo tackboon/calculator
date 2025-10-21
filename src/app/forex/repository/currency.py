@@ -120,7 +120,7 @@ class CurrencyRepo:
     Construct commodity price cache key and cache duration.
     """
 
-    return f"forex:gold_api:{symbol}", timedelta(minutes=1)  
+    return f"forex:gold_api:{symbol}", timedelta(hours=1)  
   
   def _get_gold_api_io_cache_info(self, symbol: str) -> tuple[str, timedelta]:
     """
