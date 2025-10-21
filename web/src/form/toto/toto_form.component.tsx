@@ -156,6 +156,19 @@ const TotoForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
+          <label htmlFor="must-excludes">Must Exclude Numbers</label>
+          <NumArrInput
+            id="must-excludes"
+            value={input.mustExcludes}
+            isInvalid={errorField === ERROR_FIELD_TOTO.MUST_EXCLUDES}
+            placeholder="e.g: 1,2,3"
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, mustExcludes: val }))
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
           <label htmlFor="odd-even">Odd/Even Distribution</label>
           <SplitInput
             id="odd-even"
@@ -183,10 +196,7 @@ const TotoForm = () => {
 
         <div className={styles["form-group"]}>
           <div className={styles["conditional-container"]}>
-            <span className={styles["label"]}>
-              Select Numbers and Specify How Many of Them Should Appear in Each
-              Combination
-            </span>
+            <span className={styles["label"]}>Group of Numbers to Include</span>
 
             <label
               htmlFor="group-numbers"
