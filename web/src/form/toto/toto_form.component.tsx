@@ -7,7 +7,7 @@ import {
   TotoInputType,
   TotoResultType,
 } from "./toto.type";
-import { calculateResult, validateTotoInput } from "./utils.component";
+import { generateCombinations, validateTotoInput } from "./utils.component";
 import Button from "../../component/common/button/button.component";
 import Container from "../../component/common/container/container.component";
 import Input from "../../component/common/input/input.component";
@@ -22,7 +22,7 @@ const DEFAULT_INPUT: TotoInputType = {
   mustIncludes: "",
   mustExcludes: "",
   conditionalGroups: "",
-  conditionalCount: "1",
+  conditionalCount: "0",
   oddEven: "",
   lowHigh: "",
 };
@@ -53,15 +53,19 @@ const TotoForm = () => {
     setErrorField(field);
     if (err !== "") return;
 
-    // Handle calculation
-    setResult(calculateResult(input));
+    // generate combinations
+    setResult(generateCombinations(input));
   };
 
   const handleReset = (e: React.FormEvent) => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput(DEFAULT_INPUT);
+    setInput((prev) => ({
+      ...DEFAULT_INPUT,
+      system: prev.system,
+      numberRange: prev.numberRange,
+    }));
     setErrorField(null);
     setResult(null);
   };
@@ -169,32 +173,6 @@ const TotoForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="odd-even">Odd/Even Distribution</label>
-          <SplitInput
-            id="odd-even"
-            value={input.oddEven}
-            isInvalid={errorField === ERROR_FIELD_TOTO.ODD_EVEN}
-            placeholder={`e.g: ${distribution}`}
-            onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, oddEven: val }))
-            }
-          />
-        </div>
-
-        <div className={styles["form-group"]}>
-          <label htmlFor="low-high">Low/High Distribution</label>
-          <SplitInput
-            id="low-high"
-            value={input.lowHigh}
-            isInvalid={errorField === ERROR_FIELD_TOTO.LOW_HIGH}
-            placeholder={`e.g: ${distribution}`}
-            onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, lowHigh: val }))
-            }
-          />
-        </div>
-
-        <div className={styles["form-group"]}>
           <div className={styles["conditional-container"]}>
             <span className={styles["label"]}>Group of Numbers to Include</span>
 
@@ -225,7 +203,7 @@ const TotoForm = () => {
               id="group-count"
               className={styles["conditional-child"]}
               type="number"
-              min={1}
+              min={0}
               max={12}
               value={input.conditionalCount}
               isInvalid={errorField === ERROR_FIELD_TOTO.CONDITIONAL_COUNT}
@@ -237,8 +215,8 @@ const TotoForm = () => {
               }
               onBlur={(e) => {
                 let count = Number(e.target.value);
-                if (isNaN(count) || count < 1 || count > 100) {
-                  count = 1;
+                if (isNaN(count) || count < 0 || count > 12) {
+                  count = 0;
                 }
                 e.target.value = count.toString();
 
@@ -249,6 +227,32 @@ const TotoForm = () => {
               }}
             />
           </div>
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="odd-even">Odd/Even Distribution</label>
+          <SplitInput
+            id="odd-even"
+            value={input.oddEven}
+            isInvalid={errorField === ERROR_FIELD_TOTO.ODD_EVEN}
+            placeholder={`e.g: ${distribution}`}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, oddEven: val }))
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="low-high">Low/High Distribution</label>
+          <SplitInput
+            id="low-high"
+            value={input.lowHigh}
+            isInvalid={errorField === ERROR_FIELD_TOTO.LOW_HIGH}
+            placeholder={`e.g: ${distribution}`}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, lowHigh: val }))
+            }
+          />
         </div>
 
         <p className={styles["error"]}>{errorMessage}</p>
@@ -270,14 +274,31 @@ const TotoForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container
-            className={`${styles["result-container"]} ${styles["price-percentage"]}`}
-          >
+          <Container className={`${styles["result-container"]}`}>
             <div className={styles["result-wrapper"]}>
-              <div className={styles["row"]}>
-                <div>Combinations:</div>
-                <div></div>
-              </div>
+              {result.combinations.map((res, idx) => (
+                <div key={`toto-res-${idx}`}>
+                  <h2>
+                    {idx + 1}. {res.combination}
+                  </h2>
+                  <div className={styles["row"]}>
+                    <div>Odd/Even:</div>
+                    <div>{res.oddEven}</div>
+                  </div>
+                  <div className={styles["row"]}>
+                    <div>Low/High:</div>
+                    <div>{res.lowHigh}</div>
+                  </div>
+                  {res.outputGroups.map((r, i) => (
+                    <div key={`toto-group-${i}`}>
+                      <div className={styles["row"]}>
+                        <div>{r.name}:</div>
+                        <div>{r.count}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </Container>
         )}

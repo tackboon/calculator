@@ -10,7 +10,7 @@ type NumArrInputProps = {
 
 const NumArrInput: FC<NumArrInputProps> = ({
   isInvalid,
-  maxChars = 40,
+  maxChars = 300,
   value,
   className,
   onChangeHandler,

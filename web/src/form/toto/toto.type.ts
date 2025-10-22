@@ -28,6 +28,18 @@ export enum ERROR_FIELD_TOTO {
   LOW_HIGH,
 }
 
+export type TotoOutputGroup = {
+  name: string;
+  count: number;
+};
+
+export type TotoCombination = {
+  combination: string;
+  oddEven: string;
+  lowHigh: string;
+  outputGroups: TotoOutputGroup[];
+};
+
 export type TotoResultType = {
-  combinations: number[];
+  combinations: TotoCombination[];
 };

@@ -1,31 +1,266 @@
-import { ERROR_FIELD_TOTO, TotoInputType, TotoResultType } from "./toto.type";
+import { checkMinMax } from "../../common/validation/calculator.validation";
+import {
+  ERROR_FIELD_TOTO,
+  TOTO_RANGE,
+  TotoInputType,
+  TotoResultType,
+} from "./toto.type";
+
+const getRangeInfo = (rangeTyp: TOTO_RANGE) => {
+  switch (rangeTyp) {
+    case TOTO_RANGE.FOURTY_NINE:
+      return { min: 1, max: 49, odd: 25, even: 24, count: 49, low: 24 };
+    case TOTO_RANGE.FIFTY:
+      return { min: 1, max: 50, odd: 25, even: 25, count: 50, low: 25 };
+    case TOTO_RANGE.FIFTY_FIVE:
+      return { min: 1, max: 55, odd: 28, even: 27, count: 55, low: 27 };
+    case TOTO_RANGE.FIFTY_EIGHT:
+      return { min: 1, max: 58, odd: 29, even: 29, count: 58, low: 29 };
+    case TOTO_RANGE.SIXTY_NINE:
+      return { min: 1, max: 69, odd: 35, even: 34, count: 69, low: 34 };
+  }
+};
 
 export const validateTotoInput = (
   input: TotoInputType
 ): { err: string; field: ERROR_FIELD_TOTO | null } => {
-  //   // if (!checkMinMax(input.price, { min: 0, maxOrEqual: QUADRILLION })) {
-  //   //   return {
-  //   //     err: "Please enter a valid price.",
-  //   //     field: ERROR_FIELD_PRICE_PERCENTAGE.PRICE,
-  //   //   };
-  //   // }
+  // validate count field
+  if (!checkMinMax(input.count, { min: 1, max: 100 })) {
+    return {
+      err: "You can generate between 1 and 100 combinations only.",
+      field: ERROR_FIELD_TOTO.COUNT,
+    };
+  }
 
-  //   // if (
-  //   //   !checkMinMax(input.percentage, {
-  //   //     minOrEqual: QUADRILLION.negated(),
-  //   //     maxOrEqual: QUADRILLION,
-  //   //   })
-  //   // ) {
-  //   //   return {
-  //   //     err: "Please enter a valid percentage.",
-  //   //     field: ERROR_FIELD_PRICE_PERCENTAGE.PERCENTAGE,
-  //   //   };
-  //   // }
+  const rangeInfo = getRangeInfo(input.numberRange);
+  let avaiPoolSize = rangeInfo.count;
+
+  // validate must includes field
+  let mustIncludesOddCount = 0;
+  let mustIncludesEvenCount = 0;
+  let mustIncludesLowCount = 0;
+  let mustIncludesHighCount = 0;
+  const mustIncludes = new Set<number>();
+  const mustIncludeParts = input.mustIncludes.split(",");
+  for (const val of mustIncludeParts) {
+    if (val === "") {
+      continue;
+    }
+
+    const n = Number(val);
+    if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
+      return {
+        err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
+        field: ERROR_FIELD_TOTO.MUST_INCLUDES,
+      };
+    }
+
+    if (!mustIncludes.has(n)) {
+      mustIncludes.add(n);
+
+      if (n % 2 !== 0) {
+        mustIncludesOddCount++;
+      } else {
+        mustIncludesEvenCount++;
+      }
+
+      if (n <= rangeInfo.low) {
+        mustIncludesLowCount++;
+      } else {
+        mustIncludesHighCount++;
+      }
+    }
+  }
+  if (mustIncludes.size > input.system) {
+    return {
+      err: `You can only include up to ${input.system} numbers.`,
+      field: ERROR_FIELD_TOTO.MUST_INCLUDES,
+    };
+  }
+  avaiPoolSize = avaiPoolSize - mustIncludes.size;
+
+  // validate must excludes field
+  let avaiOddCount = rangeInfo.odd;
+  let avaiEvenCount = rangeInfo.even;
+  let avaiLowCount = rangeInfo.low;
+  let avaiHighCount = rangeInfo.count - rangeInfo.low;
+  const mustExcludes = new Set<number>();
+  const mustExcludeParts = input.mustExcludes.split(",");
+  for (const val of mustExcludeParts) {
+    if (val === "") {
+      continue;
+    }
+
+    const n = Number(val);
+    if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
+      return {
+        err: `Each number must be between ${rangeInfo.min} and ${rangeInfo.max}.`,
+        field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
+      };
+    }
+    if (mustIncludes.has(n)) {
+      return {
+        err: `Number ${n} cannot be in both include and exclude lists.`,
+        field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
+      };
+    }
+
+    if (!mustExcludes.has(n)) {
+      mustExcludes.add(n);
+
+      if (n % 2 !== 0) {
+        avaiOddCount--;
+      } else {
+        avaiEvenCount--;
+      }
+
+      if (n <= rangeInfo.low) {
+        avaiLowCount--;
+      } else {
+        avaiHighCount--;
+      }
+    }
+  }
+  const maxExclude = rangeInfo.count - input.system;
+  if (mustExcludes.size > maxExclude) {
+    return {
+      err: `You can only exclude up to ${maxExclude} numbers.`,
+      field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
+    };
+  }
+  avaiPoolSize = avaiPoolSize - mustExcludes.size;
+
+  // validate conditional group
+  let conditionalPoolOddCount = 0;
+  let conditionalPoolEvenCount = 0;
+  let conditionalPoolLowCount = 0;
+  let conditionalPoolHighCount = 0;
+  const conditionalGroups = new Set<number>();
+  const conditionalGroupParts = input.conditionalGroups.split(",");
+  for (const val of conditionalGroupParts) {
+    if (val === "") continue;
+
+    const n = Number(val);
+    if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
+      return {
+        err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
+        field: ERROR_FIELD_TOTO.CONDITIONAL_GROUPS,
+      };
+    }
+
+    if (mustIncludes.has(n) || mustExcludes.has(n)) {
+      return {
+        err: `Number ${n} in the conditional group cannot be in either the include or exclude list.`,
+        field: ERROR_FIELD_TOTO.CONDITIONAL_GROUPS,
+      };
+    }
+
+    if (!conditionalGroups.has(n)) {
+      conditionalGroups.add(n);
+
+      if (n % 2 !== 0) {
+        conditionalPoolOddCount++;
+      } else {
+        conditionalPoolEvenCount++;
+      }
+
+      if (n <= rangeInfo.low) {
+        conditionalPoolLowCount++;
+      } else {
+        conditionalPoolHighCount++;
+      }
+    }
+  }
+
+  // validate conditional count
+  const conditionalCount = Number(input.conditionalCount);
+  if (isNaN(conditionalCount) || conditionalCount < 0) {
+    return {
+      err: `Please enter a valid minimum count.`,
+      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+    };
+  }
+  if (conditionalCount > conditionalGroups.size) {
+    return {
+      err: `The minimum count cannot exceed the number of selected group numbers.`,
+      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+    };
+  }
+  if (
+    conditionalCount > input.system - mustIncludes.size ||
+    conditionalCount > avaiPoolSize
+  ) {
+    return {
+      err: `The minimum count cannot exceed the remaining available numbers or your system size limit.`,
+      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+    };
+  }
+
+  // validate odd/even
+  if (input.oddEven !== "") {
+    const oddEvenParts = input.oddEven.split("/");
+    if (oddEvenParts.length !== 2) {
+      return {
+        err: `Please enter a valid odd/even value`,
+        field: ERROR_FIELD_TOTO.ODD_EVEN,
+      };
+    }
+    const odd = Number(oddEvenParts[0]);
+    const even = Number(oddEvenParts[1]);
+    if (isNaN(odd) || isNaN(even) || odd + even !== input.system) {
+      return {
+        err: "Please enter a valid odd/even distribution format that equal your system size.",
+        field: ERROR_FIELD_TOTO.ODD_EVEN,
+      };
+    }
+    if (odd < mustIncludesOddCount) {
+      return {
+        err: "Your odd/even setting conflicts with the numbers you've included.",
+        field: ERROR_FIELD_TOTO.ODD_EVEN,
+      };
+    }
+
+    const remainingOddCount = odd - mustIncludesOddCount;
+    if (remainingOddCount > avaiOddCount) {
+      return {
+        err: "Your odd/even setting conflicts with the numbers you've excluded.",
+        field: ERROR_FIELD_TOTO.ODD_EVEN,
+      };
+    }
+
+    const remainingEvenCount = even - mustIncludesEvenCount;
+
+    if (conditionalCount > 0) {
+      // if minimum odd count exists in conditional group
+      if (
+        remainingOddCount - (conditionalCount - conditionalPoolEvenCount) <
+        0
+      ) {
+        return {
+          err: "Your odd/even setting conflicts with the conditional setting.",
+          field: ERROR_FIELD_TOTO.ODD_EVEN,
+        };
+      }
+
+      // if minimum even count exists in conditional group
+      if (
+        input.system -
+          remainingOddCount -
+          (conditionalCount - conditionalPoolEvenCount) <
+        0
+      ) {
+        return {
+          err: "Your odd/even setting conflicts with the conditional setting.",
+          field: ERROR_FIELD_TOTO.ODD_EVEN,
+        };
+      }
+    }
+  }
 
   return { err: "", field: null };
 };
 
-export const calculateResult = (input: TotoInputType): TotoResultType => {
+export const generateCombinations = (input: TotoInputType): TotoResultType => {
   console.log(input);
 
   return {
