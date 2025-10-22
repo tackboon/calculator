@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.app.forex.repository import Repository
 from src.config import Config
+from src.extensions import app_logger
 
 
 class ForexService:
@@ -20,7 +21,8 @@ class ForexService:
       for future in as_completed(futures):
         rates = future.result()
         if rates is None:
-          raise Exception(f"Failed to get currency rates, base: {futures[future]}")
+          app_logger.error(f"Failed to get currency rates, base: {futures[future]}")
+          continue
         resp.append(rates)
     
     return resp
@@ -34,7 +36,7 @@ class ForexService:
       for future in as_completed(futures):
         price = future.result()
         if price is None:
-          print(f"Failed to get commodity price, symbols: {futures[future]}")
+          app_logger.error(f"Failed to get commodity price, symbols: {futures[future]}")
           continue
         resp.append(price)
     

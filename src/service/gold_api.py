@@ -25,10 +25,10 @@ class GoldAPIServicer:
     Initialize the gold-api.com service to get commodities price.
     """
 
-    self.basic_url = "https://api.gold-api.com"
+    self.basic_url = "https://api.gold-api.coms"
 
     # Configure the logger with a JSON format for logging error
-    self.logger = create_logger("gold-api", "info", log_path, 
+    self.logger = create_logger("gold_api", "info", log_path, 
                                 BasicJSONFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
 
   def get_commodities_price(self, symbol: str) -> Optional[CommodityPriceResp]:
@@ -38,27 +38,33 @@ class GoldAPIServicer:
 
     url = f"{self.basic_url}/price/{symbol}"
 
-    # Send Get request with parameters
-    response = requests.get(url, timeout=10) # 10s timeout
+    try:
+      # Send Get request with parameters
+      response = requests.get(url, timeout=10) # 10s timeout
 
-    # Handle response
-    if response.status_code == 200:
-      json_resp: dict = response.json()
+      # Handle response
+      if response.status_code == 200:
+        json_resp: dict = response.json()
 
-      updated_at = 0
-      update_time = json_resp.get("updatedAt", 0)
-      if update_time is not None:
-        updated_at = int(datetime.strptime(update_time, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+        updated_at = 0
+        update_time = json_resp.get("updatedAt", 0)
+        if update_time is not None:
+          updated_at = int(datetime.strptime(update_time, "%Y-%m-%dT%H:%M:%SZ").timestamp())
 
-      return CommodityPriceResp(
-        name=json_resp.get("name", ""),
-        price=json_resp.get("price", 0),
-        symbol=json_resp.get("symbol", ""),
-        updated_at=updated_at
+        return CommodityPriceResp(
+          name=json_resp.get("name", ""),
+          price=json_resp.get("price", 0),
+          symbol=json_resp.get("symbol", ""),
+          updated_at=updated_at
+        )
+      
+      self.logger.error(
+        f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Response: {response.text}."
       )
-    
-    self.logger.error(
-      f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Response: {response.text}"
-    )
-    return None
+      return None
+    except Exception as e:
+      self.logger.error(
+        f"Failed to get commodity price with symbol {symbol}. Error: {e}."
+      )
+      return None
   

@@ -33,11 +33,11 @@ frank_further_service = FrankFurtherServicer(
   os.path.join(config.log_base_dir, os.path.basename("frank_further.log")) if config.log_base_dir != "" else ""
 )
 gold_api_io_service = GoldAPIIOServicer(
-  os.path.join(config.log_base_dir, os.path.basename("goldapi.log")) if config.log_base_dir != "" else "",
+  os.path.join(config.log_base_dir, os.path.basename("gold_api_io.log")) if config.log_base_dir != "" else "",
   config.gold_api_io_token
 )
 gold_api_service = GoldAPIServicer(
-  os.path.join(config.log_base_dir, os.path.basename("gold-api.log")) if config.log_base_dir != "" else ""
+  os.path.join(config.log_base_dir, os.path.basename("gold_api.log")) if config.log_base_dir != "" else ""
 )
 ip_service = IP2LocationServicer("IP2LOCATION-LITE-DB11.BIN", "IP2LOCATION-LITE-DB11.IPV6.BIN")
 redis_service = RedisServicer()

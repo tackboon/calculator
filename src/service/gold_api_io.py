@@ -38,26 +38,27 @@ class GoldAPIIOServicer:
     url = f"{self.basic_url}/api/{symbol}/{currency}"
     headers = {"x-access-token": self.access_token}
 
-    # Send Get request with parameters
-    response = requests.get(url, headers=headers, timeout=10) # 10s timeout
+    try:
+      # Send Get request with parameters
+      response = requests.get(url, headers=headers, timeout=10) # 10s timeout
 
-    # Handle response
-    if response.status_code == 200:
-      try:
+      # Handle response
+      if response.status_code == 200:
         json_resp: dict = response.json()
+        
         return CommodityPriceResp(
           price=json_resp.get("price", 0),
           metal=json_resp.get("metal", ""),
           timestamp=json_resp.get("timestamp", 0)
         )
-      except ValueError:
-        self.logger.error(
-          f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Error: Invalid JSON."
-        )
-        return None
-    
-    self.logger.error(
-      f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Response: {response.text}"
-    )
-    return None
+      
+      self.logger.error(
+        f"Failed to get commodity price with symbol {symbol}. Status code: {response.status_code}. Response: {response.text}."
+      )
+      return None
+    except Exception as e:    
+      self.logger.error(
+        f"Failed to get commodity price with symbol {symbol}. Error: {e}."
+      )
+      return None
   

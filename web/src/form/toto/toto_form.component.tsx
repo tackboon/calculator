@@ -174,7 +174,9 @@ const TotoForm = () => {
 
         <div className={styles["form-group"]}>
           <div className={styles["conditional-container"]}>
-            <span className={styles["label"]}>Group of Numbers to Include</span>
+            <span className={styles["label"]}>
+              Select a Number Group and Set How Many Must Appear
+            </span>
 
             <label
               htmlFor="group-numbers"

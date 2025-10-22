@@ -28,7 +28,7 @@ class CurrencyRepo:
     Get currency rates by base currency.
     Return rates data in json format if found, else None.
     """
-
+    
     key, duration = self._get_currency_rate_cache_info(base)
 
     # Get data from cache

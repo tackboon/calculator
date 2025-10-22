@@ -9,7 +9,8 @@ import {
 const getRangeInfo = (rangeTyp: TOTO_RANGE) => {
   switch (rangeTyp) {
     case TOTO_RANGE.FOURTY_NINE:
-      return { min: 1, max: 49, odd: 25, even: 24, count: 49, low: 24 };
+      return { min: 1, max: 10, odd: 5, even: 5, count: 10, low: 5 };
+    // return { min: 1, max: 49, odd: 25, even: 24, count: 49, low: 24 };
     case TOTO_RANGE.FIFTY:
       return { min: 1, max: 50, odd: 25, even: 25, count: 50, low: 25 };
     case TOTO_RANGE.FIFTY_FIVE:
@@ -40,6 +41,10 @@ export const validateTotoInput = (
   let mustIncludesEvenCount = 0;
   let mustIncludesLowCount = 0;
   let mustIncludesHighCount = 0;
+  let avaiOddCount = rangeInfo.odd;
+  let avaiEvenCount = rangeInfo.even;
+  let avaiLowCount = rangeInfo.low - rangeInfo.min + 1;
+  let avaiHighCount = rangeInfo.count - rangeInfo.low;
   const mustIncludes = new Set<number>();
   const mustIncludeParts = input.mustIncludes.split(",");
   for (const val of mustIncludeParts) {
@@ -60,14 +65,18 @@ export const validateTotoInput = (
 
       if (n % 2 !== 0) {
         mustIncludesOddCount++;
+        avaiOddCount--;
       } else {
         mustIncludesEvenCount++;
+        avaiEvenCount--;
       }
 
       if (n <= rangeInfo.low) {
         mustIncludesLowCount++;
+        avaiLowCount--;
       } else {
         mustIncludesHighCount++;
+        avaiHighCount--;
       }
     }
   }
@@ -80,10 +89,6 @@ export const validateTotoInput = (
   avaiPoolSize = avaiPoolSize - mustIncludes.size;
 
   // validate must excludes field
-  let avaiOddCount = rangeInfo.odd;
-  let avaiEvenCount = rangeInfo.even;
-  let avaiLowCount = rangeInfo.low;
-  let avaiHighCount = rangeInfo.count - rangeInfo.low;
   const mustExcludes = new Set<number>();
   const mustExcludeParts = input.mustExcludes.split(",");
   for (const val of mustExcludeParts) {
@@ -131,11 +136,11 @@ export const validateTotoInput = (
   avaiPoolSize = avaiPoolSize - mustExcludes.size;
 
   // validate conditional group
-  let conditionalPoolOddCount = 0;
-  let conditionalPoolEvenCount = 0;
   let conditionalPoolLowCount = 0;
   let conditionalPoolHighCount = 0;
   const conditionalGroups = new Set<number>();
+  const conditionalPoolOdd = new Set<number>();
+  const conditionalPoolEven = new Set<number>();
   const conditionalGroupParts = input.conditionalGroups.split(",");
   for (const val of conditionalGroupParts) {
     if (val === "") continue;
@@ -159,9 +164,9 @@ export const validateTotoInput = (
       conditionalGroups.add(n);
 
       if (n % 2 !== 0) {
-        conditionalPoolOddCount++;
+        conditionalPoolOdd.add(n);
       } else {
-        conditionalPoolEvenCount++;
+        conditionalPoolEven.add(n);
       }
 
       if (n <= rangeInfo.low) {
@@ -197,6 +202,10 @@ export const validateTotoInput = (
   }
 
   // validate odd/even
+  let forcedOddLowCount = 0;
+  let forcedOddHighCount = 0;
+  let forcedEvenLowCount = 0;
+  let forcedEvenHighCount = 0;
   if (input.oddEven !== "") {
     const oddEvenParts = input.oddEven.split("/");
     if (oddEvenParts.length !== 2) {
@@ -213,7 +222,7 @@ export const validateTotoInput = (
         field: ERROR_FIELD_TOTO.ODD_EVEN,
       };
     }
-    if (odd < mustIncludesOddCount) {
+    if (odd < mustIncludesOddCount || even < mustIncludesEvenCount) {
       return {
         err: "Your odd/even setting conflicts with the numbers you've included.",
         field: ERROR_FIELD_TOTO.ODD_EVEN,
@@ -221,37 +230,124 @@ export const validateTotoInput = (
     }
 
     const remainingOddCount = odd - mustIncludesOddCount;
-    if (remainingOddCount > avaiOddCount) {
+    const remainingEvenCount = even - mustIncludesEvenCount;
+    if (
+      remainingOddCount > avaiOddCount ||
+      remainingEvenCount > avaiEvenCount
+    ) {
       return {
-        err: "Your odd/even setting conflicts with the numbers you've excluded.",
+        err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
         field: ERROR_FIELD_TOTO.ODD_EVEN,
       };
     }
 
-    const remainingEvenCount = even - mustIncludesEvenCount;
-
     if (conditionalCount > 0) {
-      // if minimum odd count exists in conditional group
+      // if minimum odd/even count exists in conditional group
+      const forcedOddCount = Math.max(
+        0,
+        conditionalCount - conditionalPoolEven.size
+      );
+      const forcedEvenCount = Math.max(
+        0,
+        conditionalCount - conditionalPoolOdd.size
+      );
       if (
-        remainingOddCount - (conditionalCount - conditionalPoolEvenCount) <
-        0
+        remainingOddCount < forcedOddCount ||
+        remainingEvenCount < forcedEvenCount
       ) {
         return {
-          err: "Your odd/even setting conflicts with the conditional setting.",
+          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
           field: ERROR_FIELD_TOTO.ODD_EVEN,
         };
       }
 
-      // if minimum even count exists in conditional group
+      if (forcedOddCount > 0) {
+        for (const oddNum of conditionalPoolOdd) {
+          if (oddNum <= rangeInfo.low) {
+            forcedOddLowCount++;
+          } else {
+            forcedOddHighCount++;
+          }
+        }
+      }
+
+      if (forcedEvenCount > 0) {
+        for (const evenNum of conditionalPoolEven) {
+          if (evenNum <= rangeInfo.low) {
+            forcedEvenLowCount++;
+          } else {
+            forcedEvenHighCount++;
+          }
+        }
+      }
+    }
+  }
+
+  // validate low/high
+  if (input.lowHigh !== "") {
+    const lowHighParts = input.lowHigh.split("/");
+    if (lowHighParts.length !== 2) {
+      return {
+        err: `Please enter a valid low/high value`,
+        field: ERROR_FIELD_TOTO.LOW_HIGH,
+      };
+    }
+    const low = Number(lowHighParts[0]);
+    const high = Number(lowHighParts[1]);
+    if (isNaN(low) || isNaN(high) || low + high !== input.system) {
+      return {
+        err: "Please enter a valid low/high distribution format that equal your system size.",
+        field: ERROR_FIELD_TOTO.LOW_HIGH,
+      };
+    }
+    if (low < mustIncludesLowCount || high < mustIncludesHighCount) {
+      return {
+        err: "Your low/high setting conflicts with the numbers you've included.",
+        field: ERROR_FIELD_TOTO.LOW_HIGH,
+      };
+    }
+
+    const remainingLowCount = low - mustIncludesLowCount;
+    const remainingHighCount = high - mustIncludesHighCount;
+    if (
+      remainingLowCount > avaiLowCount ||
+      remainingHighCount > avaiHighCount
+    ) {
+      return {
+        err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+        field: ERROR_FIELD_TOTO.LOW_HIGH,
+      };
+    }
+
+    if (conditionalCount > 0) {
+      // if minimum low/high count exists in conditional group
+      const forcedLowCount = Math.max(
+        0,
+        conditionalCount - conditionalPoolHighCount
+      );
+      const forcedHighCount = Math.max(
+        0,
+        conditionalCount - conditionalPoolLowCount
+      );
       if (
-        input.system -
-          remainingOddCount -
-          (conditionalCount - conditionalPoolEvenCount) <
-        0
+        remainingLowCount < forcedLowCount ||
+        remainingHighCount < forcedHighCount
       ) {
         return {
-          err: "Your odd/even setting conflicts with the conditional setting.",
-          field: ERROR_FIELD_TOTO.ODD_EVEN,
+          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+          field: ERROR_FIELD_TOTO.LOW_HIGH,
+        };
+      }
+
+      if (
+        forcedOddLowCount > remainingLowCount ||
+        forcedEvenLowCount > remainingLowCount ||
+        forcedOddHighCount > remainingHighCount ||
+        forcedEvenHighCount > remainingHighCount
+      ) {
+        return {
+          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+          field: ERROR_FIELD_TOTO.LOW_HIGH,
         };
       }
     }
