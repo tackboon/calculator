@@ -43,3 +43,11 @@ export type TotoCombination = {
 export type TotoResultType = {
   combinations: TotoCombination[];
 };
+
+export type TotoPools = {
+  allPools: Set<number>;
+  oddPools: Set<number>;
+  evenPools: Set<number>;
+  lowPools: Set<number>;
+  highPools: Set<number>;
+};

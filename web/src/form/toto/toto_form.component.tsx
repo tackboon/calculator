@@ -54,7 +54,11 @@ const TotoForm = () => {
     if (err !== "") return;
 
     // generate combinations
-    setResult(generateCombinations(input));
+    const combinations = generateCombinations(input);
+    for (const combination of combinations) {
+      console.log([...combination].join(" "));
+    }
+    // setResult();
   };
 
   const handleReset = (e: React.FormEvent) => {
