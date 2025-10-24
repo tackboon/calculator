@@ -37,11 +37,9 @@ export type TotoCombination = {
   combination: string;
   oddEven: string;
   lowHigh: string;
+  sum: number;
+  average: number;
   outputGroups: TotoOutputGroup[];
-};
-
-export type TotoResultType = {
-  combinations: TotoCombination[];
 };
 
 export type TotoPools = {
@@ -54,4 +52,14 @@ export type TotoPools = {
   oddHighPools: Set<number>;
   evenLowPools: Set<number>;
   evenHighPools: Set<number>;
+};
+
+export type TotoRangeInfo = {
+  min: number;
+  max: number;
+  odd: number;
+  even: number;
+  count: number;
+  low: number;
+  group: number;
 };

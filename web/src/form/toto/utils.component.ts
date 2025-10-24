@@ -3,9 +3,11 @@ import { checkMinMax } from "../../common/validation/calculator.validation";
 import {
   ERROR_FIELD_TOTO,
   TOTO_RANGE,
+  TotoCombination,
   TotoInputType,
+  TotoOutputGroup,
   TotoPools,
-  TotoResultType,
+  TotoRangeInfo,
 } from "./toto.type";
 
 const poolCache: Record<TOTO_RANGE, TotoPools> = {} as Record<
@@ -25,6 +27,13 @@ const initTotoPool = (): TotoPools => {
     evenLowPools: new Set<number>(),
     evenHighPools: new Set<number>(),
   };
+};
+
+const printTotoPoolString = (pools: TotoPools) => {
+  const entries = Object.entries(pools).map(
+    ([key, set]) => `${key}: [${[...set].join(", ")}]`
+  );
+  console.log(entries.join("\n"));
 };
 
 const initDefaultTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
@@ -87,18 +96,58 @@ const getTotoPoolCopy = (pools: TotoPools): TotoPools => {
   };
 };
 
-const getRangeInfo = (rangeTyp: TOTO_RANGE) => {
+const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
   switch (rangeTyp) {
     case TOTO_RANGE.FOURTY_NINE:
-      return { min: 1, max: 49, odd: 25, even: 24, count: 49, low: 24 };
+      return {
+        min: 1,
+        max: 49,
+        odd: 25,
+        even: 24,
+        count: 49,
+        low: 24,
+        group: 5,
+      };
     case TOTO_RANGE.FIFTY:
-      return { min: 1, max: 50, odd: 25, even: 25, count: 50, low: 25 };
+      return {
+        min: 1,
+        max: 50,
+        odd: 25,
+        even: 25,
+        count: 50,
+        low: 25,
+        group: 5,
+      };
     case TOTO_RANGE.FIFTY_FIVE:
-      return { min: 1, max: 55, odd: 28, even: 27, count: 55, low: 27 };
+      return {
+        min: 1,
+        max: 55,
+        odd: 28,
+        even: 27,
+        count: 55,
+        low: 27,
+        group: 6,
+      };
     case TOTO_RANGE.FIFTY_EIGHT:
-      return { min: 1, max: 58, odd: 29, even: 29, count: 58, low: 29 };
+      return {
+        min: 1,
+        max: 58,
+        odd: 29,
+        even: 29,
+        count: 58,
+        low: 29,
+        group: 6,
+      };
     case TOTO_RANGE.SIXTY_NINE:
-      return { min: 1, max: 69, odd: 35, even: 34, count: 69, low: 34 };
+      return {
+        min: 1,
+        max: 69,
+        odd: 35,
+        even: 34,
+        count: 69,
+        low: 34,
+        group: 7,
+      };
   }
 };
 
@@ -316,7 +365,7 @@ export const validateTotoInput = (
       remainingEvenCount > avaiEvenCount
     ) {
       return {
-        err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+        err: "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
         field: ERROR_FIELD_TOTO.ODD_EVEN,
       };
     }
@@ -394,7 +443,7 @@ export const validateTotoInput = (
       remainingHighCount > avaiHighCount
     ) {
       return {
-        err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+        err: "Your low/high setting cannot be satisfied after applying your include and exclude settings.",
         field: ERROR_FIELD_TOTO.LOW_HIGH,
       };
     }
@@ -426,7 +475,7 @@ export const validateTotoInput = (
         forcedEvenHighCount > remainingHighCount
       ) {
         return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+          err: "Your low/high setting cannot be satisfied after applying your include, exclude, conditional group, and odd/even settings.",
           field: ERROR_FIELD_TOTO.LOW_HIGH,
         };
       }
@@ -458,7 +507,9 @@ const deletePoolNum = (pools: TotoPools, n: number) => {
   pools.evenHighPools.delete(n);
 };
 
-export const generateCombinations = (input: TotoInputType): Set<number>[] => {
+export const generateCombinations = (
+  input: TotoInputType
+): TotoCombination[] => {
   // Read params
   const count = Number(input.count);
   const rangeInfo = getRangeInfo(input.numberRange);
@@ -467,6 +518,10 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
   const defaultPools = initDefaultTotoPool(input.numberRange);
   const pools = getTotoPoolCopy(defaultPools);
   const selectedPool = initTotoPool();
+
+  // Init output
+  const combinationSet = new Set<string>();
+  const combinations: TotoCombination[] = [];
 
   // Read must includes
   const mustIncludeParts = input.mustIncludes.split(",");
@@ -477,6 +532,14 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
     const n = Number(val);
     updateSelectPool(n, selectedPool, rangeInfo.low);
     deletePoolNum(pools, n);
+  }
+
+  if (selectedPool.allPools.size === input.system) {
+    const combinationStr = setToString(selectedPool.allPools, " ");
+    const out = analyseData(selectedPool.allPools, combinationStr, rangeInfo);
+    combinations.push(out);
+
+    return combinations;
   }
 
   // Read must excludes
@@ -529,13 +592,8 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
     high = Number(lowHighParts[1]);
   }
 
-  const combinations: Set<number>[] = [];
-  for (let k = 0; k < count; k++) {
-    if (selectedPool.allPools.size === input.system) {
-      combinations.push(selectedPool.allPools);
-      continue;
-    }
-
+  let k = 0;
+  while (combinations.length < count && k < 1000) {
     const poolsCopy = getTotoPoolCopy(pools);
     const selectedPoolCopy = getTotoPoolCopy(selectedPool);
     const conditionalPoolCopy = getTotoPoolCopy(conditionalPool);
@@ -554,7 +612,15 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
       rangeInfo.low,
       input.system
     );
-    combinations.push(combination);
+
+    const combinationStr = setToString(combination, " ");
+    if (!combinationSet.has(combinationStr)) {
+      const out = analyseData(combination, combinationStr, rangeInfo);
+      combinations.push(out);
+      combinationSet.add(combinationStr);
+    }
+
+    k++;
   }
 
   return combinations;
@@ -635,16 +701,18 @@ const randomNumber = (
   low: number,
   high: number
 ) => {
-  let oddEvenRule = "";
+  let oddEvenRule = "both";
   let requiredOddEvenCount = 999;
   if (includeOddEven) {
     const remainingOddCount = odd - selectedPool.oddPools.size;
     const remainingEvenCount = even - selectedPool.evenPools.size;
 
     if (remainingOddCount === remainingEvenCount) {
-      oddEvenRule = "both";
       requiredOddEvenCount = remainingOddCount;
-    } else if (remainingOddCount < remainingEvenCount) {
+    } else if (
+      remainingEvenCount === 0 ||
+      (remainingOddCount > 0 && remainingOddCount < remainingEvenCount)
+    ) {
       oddEvenRule = "odd";
       requiredOddEvenCount = remainingOddCount;
     } else {
@@ -653,16 +721,18 @@ const randomNumber = (
     }
   }
 
-  let lowHighRule = "";
+  let lowHighRule = "both";
   let requiredLowHighCount = 999;
   if (includeLowHigh) {
     const remainingLowCount = low - selectedPool.lowPools.size;
     const remainingHighCount = high - selectedPool.highPools.size;
 
     if (remainingLowCount === remainingHighCount) {
-      lowHighRule = "both";
       requiredLowHighCount = remainingLowCount;
-    } else if (remainingLowCount < remainingHighCount) {
+    } else if (
+      remainingHighCount === 0 ||
+      (remainingLowCount > 0 && remainingLowCount < remainingHighCount)
+    ) {
       lowHighRule = "low";
       requiredLowHighCount = remainingLowCount;
     } else {
@@ -672,10 +742,7 @@ const randomNumber = (
   }
 
   let n: number | undefined;
-  if (
-    (oddEvenRule === "" && lowHighRule === "") ||
-    (oddEvenRule === "both" && lowHighRule === "both")
-  ) {
+  if (oddEvenRule === "both" && lowHighRule === "both") {
     n = randomFromSet(pools.allPools);
   } else if (requiredOddEvenCount === requiredLowHighCount) {
     if (oddEvenRule === "both") {
@@ -701,17 +768,26 @@ const randomNumber = (
         n = randomFromSet(pools.evenHighPools);
       }
     }
-  } else if (
-    requiredOddEvenCount < requiredLowHighCount ||
-    lowHighRule === "both"
-  ) {
-    if (oddEvenRule === "odd") {
+  } else if (requiredOddEvenCount < requiredLowHighCount) {
+    if (oddEvenRule === "both") {
+      if (lowHighRule === "low") {
+        n = randomFromSet(pools.lowPools);
+      } else {
+        n = randomFromSet(pools.highPools);
+      }
+    } else if (oddEvenRule === "odd") {
       n = randomFromSet(pools.oddPools);
     } else {
       n = randomFromSet(pools.evenPools);
     }
   } else {
-    if (lowHighRule === "low") {
+    if (lowHighRule === "both") {
+      if (oddEvenRule === "odd") {
+        n = randomFromSet(pools.oddPools);
+      } else {
+        n = randomFromSet(pools.evenPools);
+      }
+    } else if (lowHighRule === "low") {
       n = randomFromSet(pools.lowPools);
     } else {
       n = randomFromSet(pools.highPools);
@@ -719,4 +795,65 @@ const randomNumber = (
   }
 
   return n;
+};
+
+const setToString = (set: Set<number>, separator: string) => {
+  return Array.from(set)
+    .sort((a, b) => a - b)
+    .join(separator);
+};
+
+const analyseData = (
+  combination: Set<number>,
+  combinationStr: string,
+  rangeInfo: TotoRangeInfo
+): TotoCombination => {
+  const outputGroups: TotoOutputGroup[] = [];
+  for (let i = 1; i <= rangeInfo.group * 10; i += 10) {
+    const name = `${i}-${i + 10}`;
+    const outputGroup: TotoOutputGroup = {
+      name,
+      count: 0,
+    };
+    outputGroups.push(outputGroup);
+  }
+
+  let sum = 0;
+  let average = 0;
+  let oddCount = 0;
+  let evenCount = 0;
+  let lowCount = 0;
+  let highCount = 0;
+  for (const n of combination) {
+    sum += n;
+
+    if (n % 2 === 0) evenCount++;
+    else oddCount++;
+
+    if (n <= rangeInfo.low) lowCount++;
+    else highCount++;
+
+    const divide = Math.floor(n / 10);
+    const remainder = n % 10;
+
+    let group = 0;
+    if (divide > 0) {
+      group = remainder > 0 ? divide : divide - 1;
+    }
+
+    outputGroups[group].count++;
+  }
+
+  if (combination.size > 0) {
+    average = Math.round(sum / combination.size);
+  }
+
+  return {
+    combination: combinationStr,
+    oddEven: `${oddCount}/${evenCount}`,
+    lowHigh: `${lowCount}/${highCount}`,
+    sum,
+    average,
+    outputGroups,
+  };
 };

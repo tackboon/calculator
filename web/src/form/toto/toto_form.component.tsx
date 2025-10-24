@@ -4,8 +4,8 @@ import styles from "./toto.module.scss";
 import {
   ERROR_FIELD_TOTO,
   TOTO_RANGE,
+  TotoCombination,
   TotoInputType,
-  TotoResultType,
 } from "./toto.type";
 import { generateCombinations, validateTotoInput } from "./utils.component";
 import Button from "../../component/common/button/button.component";
@@ -33,7 +33,7 @@ const TotoForm = () => {
   const [input, setInput] = useState<TotoInputType>(DEFAULT_INPUT);
   const [distribution, setDistribution] = useState("3/3");
 
-  const [result, setResult] = useState<TotoResultType | null>(null);
+  const [result, setResult] = useState<TotoCombination[] | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Scroll to result after it is updated
@@ -54,11 +54,7 @@ const TotoForm = () => {
     if (err !== "") return;
 
     // generate combinations
-    const combinations = generateCombinations(input);
-    for (const combination of combinations) {
-      console.log([...combination].join(" "));
-    }
-    // setResult();
+    setResult(generateCombinations(input));
   };
 
   const handleReset = (e: React.FormEvent) => {
@@ -282,10 +278,10 @@ const TotoForm = () => {
         {result && (
           <Container className={`${styles["result-container"]}`}>
             <div className={styles["result-wrapper"]}>
-              {result.combinations.map((res, idx) => (
+              {result.map((res, idx) => (
                 <div key={`toto-res-${idx}`}>
                   <h2>
-                    {idx + 1}. {res.combination}
+                    {idx + 1}) {res.combination}
                   </h2>
                   <div className={styles["row"]}>
                     <div>Odd/Even:</div>
@@ -295,6 +291,15 @@ const TotoForm = () => {
                     <div>Low/High:</div>
                     <div>{res.lowHigh}</div>
                   </div>
+                  <div className={styles["row"]}>
+                    <div>Sum:</div>
+                    <div>{res.sum}</div>
+                  </div>
+                  <div className={styles["row"]}>
+                    <div>Average:</div>
+                    <div>{res.average}</div>
+                  </div>
+                  <br />
                   {res.outputGroups.map((r, i) => (
                     <div key={`toto-group-${i}`}>
                       <div className={styles["row"]}>
