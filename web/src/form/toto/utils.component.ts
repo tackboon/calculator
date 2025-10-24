@@ -13,30 +13,48 @@ const poolCache: Record<TOTO_RANGE, TotoPools> = {} as Record<
   TotoPools
 >;
 
-const initTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
+const initTotoPool = (): TotoPools => {
+  return {
+    allPools: new Set<number>(),
+    oddPools: new Set<number>(),
+    evenPools: new Set<number>(),
+    lowPools: new Set<number>(),
+    highPools: new Set<number>(),
+    oddLowPools: new Set<number>(),
+    oddHighPools: new Set<number>(),
+    evenLowPools: new Set<number>(),
+    evenHighPools: new Set<number>(),
+  };
+};
+
+const initDefaultTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
   if (poolCache[rangeTyp]) return poolCache[rangeTyp];
 
-  const info = getRangeInfo(rangeTyp);
-
-  const allPools = new Set<number>();
-  const oddPools = new Set<number>();
-  const evenPools = new Set<number>();
-  const lowPools = new Set<number>();
-  const highPools = new Set<number>();
-
-  const { min, max, low } = info;
+  const { min, max, low } = getRangeInfo(rangeTyp);
+  const pools = initTotoPool();
 
   for (let i = min; i <= max; i++) {
-    allPools.add(i);
+    pools.allPools.add(i);
 
-    if (i % 2 === 0) evenPools.add(i);
-    else oddPools.add(i);
+    if (i % 2 === 0) {
+      pools.evenPools.add(i);
+      if (i <= low) {
+        pools.evenLowPools.add(i);
+      } else {
+        pools.evenHighPools.add(i);
+      }
+    } else {
+      pools.oddPools.add(i);
+      if (i <= low) {
+        pools.oddLowPools.add(i);
+      } else {
+        pools.oddHighPools.add(i);
+      }
+    }
 
-    if (i <= low) lowPools.add(i);
-    else highPools.add(i);
+    if (i <= low) pools.lowPools.add(i);
+    else pools.highPools.add(i);
   }
-
-  const pools = { allPools, oddPools, evenPools, lowPools, highPools };
 
   // store in cache
   poolCache[rangeTyp] = pools;
@@ -44,13 +62,28 @@ const initTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
 };
 
 const getTotoPoolCopy = (pools: TotoPools): TotoPools => {
-  const { allPools, oddPools, evenPools, lowPools, highPools } = pools;
+  const {
+    allPools,
+    oddPools,
+    evenPools,
+    lowPools,
+    highPools,
+    oddLowPools,
+    oddHighPools,
+    evenLowPools,
+    evenHighPools,
+  } = pools;
+
   return {
     allPools: new Set(allPools),
     oddPools: new Set(oddPools),
     evenPools: new Set(evenPools),
     lowPools: new Set(lowPools),
     highPools: new Set(highPools),
+    oddLowPools: new Set(oddLowPools),
+    oddHighPools: new Set(oddHighPools),
+    evenLowPools: new Set(evenLowPools),
+    evenHighPools: new Set(evenHighPools),
   };
 };
 
@@ -403,12 +436,7 @@ export const validateTotoInput = (
   return { err: "", field: null };
 };
 
-const updateSelectPool = (
-  n: number,
-  pools: TotoPools,
-  selectedPool: TotoPools,
-  low: number
-) => {
+const updateSelectPool = (n: number, selectedPool: TotoPools, low: number) => {
   selectedPool.allPools.add(n);
 
   if (n % 2 === 0) selectedPool.evenPools.add(n);
@@ -416,12 +444,18 @@ const updateSelectPool = (
 
   if (n <= low) selectedPool.lowPools.add(n);
   else selectedPool.highPools.add(n);
+};
 
+const deletePoolNum = (pools: TotoPools, n: number) => {
   pools.allPools.delete(n);
   pools.oddPools.delete(n);
   pools.evenPools.delete(n);
   pools.lowPools.delete(n);
   pools.highPools.delete(n);
+  pools.oddLowPools.delete(n);
+  pools.oddHighPools.delete(n);
+  pools.evenLowPools.delete(n);
+  pools.evenHighPools.delete(n);
 };
 
 export const generateCombinations = (input: TotoInputType): Set<number>[] => {
@@ -430,15 +464,9 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
   const rangeInfo = getRangeInfo(input.numberRange);
 
   // Build initial pool
-  const defaultPools = initTotoPool(input.numberRange);
+  const defaultPools = initDefaultTotoPool(input.numberRange);
   const pools = getTotoPoolCopy(defaultPools);
-  const selectedPool: TotoPools = {
-    allPools: new Set<number>(),
-    oddPools: new Set<number>(),
-    evenPools: new Set<number>(),
-    lowPools: new Set<number>(),
-    highPools: new Set<number>(),
-  };
+  const selectedPool = initTotoPool();
 
   // Read must includes
   const mustIncludeParts = input.mustIncludes.split(",");
@@ -447,7 +475,8 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
       continue;
     }
     const n = Number(val);
-    updateSelectPool(n, pools, selectedPool, rangeInfo.low);
+    updateSelectPool(n, selectedPool, rangeInfo.low);
+    deletePoolNum(pools, n);
   }
 
   // Read must excludes
@@ -457,23 +486,12 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
       continue;
     }
     const n = Number(val);
-
-    pools.allPools.delete(n);
-    pools.oddPools.delete(n);
-    pools.evenPools.delete(n);
-    pools.lowPools.delete(n);
-    pools.highPools.delete(n);
+    deletePoolNum(pools, n);
   }
 
   // Read conditional groups
   const conditionalCount = Number(input.conditionalCount);
-  const conditionalPool: TotoPools = {
-    allPools: new Set<number>(),
-    oddPools: new Set<number>(),
-    evenPools: new Set<number>(),
-    lowPools: new Set<number>(),
-    highPools: new Set<number>(),
-  };
+  const conditionalPool = initTotoPool();
   if (conditionalCount > 0) {
     const conditionalGroupParts = input.conditionalGroups.split(",");
     for (const val of conditionalGroupParts) {
@@ -518,10 +536,25 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
       continue;
     }
 
-    const poolsCopy = getTotoPoolCopy(pools)
-    const selectedPoolCopy = getTotoPoolCopy(selectedPool)
+    const poolsCopy = getTotoPoolCopy(pools);
+    const selectedPoolCopy = getTotoPoolCopy(selectedPool);
+    const conditionalPoolCopy = getTotoPoolCopy(conditionalPool);
 
-    generateCombination(poolsCopy, selectedPoolsCopy, );
+    const combination = generateCombination(
+      poolsCopy,
+      selectedPoolCopy,
+      conditionalPoolCopy,
+      conditionalCount,
+      includeOddEven,
+      odd,
+      even,
+      includeLowHigh,
+      low,
+      high,
+      rangeInfo.low,
+      input.system
+    );
+    combinations.push(combination);
   }
 
   return combinations;
@@ -530,8 +563,8 @@ export const generateCombinations = (input: TotoInputType): Set<number>[] => {
 const generateCombination = (
   pools: TotoPools,
   selectedPool: TotoPools,
-  conditionalCount: number,
   conditionalPool: TotoPools,
+  conditionalCount: number,
   includeOddEven: boolean,
   odd: number,
   even: number,
@@ -544,99 +577,22 @@ const generateCombination = (
   // Handle conditional group logic
   if (conditionalCount > 0) {
     for (let i = 0; i < conditionalCount; i++) {
-      let oddEvenRule = "";
-      let requiredOddEvenCount = 999;
-      if (includeOddEven) {
-        const remainingOddCount = odd - selectedPool.oddPools.size;
-        const remainingEvenCount = even - selectedPool.evenPools.size;
-
-        if (remainingOddCount === remainingEvenCount) {
-          oddEvenRule = "both";
-          requiredOddEvenCount = remainingOddCount;
-        } else if (remainingOddCount < remainingEvenCount) {
-          oddEvenRule = "odd";
-          requiredOddEvenCount = remainingOddCount;
-        } else {
-          oddEvenRule = "even";
-          requiredOddEvenCount = remainingEvenCount;
-        }
-      }
-
-      let lowHighRule = "";
-      let requiredLowHighCount = 999;
-      if (includeLowHigh) {
-        const remainingLowCount = low - selectedPool.lowPools.size;
-        const remainingHighCount = high - selectedPool.highPools.size;
-
-        if (remainingLowCount === remainingHighCount) {
-          lowHighRule = "both";
-          requiredLowHighCount = remainingLowCount;
-        } else if (remainingLowCount < remainingHighCount) {
-          lowHighRule = "low";
-          requiredLowHighCount = remainingLowCount;
-        } else {
-          lowHighRule = "high";
-          requiredLowHighCount = remainingHighCount;
-        }
-      }
-
-      if (
-        requiredOddEvenCount === requiredLowHighCount ||
-        (oddEvenRule === "both" && lowHighRule === "both")
-      ) {
-        const n = randomFromSet(conditionalPool.allPools);
-        if (n !== undefined) {
-          conditionalPool.allPools.delete(n);
-          conditionalPool.oddPools.delete(n);
-          conditionalPool.evenPools.delete(n);
-          conditionalPool.lowPools.delete(n);
-          conditionalPool.highPools.delete(n);
-
-          updateSelectPool(n, pools, selectedPool, rangeLow);
-        } else {
-          console.error("Failed to random on empty set. Conditional: 1");
-        }
-      } else if (
-        requiredOddEvenCount < requiredLowHighCount ||
-        lowHighRule === "both"
-      ) {
-        let n: number | undefined;
-        if (oddEvenRule === "odd") {
-          n = randomFromSet(conditionalPool.oddPools);
-        } else {
-          n = randomFromSet(conditionalPool.evenPools);
-        }
-
-        if (n !== undefined) {
-          conditionalPool.allPools.delete(n);
-          conditionalPool.oddPools.delete(n);
-          conditionalPool.evenPools.delete(n);
-          conditionalPool.lowPools.delete(n);
-          conditionalPool.highPools.delete(n);
-
-          updateSelectPool(n, pools, selectedPool, rangeLow);
-        } else {
-          console.error("Failed to random on empty set. Conditional: 2");
-        }
+      const n = randomNumber(
+        conditionalPool,
+        selectedPool,
+        includeOddEven,
+        odd,
+        even,
+        includeLowHigh,
+        low,
+        high
+      );
+      if (n !== undefined) {
+        deletePoolNum(conditionalPool, n);
+        updateSelectPool(n, selectedPool, rangeLow);
+        deletePoolNum(pools, n);
       } else {
-        let n: number | undefined;
-        if (lowHighRule === "low") {
-          n = randomFromSet(conditionalPool.lowPools);
-        } else {
-          n = randomFromSet(conditionalPool.highPools);
-        }
-
-        if (n !== undefined) {
-          conditionalPool.allPools.delete(n);
-          conditionalPool.oddPools.delete(n);
-          conditionalPool.evenPools.delete(n);
-          conditionalPool.lowPools.delete(n);
-          conditionalPool.highPools.delete(n);
-
-          updateSelectPool(n, pools, selectedPool, rangeLow);
-        } else {
-          console.error("Failed to random on empty set. Conditional: 3");
-        }
+        console.error(`Failed to random on empty set. Conditional: ${i}`);
       }
     }
   }
@@ -648,83 +604,119 @@ const generateCombination = (
   // Fill up remaining slot
   const remainingSlot = system - selectedPool.allPools.size;
   for (let i = 0; i < remainingSlot; i++) {
-    let oddEvenRule = "";
-    let requiredOddEvenCount = 999;
-    if (includeOddEven) {
-      const remainingOddCount = odd - selectedPool.oddPools.size;
-      const remainingEvenCount = even - selectedPool.evenPools.size;
-
-      if (remainingOddCount === remainingEvenCount) {
-        oddEvenRule = "both";
-        requiredOddEvenCount = remainingOddCount;
-      } else if (remainingOddCount < remainingEvenCount) {
-        oddEvenRule = "odd";
-        requiredOddEvenCount = remainingOddCount;
-      } else {
-        oddEvenRule = "even";
-        requiredOddEvenCount = remainingEvenCount;
-      }
-    }
-
-    let lowHighRule = "";
-    let requiredLowHighCount = 999;
-    if (includeLowHigh) {
-      const remainingLowCount = low - selectedPool.lowPools.size;
-      const remainingHighCount = high - selectedPool.highPools.size;
-
-      if (remainingLowCount === remainingHighCount) {
-        lowHighRule = "both";
-        requiredLowHighCount = remainingLowCount;
-      } else if (remainingLowCount < remainingHighCount) {
-        lowHighRule = "low";
-        requiredLowHighCount = remainingLowCount;
-      } else {
-        lowHighRule = "high";
-        requiredLowHighCount = remainingHighCount;
-      }
-    }
-
-    if (
-      requiredOddEvenCount === requiredLowHighCount ||
-      (oddEvenRule === "both" && lowHighRule === "both")
-    ) {
-      const n = randomFromSet(pools.allPools);
-      if (n !== undefined) {
-        updateSelectPool(n, pools, selectedPool, rangeLow);
-      } else {
-        console.error("Failed to random on empty set. All: 1");
-      }
-    } else if (
-      requiredOddEvenCount < requiredLowHighCount ||
-      lowHighRule === "both"
-    ) {
-      let n: number | undefined;
-      if (oddEvenRule === "odd") {
-        n = randomFromSet(pools.oddPools);
-      } else {
-        n = randomFromSet(pools.evenPools);
-      }
-
-      if (n !== undefined) {
-        updateSelectPool(n, pools, selectedPool, rangeLow);
-      } else {
-        console.error("Failed to random on empty set. All: 2");
-      }
+    const n = randomNumber(
+      pools,
+      selectedPool,
+      includeOddEven,
+      odd,
+      even,
+      includeLowHigh,
+      low,
+      high
+    );
+    if (n !== undefined) {
+      updateSelectPool(n, selectedPool, rangeLow);
+      deletePoolNum(pools, n);
     } else {
-      let n: number | undefined;
+      console.error("Failed to random on empty set. All: 3");
+    }
+  }
+
+  return selectedPool.allPools;
+};
+
+const randomNumber = (
+  pools: TotoPools,
+  selectedPool: TotoPools,
+  includeOddEven: boolean,
+  odd: number,
+  even: number,
+  includeLowHigh: boolean,
+  low: number,
+  high: number
+) => {
+  let oddEvenRule = "";
+  let requiredOddEvenCount = 999;
+  if (includeOddEven) {
+    const remainingOddCount = odd - selectedPool.oddPools.size;
+    const remainingEvenCount = even - selectedPool.evenPools.size;
+
+    if (remainingOddCount === remainingEvenCount) {
+      oddEvenRule = "both";
+      requiredOddEvenCount = remainingOddCount;
+    } else if (remainingOddCount < remainingEvenCount) {
+      oddEvenRule = "odd";
+      requiredOddEvenCount = remainingOddCount;
+    } else {
+      oddEvenRule = "even";
+      requiredOddEvenCount = remainingEvenCount;
+    }
+  }
+
+  let lowHighRule = "";
+  let requiredLowHighCount = 999;
+  if (includeLowHigh) {
+    const remainingLowCount = low - selectedPool.lowPools.size;
+    const remainingHighCount = high - selectedPool.highPools.size;
+
+    if (remainingLowCount === remainingHighCount) {
+      lowHighRule = "both";
+      requiredLowHighCount = remainingLowCount;
+    } else if (remainingLowCount < remainingHighCount) {
+      lowHighRule = "low";
+      requiredLowHighCount = remainingLowCount;
+    } else {
+      lowHighRule = "high";
+      requiredLowHighCount = remainingHighCount;
+    }
+  }
+
+  let n: number | undefined;
+  if (
+    (oddEvenRule === "" && lowHighRule === "") ||
+    (oddEvenRule === "both" && lowHighRule === "both")
+  ) {
+    n = randomFromSet(pools.allPools);
+  } else if (requiredOddEvenCount === requiredLowHighCount) {
+    if (oddEvenRule === "both") {
       if (lowHighRule === "low") {
         n = randomFromSet(pools.lowPools);
       } else {
         n = randomFromSet(pools.highPools);
       }
-
-      if (n !== undefined) {
-        updateSelectPool(n, pools, selectedPool, rangeLow);
+    } else if (oddEvenRule === "odd") {
+      if (lowHighRule === "both") {
+        n = randomFromSet(pools.oddPools);
+      } else if (lowHighRule === "low") {
+        n = randomFromSet(pools.oddLowPools);
       } else {
-        console.error("Failed to random on empty set. All: 3");
+        n = randomFromSet(pools.oddHighPools);
       }
+    } else {
+      if (lowHighRule === "both") {
+        n = randomFromSet(pools.evenPools);
+      } else if (lowHighRule === "low") {
+        n = randomFromSet(pools.evenLowPools);
+      } else {
+        n = randomFromSet(pools.evenHighPools);
+      }
+    }
+  } else if (
+    requiredOddEvenCount < requiredLowHighCount ||
+    lowHighRule === "both"
+  ) {
+    if (oddEvenRule === "odd") {
+      n = randomFromSet(pools.oddPools);
+    } else {
+      n = randomFromSet(pools.evenPools);
+    }
+  } else {
+    if (lowHighRule === "low") {
+      n = randomFromSet(pools.lowPools);
+    } else {
+      n = randomFromSet(pools.highPools);
     }
   }
 
-  return selectedPool.allPools;
+  return n;
 };

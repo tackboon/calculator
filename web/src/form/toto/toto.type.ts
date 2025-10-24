@@ -50,4 +50,8 @@ export type TotoPools = {
   evenPools: Set<number>;
   lowPools: Set<number>;
   highPools: Set<number>;
+  oddLowPools: Set<number>;
+  oddHighPools: Set<number>;
+  evenLowPools: Set<number>;
+  evenHighPools: Set<number>;
 };
