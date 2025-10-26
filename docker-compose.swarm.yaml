@@ -19,6 +19,8 @@ services:
       - ./ec_private.pem:/app/ec_private.pem
       - ./ec_public.pem:/app/ec_public.pem
       - ./docker-volume/log/:/app/log/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   ################################################################
   # Web
@@ -28,8 +30,6 @@ services:
     hostname: calculator-web
     networks:
       - nginx-network
-    env_file:
-      - .env
     deploy:
       mode: replicated
       replicas: 1
