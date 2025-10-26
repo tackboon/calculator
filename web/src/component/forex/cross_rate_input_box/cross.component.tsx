@@ -101,7 +101,7 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
 
       if (isCommodity) {
         // Getting cross rate for commodity pair
-        if (commodityRate && Object.hasOwn(commodityRate, base)) {
+        if (Object.hasOwn(commodityRate, base)) {
           const tempCommodityRate = commodityRate[base].price;
           if (accBaseCurrency === "USD") {
             tempCrossRateStr = convertToLocaleString(tempCommodityRate, 2, 5);
@@ -116,7 +116,7 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
         }
       } else {
         // Getting cross rate for currency pair
-        if (currencyRate && Object.hasOwn(currencyRate, accBaseCurrency)) {
+        if (Object.hasOwn(currencyRate, accBaseCurrency)) {
           const tempBaseRate = currencyRate[accBaseCurrency].rates[base];
           const basePairInfo = getBaseAndQuote(tempCrossPair);
           if (basePairInfo.base === accBaseCurrency) {
@@ -144,7 +144,7 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
       }
 
       // Getting cross rate for currency pair
-      if (currencyRate && Object.hasOwn(currencyRate, accBaseCurrency)) {
+      if (Object.hasOwn(currencyRate, accBaseCurrency)) {
         const tempQuoteRate = currencyRate[accBaseCurrency].rates[quote];
         const quotePairInfo = getBaseAndQuote(tempCrossPair);
         if (quotePairInfo.base === accBaseCurrency) {

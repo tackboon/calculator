@@ -1,4 +1,4 @@
-FROM node:20.16.0-alpine3.20
+FROM node:22.19.0-alpine
 
 RUN addgroup -S web && adduser -S -D web web && \
     mkdir -p /home/web/app && \

@@ -1,5 +1,4 @@
 import styles from "./toto.module.scss";
-import Container from "../../component/common/container/container.component";
 import TotoForm from "../../form/toto/toto_form.component";
 
 const TotoPage = () => {

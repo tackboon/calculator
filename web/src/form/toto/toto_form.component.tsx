@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTransition, animated } from "@react-spring/web";
 
 import styles from "./toto.module.scss";
 import {
@@ -14,6 +15,7 @@ import Input from "../../component/common/input/input.component";
 import SelectBox from "../../component/common/select_box/select_box.component";
 import NumArrInput from "../../component/common/input/num_arr_input.component";
 import SplitInput from "../../component/common/input/split_input.component";
+import TrashbinIcon from "../../component/common/icon/trashbin.component";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -35,23 +37,30 @@ const TotoForm = () => {
 
   const [result, setResult] = useState<TotoCombination[] | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Scroll to result after it is updated
   useEffect(() => {
-    if (result && resultRef.current) {
+    if (isGenerating && result && resultRef.current) {
+      setIsGenerating(false);
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [result]);
+  }, [result, isGenerating]);
 
   // Form submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Remove old results
+    setResult(null);
 
     // Handle validation
     const { err, field } = validateTotoInput(input);
     setErrorMessage(err);
     setErrorField(field);
     if (err !== "") return;
+
+    setIsGenerating(true);
 
     // generate combinations
     setResult(generateCombinations(input));
@@ -69,6 +78,22 @@ const TotoForm = () => {
     setErrorField(null);
     setResult(null);
   };
+
+  const deleteResultHandler = (idx: number) => {
+    setResult((prev) => {
+      if (!prev) return prev;
+      const updated = [...prev];
+      updated.splice(idx, 1);
+      return updated;
+    });
+  };
+
+  const transitions = useTransition(result || [], {
+    from: { opacity: 1, height: 360 },
+    enter: { opacity: 1, height: 360 },
+    leave: !isGenerating ? [{ opacity: 0 }, { height: 0 }] : [],
+    config: { duration: 400 },
+  });
 
   return (
     <form className={styles["form-wrapper"]} onSubmit={handleSubmit}>
@@ -276,13 +301,25 @@ const TotoForm = () => {
 
       <div ref={resultRef}>
         {result && (
-          <Container className={`${styles["result-container"]}`}>
-            <div className={styles["result-wrapper"]}>
-              {result.map((res, idx) => (
-                <div key={`toto-res-${idx}`}>
-                  <h2>
-                    {idx + 1}) {res.combination}
-                  </h2>
+          <div className={`${styles["result-container"]}`}>
+            {transitions((style, res, _, idx) => (
+              <animated.div style={style} key={`toto-res-${idx}`}>
+                <Container className={styles["result-wrapper"]}>
+                  <div className={styles["res-header"]}>
+                    <h2>
+                      {idx + 1}) {res.combination}
+                    </h2>
+                    <div
+                      className={styles["delete-wrapper"]}
+                      onClick={() => deleteResultHandler(idx)}
+                    >
+                      <TrashbinIcon
+                        fill="#e60026"
+                        size={20}
+                        className={styles["delete-icon"]}
+                      />
+                    </div>
+                  </div>
                   <div className={styles["row"]}>
                     <div>Odd/Even:</div>
                     <div>{res.oddEven}</div>
@@ -308,10 +345,10 @@ const TotoForm = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              ))}
-            </div>
-          </Container>
+                </Container>
+              </animated.div>
+            ))}
+          </div>
         )}
       </div>
     </form>

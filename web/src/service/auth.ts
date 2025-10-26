@@ -1,13 +1,11 @@
 import { store } from "../store/store";
 import { refreshToken } from "../store/user/user.action";
 
-let interval: NodeJS.Timer | null = null;
-let timeout: NodeJS.Timeout | null = null;
+let interval: ReturnType<typeof setInterval> | null = null;
+let timeout: ReturnType<typeof setTimeout> | null = null;
 
 export const startRefreshTokenInterval = () => {
-  if (interval || timeout) {
-    return;
-  }
+  if (interval || timeout) return;
 
   // Start the timeout to refresh session in the next minute
   timeout = setTimeout(() => {

@@ -1,5 +1,4 @@
-import { AxiosResponse } from "axios";
-import { all, call, put, takeLeading } from "typed-redux-saga";
+import { all, call, put, takeLeading, select } from "typed-redux-saga";
 
 import {
   CommodityRateData,
@@ -12,12 +11,17 @@ import {
   GetCurrencyRates,
   getCurrencyRatesFinished,
 } from "./forex.action";
-import { BaseResponse } from "../../openapi";
 import { api } from "../../service/openapi";
 import { CustomError } from "../../common/error/error";
+import {
+  selectForexCommodityRates,
+  selectForexCurrencyRates,
+} from "./forex.selector";
 
-function* getCurrencyRates({ payload: { bases } }: GetCurrencyRates) {
-  const res: AxiosResponse<BaseResponse> = yield call(
+function* getCurrencyRates(bases: string[]) {
+  if (bases.length === 0) return { rates: [] };
+
+  const res = yield* call(
     [api.ForexAPI, api.ForexAPI.appApiV1ForexCurrenciesGet],
     bases
   );
@@ -35,11 +39,36 @@ function* getCurrencyRates({ payload: { bases } }: GetCurrencyRates) {
 
 function* getCurrencyRatesFlow(action: GetCurrencyRates) {
   try {
+    const now = Date.now();
+    let newBases: string[] = [];
+    const currencyState = yield* select(selectForexCurrencyRates);
+    if (currencyState) {
+      for (const base of action.payload.bases) {
+        if (!Object.hasOwn(currencyState, base)) {
+          newBases.push(base);
+          continue;
+        }
+
+        const rate = currencyState[base];
+        if (now - rate.requested_at > 600000) {
+          newBases.push(base);
+        }
+      }
+    } else {
+      newBases = action.payload.bases;
+    }
+
     const res: { rates: CurrencyRateData[] } | null = yield call(
       getCurrencyRates,
-      action
+      newBases
     );
-    const data = res ? res.rates : null;
+
+    const data = res
+      ? res.rates.map((rate) => {
+          rate.requested_at = now;
+          return rate;
+        })
+      : null;
 
     yield put(getCurrencyRatesFinished(data));
   } catch (e) {
@@ -48,8 +77,10 @@ function* getCurrencyRatesFlow(action: GetCurrencyRates) {
   }
 }
 
-function* getCommodityRates({ payload: { symbols } }: GetCommodityRates) {
-  const res: AxiosResponse<BaseResponse> = yield call(
+function* getCommodityRates(symbols: string[]) {
+  if (symbols.length === 0) return { prices: [] };
+
+  const res = yield* call(
     [api.ForexAPI, api.ForexAPI.appApiV1ForexCommoditiesGet],
     symbols
   );
@@ -67,11 +98,35 @@ function* getCommodityRates({ payload: { symbols } }: GetCommodityRates) {
 
 function* getCommodityRatesFlow(action: GetCommodityRates) {
   try {
+    const now = Date.now();
+    let newSymbols: string[] = [];
+    const commodityState = yield* select(selectForexCommodityRates);
+    if (commodityState) {
+      for (const symbol of action.payload.symbols) {
+        if (!Object.hasOwn(commodityState, symbol)) {
+          newSymbols.push(symbol);
+          continue;
+        }
+
+        const rate = commodityState[symbol];
+        if (now - rate.requested_at > 600000) {
+          newSymbols.push(symbol);
+        }
+      }
+    } else {
+      newSymbols = action.payload.symbols;
+    }
+
     const res: { prices: CommodityRateData[] } | null = yield call(
       getCommodityRates,
-      action
+      newSymbols
     );
-    const data = res ? res.prices : null;
+    const data = res
+      ? res.prices.map((price) => {
+          price.requested_at = now;
+          return price;
+        })
+      : null;
 
     yield put(getCommodityRatesFinished(data));
   } catch (e) {

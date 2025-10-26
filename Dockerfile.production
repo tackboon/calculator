@@ -15,4 +15,5 @@ COPY src/ ./src
 
 EXPOSE 5000
 
-CMD ["flask", "run", "--host", "0.0.0.0"]
+# Run app via Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "src.__init__:create_app()"]

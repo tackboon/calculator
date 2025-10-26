@@ -126,12 +126,12 @@ const StockOrderList: FC<StockOrderListType> = ({
       opacity: 1,
       height: item.includeProfitGoal ? 660 : 560,
     }),
-    leave: () => ({ opacity: 0, height: 0 }),
+    leave: () => [{ opacity: 0 }, { height: 0 }],
     keys: (item) => item.key,
     update: (item) => ({
       height: item.includeProfitGoal ? 660 : 560,
     }),
-    config: { duration: 500, easing: (t) => t * t * (3 - 2 * t) },
+    config: { duration: 400 },
   });
 
   return (

@@ -1,9 +1,7 @@
 import { UnknownAction } from "@reduxjs/toolkit";
 import { initStateObj } from "../../common/redux/reducer";
 import {
-  CommodityRateData,
   CommodityRateMap,
-  CurrencyRateData,
   CurrencyRateMap,
   FOREX_LOADING_TYPES,
   SupportedAsset,
@@ -28,8 +26,8 @@ export type ForexState = {
 
 const INITIAL_STATE: ForexState = {
   isLoading: initStateObj(FOREX_LOADING_TYPES, false),
-  currencyRateData: null,
-  commodityRateData: null,
+  currencyRateData: {},
+  commodityRateData: {},
   supportedCurrencies: supportedCurrencies,
   supportedAssets: supportedAssets,
 };
@@ -49,9 +47,8 @@ export const forexReducer = (
   }
 
   if (getCurrencyRatesFinished.match(action)) {
-    let currencyRateData: { [key: string]: CurrencyRateData } | null = null;
+    const currencyRateData = { ...state.currencyRateData };
     if (action.payload.datas) {
-      currencyRateData = {};
       for (let i = 0; i < action.payload.datas.length; i++) {
         const data = action.payload.datas[i];
         currencyRateData[data.base] = data;
@@ -79,9 +76,8 @@ export const forexReducer = (
   }
 
   if (getCommodityRatesFinished.match(action)) {
-    let commodityRateData: { [key: string]: CommodityRateData } | null = null;
+    const commodityRateData = { ...state.commodityRateData };
     if (action.payload.datas) {
-      commodityRateData = {};
       for (let i = 0; i < action.payload.datas.length; i++) {
         const data = action.payload.datas[i];
         commodityRateData[data.symbol] = data;

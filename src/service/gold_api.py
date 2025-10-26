@@ -25,7 +25,7 @@ class GoldAPIServicer:
     Initialize the gold-api.com service to get commodities price.
     """
 
-    self.basic_url = "https://api.gold-api.coms"
+    self.basic_url = "https://api.gold-api.com"
 
     # Configure the logger with a JSON format for logging error
     self.logger = create_logger("gold_api", "info", log_path, 

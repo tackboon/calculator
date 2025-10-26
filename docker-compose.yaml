@@ -48,15 +48,37 @@ services:
   ################################################################
   # Web
   ################################################################
-  # web:
-  #   build:
-  #     context: web
-  #   container_name: web
-  #   hostname: web
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - /home/web/app/node_modules
-  #     - ./web:/home/web/app
-  #   env_file:
-  #     - ./web/.env
+  web:
+    build:
+      context: web
+    container_name: web
+    hostname: web
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/web/app/node_modules
+      - ./web:/home/web/app
+    env_file:
+      - ./web/.env
+
+  ################################################################
+  # API
+  ################################################################
+  api:
+    build:
+      context: .
+    container_name: api
+    hostname: api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/app/src
+      - ./requirements.txt:/app/requirements.txt
+      - ./IP2LOCATION-LITE-DB11.BIN:/app/IP2LOCATION-LITE-DB11.BIN
+      - ./IP2LOCATION-LITE-DB11.IPV6.BIN:/app/IP2LOCATION-LITE-DB11.IPV6.BIN
+      - ./ec_private.pem:/app/ec_private.pem
+      - ./ec_public.pem:/app/ec_public.pem
+    env_file:
+      - ./.env
+    environment:
+      - FLASK_APP=src/__init__.py

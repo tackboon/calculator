@@ -1,0 +1,32 @@
+---
+services:
+  ################################################################
+  # Postgresql database
+  ################################################################
+  api:
+    image: tackboon97/calculator-api:1.0.0
+    hostname: calculator-api
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=src/__init__.py
+    volumes:
+      - ./IP2LOCATION-LITE-DB11.BIN:/app/IP2LOCATION-LITE-DB11.BIN
+      - ./IP2LOCATION-LITE-DB11.IPV6.BIN:/app/IP2LOCATION-LITE-DB11.IPV6.BIN
+      - ./ec_private.pem:/app/ec_private.pem
+      - ./ec_public.pem:/app/ec_public.pem   
+
+  web:
+    image: tackboon97/calculator-web:1.0.0
+    hostname: calculator-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels: [APP=WEB]
+      restart_policy:
+        condition: on-failure
+        

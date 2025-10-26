@@ -11,7 +11,7 @@ from src.service.redis import RedisServicer
 from src.service.frankfurter import FrankFurtherServicer
 from src.service.gold_api import GoldAPIServicer
 from src.service.gold_api_io import GoldAPIIOServicer
-from src.app.forex.model import ComodityCache
+from src.app.forex.model import ComodityCache, CurrencyCache
 
 
 class CurrencyRepo:
@@ -43,9 +43,19 @@ class CurrencyRepo:
     rates = self.ffs.get_currency_rates(base)
     if rates is None:
       return None
+    
+    now = int(datetime.now().timestamp())
+    data = CurrencyCache(
+      amount=rates.amount,
+      base=rates.base,
+      date=rates.date,
+      rates=rates.rates,
+      updated_at=now,
+      expired_at=now + int(duration.total_seconds())
+    )
 
     # Store data to cache
-    rate_dict = asdict(rates)
+    rate_dict = asdict(data)
     json_str = json.dumps(rate_dict)
     if not self.rdb.set(key, json_str, duration):
       app_logger.error(f"Failed to write currency rates data to cache, key: {key}.")
@@ -83,7 +93,8 @@ class CurrencyRepo:
         name="Platinum",
         price=gsio_res.price,
         symbol=gsio_res.metal,
-        updated_at=gsio_res.timestamp
+        updated_at=gsio_res.timestamp,
+        expired_at=gsio_res.timestamp + int(duration.total_seconds())
       )
     else:
       gs_res = self.gs.get_commodities_price(symbol)
@@ -93,7 +104,8 @@ class CurrencyRepo:
         name=gs_res.name,
         price=gs_res.price,
         symbol=gs_res.symbol,
-        updated_at=gs_res.updated_at
+        updated_at=gs_res.updated_at,
+        expired_at=gs_res.updated_at + int(duration.total_seconds())
       )
     
     # Store data to cache

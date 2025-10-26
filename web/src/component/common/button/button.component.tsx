@@ -29,14 +29,13 @@ const Button: FC<ButtonProps> = ({
 }) => {
   const [isDisabled, setIsDisabled] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const intervalID = useRef<NodeJS.Timeout | null>(null);
+  const intervalID = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Handler to start the counter
   const startCooldown = () => {
     if (intervalID.current) return;
 
     // Start the countdown
-    if (intervalID.current) return;
     const id = setInterval(() => {
       setCooldown((prevCooldown) => {
         if (prevCooldown <= 1) {

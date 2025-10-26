@@ -11,6 +11,9 @@ export enum FOREX_LOADING_TYPES {
 }
 
 export type CurrencyRateData = {
+  requested_at: number;
+  updated_at: number;
+  expired_at: number;
   base: string;
   rates: {
     [key: string]: number;
@@ -21,7 +24,9 @@ export type CommodityRateData = {
   name: string;
   price: number;
   symbol: string;
-  updatedAt: number;
+  updated_at: number;
+  expired_at: number;
+  requested_at: number;
 };
 
 export type CurrencyInfo = {
@@ -170,6 +175,6 @@ export const supportedAssets: SupportedAsset = {
   "XPT/USD": { pip: 0.1, lot: "100" },
 };
 
-export type CurrencyRateMap = { [key: string]: CurrencyRateData } | null;
+export type CurrencyRateMap = { [key: string]: CurrencyRateData };
 
-export type CommodityRateMap = { [key: string]: CommodityRateData } | null;
+export type CommodityRateMap = { [key: string]: CommodityRateData };
