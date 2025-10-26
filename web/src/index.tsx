@@ -14,7 +14,12 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <RouterProvider
+        future={{
+          v7_startTransition: true,
+        }}
+        router={router}
+      />
     </Provider>
   </React.StrictMode>
 );

@@ -19,8 +19,6 @@ services:
   web:
     image: tackboon97/calculator-web:1.0.0
     hostname: calculator-web
-    ports:
-      - "3000:3000"
     env_file:
       - .env
     deploy:
