@@ -1,0 +1,55 @@
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 70px;
+  width: 100%;
+  height: calc(100% - 70px);
+  background-color: rgba(0, 0, 0, 0.4);
+
+  &.open {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    width: auto;
+    max-width: 95%;
+    max-height: calc(95vh - 70px);
+    margin: 20px 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    min-width: 350px;
+
+    @media (min-width: 768px) {
+      min-width: 500px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+
+      .close {
+        padding: 3px;
+        border-radius: 8px;
+        cursor: pointer;
+
+        &:hover {
+          opacity: 0.5;
+        }
+
+        &:active {
+          opacity: 0.3;
+        }
+      }
+    }
+
+    .body {
+      max-height: calc(100vh - 72px - 70px - 40px - 2rem);
+    }
+  }
+}

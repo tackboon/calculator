@@ -1,0 +1,84 @@
+---
+services:
+  ################################################################
+  # Postgresql database
+  ################################################################
+  postgres:
+    image: postgres:15.8-alpine3.20
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker-volume/postgres/data:/var/lib/postgresql/data
+      - ./docker-volume/db-dump:/db-dump
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  ################################################################
+  # Pgadmin serve UI for postgres
+  ################################################################
+  pgadmin:
+    image: elestio/pgadmin:REL-8_11
+    user: root
+    container_name: pgadmin
+    hostname: pgadmin
+    ports:
+      - "8001:80"
+    volumes:
+      - ./docker-volume/pgadmin/data:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+
+  ################################################################
+  # Redis
+  ################################################################
+  redis:
+    image: redis:7.4.0-alpine3.20
+    container_name: redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker-volume/redis/data:/data
+    command: redis-server --requirepass redis
+
+  ################################################################
+  # Web
+  ################################################################
+  web:
+    build:
+      context: web
+    container_name: web
+    hostname: web
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/web/app/node_modules
+      - ./web:/home/web/app
+    env_file:
+      - ./web/.env
+
+  ################################################################
+  # API
+  ################################################################
+  api:
+    build:
+      context: .
+    container_name: api
+    hostname: api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/app/src
+      - ./requirements.txt:/app/requirements.txt
+      - ./IP2LOCATION-LITE-DB11.BIN:/app/IP2LOCATION-LITE-DB11.BIN
+      - ./IP2LOCATION-LITE-DB11.IPV6.BIN:/app/IP2LOCATION-LITE-DB11.IPV6.BIN
+      - ./ec_private.pem:/app/ec_private.pem
+      - ./ec_public.pem:/app/ec_public.pem
+    env_file:
+      - ./.env
+    environment:
+      - FLASK_APP=src/__init__.py

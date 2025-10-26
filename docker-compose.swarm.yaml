@@ -1,0 +1,42 @@
+---
+version: "3.8"
+services:
+  ################################################################
+  # API
+  ################################################################
+  api:
+    image: tackboon97/calculator-api:1.0.0
+    hostname: calculator-api
+    networks:
+      - nginx-network
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=src/__init__.py
+    volumes:
+      - ./IP2LOCATION-LITE-DB11.BIN:/app/IP2LOCATION-LITE-DB11.BIN
+      - ./IP2LOCATION-LITE-DB11.IPV6.BIN:/app/IP2LOCATION-LITE-DB11.IPV6.BIN
+      - ./ec_private.pem:/app/ec_private.pem
+      - ./ec_public.pem:/app/ec_public.pem
+      - ./docker-volume/log/:/app/log/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ################################################################
+  # Web
+  ################################################################
+  web:
+    image: tackboon97/calculator-web:1.0.0
+    hostname: calculator-web
+    networks:
+      - nginx-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels: [APP=WEB]
+      restart_policy:
+        condition: on-failure
+
+networks:
+  nginx-network:
+    external: true
