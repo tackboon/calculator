@@ -515,7 +515,7 @@ const ProfitLossForm = () => {
 
                 <div className={styles["row"]}>
                   <div>Pip Size:</div>
-                  <div>{convertToLocaleString(result.pipSize)} PIP</div>
+                  <div>{convertToLocaleString(absBig(result.pipSize))} PIP</div>
                 </div>
 
                 <div className={styles["row"]}>

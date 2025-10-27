@@ -60,10 +60,10 @@ const CrossRateInput: FC<CrossRateInputProps> = ({
     // Hide cross pair on loading or currency pair contains account base currency
     if (
       isLoading ||
-      (mode === "DEFAULT" &&
+      ((mode === "DEFAULT" || mode === "POSITION_SIZE") &&
         ((crossTyp === "BASE" && accBaseCurrency === base) ||
           (crossTyp === "QUOTE" && accBaseCurrency === quote))) ||
-      ((mode === "POSITION_SIZE" || mode === "PROFIT_LOSS") &&
+      (mode === "PROFIT_LOSS" &&
         (accBaseCurrency === quote || accBaseCurrency === base))
     ) {
       setCrossPair(tempCrossPair);

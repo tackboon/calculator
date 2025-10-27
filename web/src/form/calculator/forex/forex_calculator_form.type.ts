@@ -1,5 +1,5 @@
 export enum ProfitGoalTyp {
-  PRICE_BASED,
+  PIP_BASED,
   PORTFOLIO_BASED,
 }
 

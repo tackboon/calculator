@@ -19,7 +19,6 @@ import { FOREX_LOADING_TYPES } from "../../../../store/forex/forex.types";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
 import {
   calculateCrossHeight,
-  calculateProfitHeight,
   calculateResult,
   validatePositionSizeInput,
 } from "./utils.component";
@@ -34,7 +33,6 @@ import PairSelectBox from "../../../../component/forex/pair_select_box/pair.comp
 import useCurrencyRates from "../hook/useCurrencyRates";
 import useCommodityRates from "../hook/useCommodityRates";
 import CrossRateInput from "../../../../component/forex/cross_rate_input_box/cross.component";
-import PipInputBox from "../../../../component/forex/pip_input_box/pip.component";
 import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
 import LotTypSelectBox, {
   LotTyp,
@@ -56,13 +54,10 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   baseCrossRate: "1.00",
   quotePair: "",
   quoteCrossRate: "1.00",
-  entryPrice: "0",
-  stopLoss: "0",
-  isStopLossPip: false,
+  stopPip: "0",
   includeProfitGoal: false,
   profitGoal: "0",
-  profitGoalTyp: ProfitGoalTyp.PRICE_BASED,
-  isProfitPip: false,
+  profitGoalTyp: ProfitGoalTyp.PIP_BASED,
   isLong: true,
   includeTradingFee: false,
   feeTyp: FeeTyp.COMMISSION_PER_LOT,
@@ -85,7 +80,6 @@ const ForexPositionSizeForm = () => {
   const [errorField, setErrorField] =
     useState<ERROR_FIELD_POSITION_SIZE | null>(null);
   const [input, setInput] = useState<ForexPositionSizeInputType>(DEFAULT_INPUT);
-  const [resetSignal, setResetSignal] = useState(false);
 
   const [result, setResult] = useState<PositionSizeResultType | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -139,10 +133,7 @@ const ForexPositionSizeForm = () => {
       pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
       contractSize: supportedAssets[prev.currencyPair].lot,
       precision: prev.precision,
-      isStopLossPip: prev.isStopLossPip,
-      isProfitPip: prev.isProfitPip,
     }));
-    setResetSignal((prev) => !prev);
     setErrorField(null);
     setResult(null);
   };
@@ -153,13 +144,8 @@ const ForexPositionSizeForm = () => {
     overflow: "hidden",
   });
 
-  const stopLossStyles = useSpring({
-    height: input.isStopLossPip ? 152 : 82,
-    overflow: "hidden",
-  });
-
   const profitGoalStyles = useSpring({
-    height: calculateProfitHeight(input),
+    height: input.includeProfitGoal ? 200 : 0,
     opacity: input.includeProfitGoal ? 1 : 0,
     overflow: "hidden",
   });
@@ -169,18 +155,6 @@ const ForexPositionSizeForm = () => {
     opacity: input.includeTradingFee ? 1 : 0,
     overflow: "hidden",
   });
-
-  const stopLossOnChange = useCallback(
-    (val: string, isPip: boolean) =>
-      setInput((prev) => ({ ...prev, stopLoss: val, isStopLossPip: isPip })),
-    []
-  );
-
-  const profitGoalOnChange = useCallback(
-    (val: string, isPip: boolean) =>
-      setInput((prev) => ({ ...prev, profitGoal: val, isProfitPip: isPip })),
-    []
-  );
 
   const baseCrossRateOnChange = useCallback(
     (pair: string, rate: string) =>
@@ -392,38 +366,20 @@ const ForexPositionSizeForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <label htmlFor="open-price">Open Price</label>
+          <label htmlFor="stop-loss">Stop Loss</label>
           <NumberInput
-            id="open-price"
-            step={input.pipDecimal}
-            preUnit="$"
-            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.OPEN_PRICE}
-            minDecimalPlace={2}
-            maxDecimalPlace={5}
-            value={input.entryPrice}
+            id="stop-loss"
+            step={1}
+            postUnit="PIP"
+            isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
+            minDecimalPlace={0}
+            maxDecimalPlace={0}
+            value={input.stopPip}
             onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, entryPrice: val }))
+              setInput((prev) => ({ ...prev, stopPip: val }))
             }
           />
         </div>
-
-        <animated.div style={stopLossStyles}>
-          <div className={styles["form-group"]}>
-            <label htmlFor="stop-loss">Stop Loss</label>
-            <PipInputBox
-              id="stop-loss"
-              defaultIsPip={false}
-              defaultValue={DEFAULT_INPUT.stopLoss}
-              pipDecimal={input.pipDecimal}
-              isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
-              hintPrefix="Stop Loss Price:"
-              price={input.entryPrice}
-              isIncr={!input.isLong}
-              resetSignal={resetSignal}
-              onChange={stopLossOnChange}
-            />
-          </div>
-        </animated.div>
 
         <div
           className={styles["form-group"]}
@@ -468,8 +424,8 @@ const ForexPositionSizeForm = () => {
                 <span className={styles["label"]}>Profit Strategy</span>
                 <SelectBox
                   id="profit-strategy"
-                  options={["Price-Based", "Portfolio-Based"]}
-                  defaultIndex={ProfitGoalTyp.PRICE_BASED}
+                  options={["Pip-Based", "Portfolio-Based"]}
+                  defaultIndex={ProfitGoalTyp.PIP_BASED}
                   onChangeHandler={(idx) => {
                     setInput((prev) => ({
                       ...prev,
@@ -492,19 +448,27 @@ const ForexPositionSizeForm = () => {
                     ? "Min Portfolio Profit (%)"
                     : "Profit Target"}
                 </label>
-                <PipInputBox
+                <NumberInput
                   id="profit-goal"
-                  defaultIsPip={false}
-                  defaultValue={DEFAULT_INPUT.profitGoal}
-                  pipDecimal={input.pipDecimal}
+                  step={1}
+                  postUnit={
+                    input.profitGoalTyp === ProfitGoalTyp.PIP_BASED
+                      ? "PIP"
+                      : "%"
+                  }
                   isInvalid={
                     errorField === ERROR_FIELD_POSITION_SIZE.PROFIT_TARGET
                   }
-                  hintPrefix="Profit Goal Price:"
-                  price={input.entryPrice}
-                  isIncr={input.isLong}
-                  resetSignal={resetSignal}
-                  onChange={profitGoalOnChange}
+                  minDecimalPlace={
+                    input.profitGoalTyp === ProfitGoalTyp.PIP_BASED ? 0 : 2
+                  }
+                  maxDecimalPlace={
+                    input.profitGoalTyp === ProfitGoalTyp.PIP_BASED ? 0 : 5
+                  }
+                  value={input.profitGoal}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, profitGoal: val }))
+                  }
                 />
               </div>
             </>
@@ -760,21 +724,6 @@ const ForexPositionSizeForm = () => {
                   </div>
                 )}
 
-                {result.stopSwap !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Swap @ Stop:</div>
-                    <div>
-                      {mathBigNum.largerEq(result.stopSwap, 0) ? "" : "-"}$
-                      {convertToLocaleString(
-                        absBig(result.stopSwap),
-                        input.precision,
-                        input.precision
-                      )}{" "}
-                      {result.accBaseCurrency}
-                    </div>
-                  </div>
-                )}
-
                 {result.profitFee !== undefined && (
                   <div className={styles["row"]}>
                     <div>Profit-Taking Fee:</div>
@@ -790,13 +739,13 @@ const ForexPositionSizeForm = () => {
                   </div>
                 )}
 
-                {result.profitSwap !== undefined && (
+                {result.swapValue !== undefined && (
                   <div className={styles["row"]}>
-                    <div>Swap @ Take Profit:</div>
+                    <div>Swap Value:</div>
                     <div>
-                      {mathBigNum.largerEq(result.profitSwap, 0) ? "" : "-"}$
+                      {mathBigNum.largerEq(result.swapValue, 0) ? "" : "-"}$
                       {convertToLocaleString(
-                        absBig(result.profitSwap),
+                        absBig(result.swapValue),
                         input.precision,
                         input.precision
                       )}{" "}
