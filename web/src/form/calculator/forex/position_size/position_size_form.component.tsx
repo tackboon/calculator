@@ -649,35 +649,14 @@ const ForexPositionSizeForm = () => {
             >
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
-                  <div>Open Price:</div>
-                  <div>${convertToLocaleString(result.entryPrice)}</div>
-                </div>
-
-                <div className={styles["row"]}>
-                  <div>Stop Price:</div>
-                  <div>${convertToLocaleString(result.stopPrice)}</div>
-                </div>
-
-                <div className={styles["row"]}>
                   <div>Stop Loss (pips):</div>
-                  <div>
-                    {convertToLocaleString(result.stopPip, input.precision)}
-                  </div>
+                  <div>{convertToLocaleString(result.stopPip, 0)}</div>
                 </div>
-
-                {result.profitPrice !== undefined && (
-                  <div className={styles["row"]}>
-                    <div>Profit Price:</div>
-                    <div>${convertToLocaleString(result.profitPrice)}</div>
-                  </div>
-                )}
 
                 {result.profitPip !== undefined && (
                   <div className={styles["row"]}>
                     <div>Profit (pips):</div>
-                    <div>
-                      {convertToLocaleString(result.profitPip, input.precision)}
-                    </div>
+                    <div>{convertToLocaleString(result.profitPip, 0)}</div>
                   </div>
                 )}
 

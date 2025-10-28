@@ -48,10 +48,7 @@ export type PositionSizeResultType = {
   includeTradingFee: boolean;
   includeProfitGoal: boolean;
   accBaseCurrency: string;
-  entryPrice: BigNumber;
-  stopPrice: BigNumber;
   stopPip: BigNumber;
-  profitPrice?: BigNumber;
   profitPip?: BigNumber;
   positionSize: BigNumber;
   lotSize: BigNumber;

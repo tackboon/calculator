@@ -1,16 +1,13 @@
 import { BigNumber } from "mathjs";
 import { getBaseAndQuote } from "../../../../common/forex/forex";
 import {
-  absBig,
   addBig,
   divideBig,
   mathBigNum,
   MILLION,
   multiplyBig,
-  powBig,
   QUADRILLION,
   QUINTILLION,
-  sqrtBig,
   subtractBig,
 } from "../../../../common/number/math";
 import {
@@ -20,6 +17,7 @@ import {
 import {
   ERROR_FIELD_POSITION_SIZE,
   ForexPositionSizeInputType,
+  PositionSizeResultType,
 } from "./position_size.type";
 import { FeeTyp, ProfitGoalTyp } from "../forex_calculator_form.type";
 import { checkMinMax } from "../../../../common/validation/calculator.validation";
@@ -138,8 +136,7 @@ export const validatePositionSizeInput = (
 
 export const calculateResult = (
   input: ForexPositionSizeInputType
-  // ): PositionSizeResultType => {
-) => {
+): PositionSizeResultType => {
   // Parse inputs
   const portfolioCapital = parseBigNumberFromString(input.portfolioCapital);
   const maxPortfolioRiskPercent = parseNumberFromString(input.maxPortfolioRisk);
@@ -418,902 +415,110 @@ export const calculateResult = (
       if (input.includeTradingFee) {
         // including trading fee
 
-        if (input.feeTyp === FeeTyp.COMMISSION_PER_LOT) {
-          /*
-            minProfit = 
-              profitPriceDiff * positionSize * quoteRate
-              - 2 * entryFee
-              + swapRate * pipDecimal * positionSize * quoteRate / 10  
+        /*
+          minProfit = profitPriceDiff * positionSize * quoteRate - entryFee - profitFee + swapValue
+          profitPriceDiff = (minProfit + entryFee + profitFee - swapValue) / (positionSize * quoteRate)
+        */
+        if (
+          !mathBigNum.equal(positionSize, 0) &&
+          !mathBigNum.equal(quoteRate, 0) &&
+          entryFee !== undefined &&
+          swapValue !== undefined
+        ) {
+          profitFee = entryFee;
+          const profitPriceDiff = divideBig(
+            subtractBig(
+              addBig(addBig(minProfit, entryFee), profitFee),
+              swapValue
+            ),
+            multiplyBig(positionSize, quoteRate)
+          );
 
-            profitPrice = 
-              (minProfit + 2 * entryFee) / (positionSize * quoteRate)
-              - swapRate * pipDecimal / 10
-          */
+          // profitPip = profitPriceDiff / pipDecimal
+          profitPip = mathBigNum.equal(pipDecimal, 0)
+            ? mathBigNum.bignumber(0)
+            : divideBig(profitPriceDiff, pipDecimal);
+          profitPip = mathBigNum.ceil(profitPip);
 
-          if (
-            !mathBigNum.equal(positionSize, 0) &&
-            !mathBigNum.equal(quoteRate, 0) &&
-            entryFee !== undefined
-          ) {
-            const profitPriceDiff = subtractBig(
-              divideBig(
-                addBig(minProfit, multiplyBig(entryFee, 2)),
-                multiplyBig(positionSize, quoteRate)
-              ),
-              multiplyBig(swapRate, divideBig(pipDecimal, 10))
-            );
+          const getProfitAmountFn = (profitPip: BigNumber) => {
+            if (
+              entryFee === undefined ||
+              profitFee === undefined ||
+              swapValue === undefined
+            )
+              return {
+                profitAmt: mathBigNum.bignumber(0),
+                profitFee: mathBigNum.bignumber(0),
+              };
 
-            // profitPip = profitPriceDiff / pipDecimal
-            profitPip = mathBigNum.equal(pipDecimal, 0)
-              ? mathBigNum.bignumber(0)
-              : divideBig(profitPriceDiff, pipDecimal);
-            profitPip = mathBigNum.ceil(profitPip);
-
-            const getProfitAmountFn = (profitPip: BigNumber) => {
-              if (
-                entryFee === undefined ||
-                swapValue === undefined ||
-                mathBigNum.equal(profitPip, 0)
-              )
-                return {
-                  profitAmt: mathBigNum.bignumber(0),
-                  profitFee: mathBigNum.bignumber(0),
-                };
-
-              const profitFee = entryFee;
-
-              // profitAmt = profitPip * pipDecimal * positionSize * quoteRate - entryFee - profitFee - swapValue
-              const profitAmt = subtractBig(
+            // profitAmt = profitPip * pipDecimal * positionSize * quoteRate - entryFee - profitFee - swapValue
+            const profitAmt = subtractBig(
+              subtractBig(
                 subtractBig(
-                  subtractBig(
+                  multiplyBig(
                     multiplyBig(
-                      multiplyBig(
-                        multiplyBig(profitPip, pipDecimal),
-                        positionSize
-                      ),
-                      quoteRate
+                      multiplyBig(profitPip, pipDecimal),
+                      positionSize
                     ),
-                    entryFee
+                    quoteRate
                   ),
-                  profitFee
+                  entryFee
                 ),
-                swapValue
-              );
-
-              return { profitAmt, profitFee };
-            };
-
-            const adjustedRes = adjustProfitPrice(
-              getProfitAmountFn,
-              minProfit,
-              profitPrice,
-              input.isLong
+                profitFee
+              ),
+              swapValue
             );
-            profitPrice = adjustedRes.profitPrice;
-            profitAmount = adjustedRes.profitAmount;
-            profitFee = adjustedRes.profitFee;
-          } else {
-            profitPip = mathBigNum.bignumber(0);
-            profitAmount = mathBigNum.bignumber(0);
-            profitFee = mathBigNum.bignumber(0);
-          }
+
+            return { profitAmt, profitFee };
+          };
+
+          const adjustedRes = adjustProfitPip(
+            getProfitAmountFn,
+            minProfit,
+            profitPip,
+            input.isLong
+          );
+          profitPip = adjustedRes.profitPip;
+          profitAmount = adjustedRes.profitAmount;
+          profitFee = adjustedRes.profitFee;
         } else {
-          const commissionFeeRate = divideBig(commissionFee, 100000);
-
-          if (profitQuoteRate !== undefined) {
-            if (profitBaseRate !== undefined) {
-              /*
-                minProfit = isLong ? 
-                  (profitPrice - entryPrice) * positionSize * quoteRate
-                  - entryFee
-                  - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipDecimal * positionSize * quoteRate / 10 
-                  :
-                  (entryPrice - profitPrice) * positionSize * quoteRate
-                  - entryFee
-                  - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipDecimal * positionSize * quoteRate / 10  
-
-                profitPrice = isLong ?
-                  entryPrice 
-                  + (minProfit + entryFee) / (positionSize * quoteRate)
-                  + commissionFeeRate * exitBaseRate / quoteRate
-                  - swapRate * pipDecimal / 10
-                  :
-                  entryPrice 
-                  - (minProfit + entryFee) / (positionSize * quoteRate)
-                  - commissionFeeRate * exitBaseRate / quoteRate
-                  + swapRate * pipDecimal / 10
-              */
-
-              if (
-                !mathBigNum.equal(positionSize, 0) &&
-                !mathBigNum.equal(profitQuoteRate, 0)
-              ) {
-                if (input.isLong) {
-                  profitPrice = subtractBig(
-                    addBig(
-                      addBig(
-                        entryPrice,
-                        divideBig(
-                          addBig(minProfit, entryFee),
-                          multiplyBig(positionSize, profitQuoteRate)
-                        )
-                      ),
-                      multiplyBig(
-                        commissionFeeRate,
-                        divideBig(profitBaseRate, profitQuoteRate)
-                      )
-                    ),
-                    multiplyBig(swapRate, divideBig(pipDecimal, 10))
-                  );
-                  profitPrice = mathBigNum.ceil(profitPrice, 5);
-                } else {
-                  profitPrice = addBig(
-                    subtractBig(
-                      subtractBig(
-                        entryPrice,
-                        divideBig(
-                          addBig(minProfit, entryFee),
-                          multiplyBig(positionSize, profitQuoteRate)
-                        )
-                      ),
-                      multiplyBig(
-                        commissionFeeRate,
-                        divideBig(profitBaseRate, profitQuoteRate)
-                      )
-                    ),
-                    multiplyBig(swapRate, divideBig(pipDecimal, 10))
-                  );
-                  profitPrice = mathBigNum.floor(profitPrice, 5);
-                }
-
-                const getProfitAmountFn = (profitPrice: BigNumber) => {
-                  if (
-                    profitQuoteRate === undefined ||
-                    profitBaseRate === undefined ||
-                    entryFee === undefined
-                  ) {
-                    return {
-                      profitAmt: mathBigNum.bignumber(0),
-                      profitFee: mathBigNum.bignumber(0),
-                      swapValue: mathBigNum.bignumber(0),
-                    };
-                  }
-
-                  const profitFee = multiplyBig(
-                    multiplyBig(positionSize, commissionFeeRate),
-                    profitBaseRate
-                  );
-                  const swapValue = calcSwapValue(
-                    swapRate,
-                    pipDecimal,
-                    lotSize,
-                    contractSize,
-                    profitQuoteRate,
-                    input.precision
-                  );
-
-                  return getProfitAmount(
-                    entryPrice,
-                    profitPrice,
-                    entryFee,
-                    profitFee,
-                    swapValue,
-                    positionSize,
-                    profitQuoteRate
-                  );
-                };
-
-                const adjustedRes = adjustProfitPrice(
-                  getProfitAmountFn,
-                  minProfit,
-                  profitPrice,
-                  input.isLong
-                );
-                profitPrice = adjustedRes.profitPrice;
-                profitAmount = adjustedRes.profitAmount;
-                profitFee = adjustedRes.profitFee;
-                profitSwap = adjustedRes.swapValue;
-              } else {
-                profitPrice = mathBigNum.bignumber(0);
-                profitAmount = mathBigNum.bignumber(0);
-                profitFee = mathBigNum.bignumber(0);
-                profitSwap = mathBigNum.bignumber(0);
-              }
-            } else {
-              /*
-                minProfit = isLong ? 
-                  (profitPrice - entryPrice) * positionSize * quoteRate
-                  - entryFee
-                  - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipDecimal * positionSize * quoteRate / 10 
-                  :
-                  (entryPrice - profitPrice) * positionSize * quoteRate
-                  - entryFee
-                  - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipDecimal * positionSize * quoteRate / 10
-
-                profitPrice = isLong ?
-                  (
-                    positionSize * (
-                      entryPrice * quoteRate
-                      - swapRate * pipDecimal * quoteRate / 10 
-                    )
-                    + minProfit 
-                    + entryFee 
-                  ) / (
-                    positionSize * (quoteRate - commissionFeeRate)
-                  )
-                  :
-                  (
-                    positionSize * (
-                      entryPrice * quoteRate
-                      + swapRate * pipDecimal * quoteRate / 10 
-                    )
-                    - minProfit 
-                    - entryFee 
-                  ) / (
-                    positionSize * (quoteRate + commissionFeeRate)
-                  )
-              */
-
-              const divisor = input.isLong
-                ? multiplyBig(
-                    positionSize,
-                    subtractBig(profitQuoteRate, commissionFeeRate)
-                  )
-                : multiplyBig(
-                    positionSize,
-                    addBig(profitQuoteRate, commissionFeeRate)
-                  );
-
-              if (!mathBigNum.equal(divisor, 0)) {
-                if (input.isLong) {
-                  profitPrice = divideBig(
-                    addBig(
-                      addBig(
-                        multiplyBig(
-                          positionSize,
-                          subtractBig(
-                            multiplyBig(entryPrice, profitQuoteRate),
-                            multiplyBig(
-                              multiplyBig(swapRate, pipDecimal),
-                              divideBig(profitQuoteRate, 10)
-                            )
-                          )
-                        ),
-                        minProfit
-                      ),
-                      entryFee
-                    ),
-                    divisor
-                  );
-                  profitPrice = mathBigNum.ceil(profitPrice, 5);
-                } else {
-                  profitPrice = divideBig(
-                    subtractBig(
-                      subtractBig(
-                        multiplyBig(
-                          positionSize,
-                          addBig(
-                            multiplyBig(entryPrice, profitQuoteRate),
-                            multiplyBig(
-                              multiplyBig(swapRate, pipDecimal),
-                              divideBig(profitQuoteRate, 10)
-                            )
-                          )
-                        ),
-                        minProfit
-                      ),
-                      entryFee
-                    ),
-                    divisor
-                  );
-                  profitPrice = mathBigNum.floor(profitPrice, 5);
-                }
-
-                const getProfitAmountFn = (profitPrice: BigNumber) => {
-                  if (profitQuoteRate === undefined || entryFee === undefined) {
-                    return {
-                      profitAmt: mathBigNum.bignumber(0),
-                      profitFee: mathBigNum.bignumber(0),
-                      swapValue: mathBigNum.bignumber(0),
-                    };
-                  }
-
-                  const profitBaseRate = profitPrice;
-                  const profitFee = multiplyBig(
-                    multiplyBig(positionSize, commissionFeeRate),
-                    profitBaseRate
-                  );
-                  const swapValue = calcSwapValue(
-                    swapRate,
-                    pipDecimal,
-                    lotSize,
-                    contractSize,
-                    profitQuoteRate,
-                    input.precision
-                  );
-
-                  return getProfitAmount(
-                    entryPrice,
-                    profitPrice,
-                    entryFee,
-                    profitFee,
-                    swapValue,
-                    positionSize,
-                    profitQuoteRate
-                  );
-                };
-
-                const adjustedRes = adjustProfitPrice(
-                  getProfitAmountFn,
-                  minProfit,
-                  profitPrice,
-                  input.isLong
-                );
-                profitPrice = adjustedRes.profitPrice;
-                profitAmount = adjustedRes.profitAmount;
-                profitFee = adjustedRes.profitFee;
-                profitSwap = adjustedRes.swapValue;
-              } else {
-                profitPrice = mathBigNum.bignumber(0);
-                profitAmount = mathBigNum.bignumber(0);
-                profitFee = mathBigNum.bignumber(0);
-                profitSwap = mathBigNum.bignumber(0);
-              }
-            }
-          } else {
-            if (profitBaseRate !== undefined) {
-              /*
-                minProfit = isLong ? 
-                  (profitPrice - entryPrice) * positionSize / profitPrice
-                  - entryFee
-                  - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipDecimal * positionSize / (10 * profitPrice) 
-                  :
-                  (entryPrice - profitPrice) * positionSize / profitPrice
-                  - entryFee
-                  - positionSize * commissionFeeRate * exitBaseRate
-                  + swapRate * pipDecimal * positionSize / (10 * profitPrice)  
-
-                profitPrice = isLong ?
-                  positionSize * (swapRate * pipDecimal / 10 - entryPrice) / (
-                    minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate - 1)
-                  )
-                  :
-                  positionSize * (swapRate * pipDecimal / 10 + entryPrice) / (
-                    minProfit + entryFee + positionSize * (commissionFeeRate * exitBaseRate + 1)
-                  )
-              */
-
-              const divisor = input.isLong
-                ? addBig(
-                    addBig(minProfit, entryFee),
-                    multiplyBig(
-                      positionSize,
-                      subtractBig(
-                        multiplyBig(commissionFeeRate, profitBaseRate),
-                        1
-                      )
-                    )
-                  )
-                : addBig(
-                    addBig(minProfit, entryFee),
-                    multiplyBig(
-                      positionSize,
-                      addBig(multiplyBig(commissionFeeRate, profitBaseRate), 1)
-                    )
-                  );
-
-              if (
-                !mathBigNum.equal(divisor, 0) &&
-                !mathBigNum.equal(positionSize, 0)
-              ) {
-                if (input.isLong) {
-                  profitPrice = divideBig(
-                    multiplyBig(
-                      positionSize,
-                      subtractBig(
-                        multiplyBig(swapRate, divideBig(pipDecimal, 10)),
-                        entryPrice
-                      )
-                    ),
-                    divisor
-                  );
-                  profitPrice = mathBigNum.ceil(profitPrice, 5);
-                } else {
-                  profitPrice = divideBig(
-                    multiplyBig(
-                      positionSize,
-                      addBig(
-                        multiplyBig(swapRate, divideBig(pipDecimal, 10)),
-                        entryPrice
-                      )
-                    ),
-                    divisor
-                  );
-                  profitPrice = mathBigNum.floor(profitPrice, 5);
-                }
-
-                const getProfitAmountFn = (profitPrice: BigNumber) => {
-                  if (profitBaseRate === undefined || entryFee === undefined) {
-                    return {
-                      profitAmt: mathBigNum.bignumber(0),
-                      profitFee: mathBigNum.bignumber(0),
-                      swapValue: mathBigNum.bignumber(0),
-                    };
-                  }
-
-                  const profitQuoteRate = divideBig(1, profitPrice);
-                  const profitFee = multiplyBig(
-                    multiplyBig(positionSize, commissionFeeRate),
-                    profitBaseRate
-                  );
-                  const swapValue = calcSwapValue(
-                    swapRate,
-                    pipDecimal,
-                    lotSize,
-                    contractSize,
-                    profitQuoteRate,
-                    input.precision
-                  );
-
-                  return getProfitAmount(
-                    entryPrice,
-                    profitPrice,
-                    entryFee,
-                    profitFee,
-                    swapValue,
-                    positionSize,
-                    profitQuoteRate
-                  );
-                };
-
-                const adjustedRes = adjustProfitPrice(
-                  getProfitAmountFn,
-                  minProfit,
-                  profitPrice,
-                  input.isLong
-                );
-                profitPrice = adjustedRes.profitPrice;
-                profitAmount = adjustedRes.profitAmount;
-                profitFee = adjustedRes.profitFee;
-                profitSwap = adjustedRes.swapValue;
-              } else {
-                profitPrice = mathBigNum.bignumber(0);
-                profitAmount = mathBigNum.bignumber(0);
-                profitFee = mathBigNum.bignumber(0);
-                profitSwap = mathBigNum.bignumber(0);
-              }
-            } else {
-              /*
-                minProfit = isLong ? 
-                  (profitPrice - entryPrice) * positionSize / profitPrice
-                  - entryFee
-                  - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipDecimal * positionSize / (10 * profitPrice) 
-                  :
-                  (entryPrice - profitPrice) * positionSize / profitPrice
-                  - entryFee
-                  - positionSize * commissionFeeRate * profitPrice
-                  + swapRate * pipDecimal * positionSize / (10 * profitPrice)  
-
-                profitPrice = isLong ?
-                  minPositiveProfitPrice(
-                    (
-                      positionSize - minProfit - entryFee + sqrt(
-                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipDecimal / 10)
-                      )
-                    ) / (
-                      2 * positionSize * commissionFeeRate 
-                    ),
-                    (
-                      positionSize - minProfit - entryFee - sqrt(
-                        (minProfit + entryFee - positionSize)^2 - 4 * positionSize * commissionFeeRate * positionSize * (entryPrice - swapRate * pipDecimal / 10)
-                      )
-                    ) / (
-                      2 * positionSize * commissionFeeRate 
-                    )
-                  )
-                  :
-                  maxPositiveProfitPrice(
-                    (
-                      -positionSize - minProfit - entryFee + sqrt(
-                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
-                      )
-                    ) / (
-                      2 * positionSize * commissionFeeRate 
-                    ),
-                    (
-                      -positionSize - minProfit - entryFee - sqrt(
-                        (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
-                      )
-                    ) / (
-                      2 * positionSize * commissionFeeRate 
-                    )
-                  )
-              */
-
-              const divisor = multiplyBig(
-                multiplyBig(2, positionSize),
-                commissionFeeRate
-              );
-
-              if (
-                !mathBigNum.equal(divisor, 0) &&
-                !mathBigNum.equal(positionSize, 0)
-              ) {
-                if (input.isLong) {
-                  const sqrtPart = sqrtBig(
-                    subtractBig(
-                      powBig(
-                        subtractBig(addBig(minProfit, entryFee), positionSize),
-                        2
-                      ),
-                      multiplyBig(
-                        multiplyBig(
-                          multiplyBig(
-                            multiplyBig(4, positionSize),
-                            commissionFeeRate
-                          ),
-                          positionSize
-                        ),
-                        subtractBig(
-                          entryPrice,
-                          multiplyBig(swapRate, divideBig(pipDecimal, 10))
-                        )
-                      )
-                    )
-                  );
-
-                  let profitPrice1 = divideBig(
-                    addBig(
-                      subtractBig(
-                        subtractBig(positionSize, minProfit),
-                        entryFee
-                      ),
-                      sqrtPart
-                    ),
-                    divisor
-                  );
-                  profitPrice1 = mathBigNum.ceil(profitPrice1, 5);
-
-                  let profitPrice2 = divideBig(
-                    subtractBig(
-                      subtractBig(
-                        subtractBig(positionSize, minProfit),
-                        entryFee
-                      ),
-                      sqrtPart
-                    ),
-                    divisor
-                  );
-                  profitPrice2 = mathBigNum.ceil(profitPrice2, 5);
-
-                  if (mathBigNum.equal(profitPrice1, profitPrice2)) {
-                    profitPrice = mathBigNum.larger(profitPrice1, entryPrice)
-                      ? profitPrice1
-                      : mathBigNum.bignumber(0);
-                  } else if (mathBigNum.smaller(profitPrice1, profitPrice2)) {
-                    if (mathBigNum.larger(profitPrice1, entryPrice)) {
-                      profitPrice = profitPrice1;
-                    } else if (mathBigNum.larger(profitPrice2, entryPrice)) {
-                      profitPrice = profitPrice2;
-                    } else {
-                      profitPrice = mathBigNum.bignumber(0);
-                    }
-                  } else {
-                    if (mathBigNum.larger(profitPrice2, entryPrice)) {
-                      profitPrice = profitPrice2;
-                    } else if (mathBigNum.larger(profitPrice1, entryPrice)) {
-                      profitPrice = profitPrice1;
-                    } else {
-                      profitPrice = mathBigNum.bignumber(0);
-                    }
-                  }
-                } else {
-                  // maxPositiveProfitPrice(
-                  //   (
-                  //     -positionSize - minProfit - entryFee + sqrt(
-                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
-                  //     )
-                  //   ) / (
-                  //     2 * positionSize * commissionFeeRate
-                  //   ),
-                  //   (
-                  //     -positionSize - minProfit - entryFee - sqrt(
-                  //       (minProfit + entryFee + positionSize)^2 - 4 * positionSize * commissionFeeRate * -positionSize * (entryPrice + swapRate * pipDecimal / 10)
-                  //     )
-                  //   ) / (
-                  //     2 * positionSize * commissionFeeRate
-                  //   )
-                  // )
-
-                  const sqrtPart = sqrtBig(
-                    subtractBig(
-                      powBig(
-                        addBig(addBig(minProfit, entryFee), positionSize),
-                        2
-                      ),
-                      multiplyBig(
-                        multiplyBig(
-                          multiplyBig(
-                            multiplyBig(4, positionSize),
-                            commissionFeeRate
-                          ),
-                          positionSize.negated()
-                        ),
-                        addBig(
-                          entryPrice,
-                          multiplyBig(swapRate, divideBig(pipDecimal, 10))
-                        )
-                      )
-                    )
-                  );
-
-                  let profitPrice1 = divideBig(
-                    addBig(
-                      subtractBig(
-                        subtractBig(positionSize.negated(), minProfit),
-                        entryFee
-                      ),
-                      sqrtPart
-                    ),
-                    divisor
-                  );
-                  profitPrice1 = mathBigNum.floor(profitPrice1, 5);
-
-                  let profitPrice2 = divideBig(
-                    subtractBig(
-                      subtractBig(
-                        subtractBig(positionSize.negated(), minProfit),
-                        entryFee
-                      ),
-                      sqrtPart
-                    ),
-                    divisor
-                  );
-                  profitPrice2 = mathBigNum.floor(profitPrice2, 5);
-
-                  if (mathBigNum.equal(profitPrice1, profitPrice2)) {
-                    profitPrice =
-                      mathBigNum.larger(profitPrice1, 0) &&
-                      mathBigNum.smaller(profitPrice1, entryPrice)
-                        ? profitPrice1
-                        : mathBigNum.bignumber(0);
-                  } else if (mathBigNum.larger(profitPrice1, profitPrice2)) {
-                    if (
-                      mathBigNum.larger(profitPrice1, 0) &&
-                      mathBigNum.smaller(profitPrice1, entryPrice)
-                    ) {
-                      profitPrice = profitPrice1;
-                    } else if (
-                      mathBigNum.larger(profitPrice2, 0) &&
-                      mathBigNum.smaller(profitPrice2, entryPrice)
-                    ) {
-                      profitPrice = profitPrice2;
-                    } else {
-                      profitPrice = mathBigNum.bignumber(0);
-                    }
-                  } else {
-                    if (
-                      mathBigNum.larger(profitPrice2, 0) &&
-                      mathBigNum.smaller(profitPrice2, entryPrice)
-                    ) {
-                      profitPrice = profitPrice2;
-                    } else if (
-                      mathBigNum.larger(profitPrice1, 0) &&
-                      mathBigNum.smaller(profitPrice1, entryPrice)
-                    ) {
-                      profitPrice = profitPrice1;
-                    } else {
-                      profitPrice = mathBigNum.bignumber(0);
-                    }
-                  }
-                }
-
-                const getProfitAmountFn = (profitPrice: BigNumber) => {
-                  if (entryFee === undefined) {
-                    return {
-                      profitAmt: mathBigNum.bignumber(0),
-                      profitFee: mathBigNum.bignumber(0),
-                      swapValue: mathBigNum.bignumber(0),
-                    };
-                  }
-
-                  const profitBaseRate = profitPrice;
-                  const profitQuoteRate = divideBig(1, profitPrice);
-                  const profitFee = multiplyBig(
-                    multiplyBig(positionSize, commissionFeeRate),
-                    profitBaseRate
-                  );
-                  const swapValue = calcSwapValue(
-                    swapRate,
-                    pipDecimal,
-                    lotSize,
-                    contractSize,
-                    profitQuoteRate,
-                    input.precision
-                  );
-
-                  return getProfitAmount(
-                    entryPrice,
-                    profitPrice,
-                    entryFee,
-                    profitFee,
-                    swapValue,
-                    positionSize,
-                    profitQuoteRate
-                  );
-                };
-
-                const adjustedRes = adjustProfitPrice(
-                  getProfitAmountFn,
-                  minProfit,
-                  profitPrice,
-                  input.isLong
-                );
-                profitPrice = adjustedRes.profitPrice;
-                profitAmount = adjustedRes.profitAmount;
-                profitFee = adjustedRes.profitFee;
-                profitSwap = adjustedRes.swapValue;
-              } else {
-                profitPrice = mathBigNum.bignumber(0);
-                profitAmount = mathBigNum.bignumber(0);
-                profitFee = mathBigNum.bignumber(0);
-                profitSwap = mathBigNum.bignumber(0);
-              }
-            }
-          }
+          profitPip = mathBigNum.bignumber(0);
+          profitAmount = mathBigNum.bignumber(0);
+          profitFee = mathBigNum.bignumber(0);
         }
       } else {
         // no trading fee
 
-        if (profitQuoteRate !== undefined) {
-          /*
-            minProfit = isLong ? 
-              (profitPrice - entryPrice) * positionSize * quoteRate :
-              (entryPrice - profitPrice) * positionSize * quoteRate
+        /*
+          minProfit = profitPriceDiff * positionSize * quoteRate
+          profitPriceDiff = minProfit / (positionSize * quoteRate)
+        */
+        if (
+          !mathBigNum.equal(positionSize, 0) &&
+          !mathBigNum.equal(quoteRate, 0)
+        ) {
+          const profitPriceDiff = divideBig(
+            minProfit,
+            multiplyBig(positionSize, quoteRate)
+          );
 
-            profitPrice = isLong ?
-              entryPrice + (minProfit / (positionSize * quoteRate)) :
-              entryPrice - (minProfit / (positionSize * quoteRate))
-          */
-          if (
-            !mathBigNum.equal(positionSize, 0) &&
-            !mathBigNum.equal(profitQuoteRate, 0)
-          ) {
-            if (input.isLong) {
-              profitPrice = addBig(
-                entryPrice,
-                divideBig(minProfit, multiplyBig(positionSize, profitQuoteRate))
-              );
-              profitPrice = mathBigNum.ceil(profitPrice, 5);
-            } else {
-              profitPrice = subtractBig(
-                entryPrice,
-                divideBig(minProfit, multiplyBig(positionSize, profitQuoteRate))
-              );
-              profitPrice = mathBigNum.floor(profitPrice, 5);
-            }
+          // profitPip = profitPriceDiff / pipDecimal
+          profitPip = divideBig(profitPriceDiff, pipDecimal);
+          profitPip = mathBigNum.ceil(profitPip);
 
-            // Construct get profit function
-            const getProfitAmountFn = (profitPrice: BigNumber) => {
-              if (!profitQuoteRate) profitQuoteRate = mathBigNum.bignumber(1);
-
-              // profitAmount = abs(profitPrice - entryPrice) * positionSize * quoteRate
-              const profitAmt = multiplyBig(
-                multiplyBig(
-                  absBig(subtractBig(profitPrice, entryPrice)),
-                  positionSize
-                ),
-                profitQuoteRate
-              );
-
-              return {
-                profitAmt,
-                profitFee: mathBigNum.bignumber(0),
-                swapValue: mathBigNum.bignumber(0),
-              };
-            };
-
-            // Adjust profit price
-            const adjustedRes = adjustProfitPrice(
-              getProfitAmountFn,
-              minProfit,
-              profitPrice,
-              input.isLong
-            );
-            profitPrice = adjustedRes.profitPrice;
-            profitFee = adjustedRes.profitFee;
-            profitSwap = adjustedRes.swapValue;
-            profitAmount = adjustedRes.profitAmount;
-          } else {
-            profitPrice = mathBigNum.bignumber(0);
-            profitFee = mathBigNum.bignumber(0);
-            profitSwap = mathBigNum.bignumber(0);
-            profitAmount = mathBigNum.bignumber(0);
-          }
+          // profitAmount = profitPip * pipDecimal * positionSize * quoteRate
+          profitAmount = multiplyBig(
+            multiplyBig(multiplyBig(profitPip, pipDecimal), positionSize),
+            quoteRate
+          );
         } else {
-          /*
-            minProfit = isLong ? 
-              (profitPrice - entryPrice) * positionSize / profitPrice :
-              (entryPrice - profitPrice) * positionSize / profitPrice
-
-            profitPrice = isLong ?
-              entryPrice * positionSize / (positionSize - minProfit) :
-              entryPrice * positionSize / (positionSize + minProfit)
-          */
-
-          const divisor = input.isLong
-            ? subtractBig(positionSize, minProfit)
-            : addBig(positionSize, minProfit);
-
-          if (!mathBigNum.equal(divisor, 0)) {
-            if (input.isLong) {
-              profitPrice = divideBig(
-                multiplyBig(entryPrice, positionSize),
-                divisor
-              );
-              profitPrice = mathBigNum.ceil(profitPrice, 5);
-            } else {
-              profitPrice = divideBig(
-                multiplyBig(entryPrice, positionSize),
-                divisor
-              );
-              profitPrice = mathBigNum.floor(profitPrice, 5);
-            }
-
-            // Construct get profit function
-            const getProfitAmountFn = (profitPrice: BigNumber) => {
-              // profitAmount = abs(profitPrice - entryPrice) * positionSize / profitPrice
-              const profitAmt = divideBig(
-                multiplyBig(
-                  absBig(subtractBig(profitPrice, entryPrice)),
-                  positionSize
-                ),
-                profitPrice
-              );
-
-              return {
-                profitAmt,
-                profitFee: mathBigNum.bignumber(0),
-                swapValue: mathBigNum.bignumber(0),
-              };
-            };
-
-            // Adjust profit price
-            const adjustedRes = adjustProfitPrice(
-              getProfitAmountFn,
-              minProfit,
-              profitPrice,
-              input.isLong
-            );
-            profitPrice = adjustedRes.profitPrice;
-            profitFee = adjustedRes.profitFee;
-            profitSwap = adjustedRes.swapValue;
-            profitAmount = adjustedRes.profitAmount;
-          } else {
-            profitPrice = mathBigNum.bignumber(0);
-            profitFee = mathBigNum.bignumber(0);
-            profitSwap = mathBigNum.bignumber(0);
-            profitAmount = mathBigNum.bignumber(0);
-          }
+          profitPip = mathBigNum.bignumber(0);
+          profitAmount = mathBigNum.bignumber(0);
         }
       }
     }
 
-    if (profitPrice !== undefined && profitAmount !== undefined) {
-      const profitPriceDiff = mathBigNum.abs(
-        subtractBig(entryPrice, profitPrice)
-      );
-
-      // profitPip = profitPriceDiff / pipDecimal
-      profitPip = divideBig(profitPriceDiff, pipDecimal);
-      profitPip = mathBigNum.round(profitPip, input.precision);
-
+    if (profitAmount !== undefined) {
       // portfolioProfit = (profitAmount / portfolioCapital) * 100
       portfolioProfit = mathBigNum.equal(portfolioCapital, 0)
         ? mathBigNum.bignumber(0)
@@ -1344,10 +549,7 @@ export const calculateResult = (
     includeTradingFee: input.includeTradingFee,
     includeProfitGoal: input.includeProfitGoal,
     accBaseCurrency: input.accBaseCurrency,
-    entryPrice: entryPrice,
-    stopPrice: stopLoss,
     stopPip: stopPip,
-    profitPrice: profitPrice,
     profitPip: profitPip,
     positionSize: positionSize,
     lotSize: lotSize,
@@ -1361,8 +563,7 @@ export const calculateResult = (
     entryFee: entryFee,
     stopFee: stopFee,
     profitFee: profitFee,
-    stopSwap: stopSwap,
-    profitSwap: profitSwap,
+    swapValue: swapValue,
   };
 };
 
@@ -1585,7 +786,7 @@ const adjustLotSize = (
   return { lotSize, riskAmount, entryFee, stopFee, swapValue };
 };
 
-const adjustProfitPrice = (
+const adjustProfitPip = (
   getProfitAmountFn: (profitPip: BigNumber) => {
     profitAmt: BigNumber;
     profitFee: BigNumber;
@@ -1594,59 +795,46 @@ const adjustProfitPrice = (
   profitPip: BigNumber,
   isLong: boolean
 ) => {
-  if (mathBigNum.equal(profitPip, 0)) {
-    return {
-      profitAmount: mathBigNum.bignumber(0),
-      profitFee: mathBigNum.bignumber(0),
-    };
-  }
-
-  const res = getProfitAmountFn(profitPrice);
+  const res = getProfitAmountFn(profitPip);
   let profitAmount = res.profitAmt;
   let profitFee = res.profitFee;
-  let swapValue = res.swapValue;
 
-  const units = [0.1, 0.01, 0.001, 0.0001, 0.00001];
-  for (let i = 0; i <= units.length; i++) {
-    let isLarger = false;
-    let tempProfitPrice = profitPrice;
-    let tempProfitAmt = profitAmount;
-    let j = 0;
+  let isLarger = false;
+  let tempProfitPip = profitPip;
+  let tempProfitAmt = profitAmount;
+  let j = 0;
 
-    while (
-      !mathBigNum.equal(tempProfitAmt, minProfit) &&
-      mathBigNum.larger(tempProfitPrice, 0)
-    ) {
-      if (j >= 10000) {
-        console.warn(
-          `Max iterations reached (fn=forex_profit, precision=${units[i]})`
-        );
-        break;
-      }
-      j++;
+  while (
+    !mathBigNum.equal(tempProfitAmt, minProfit) &&
+    mathBigNum.larger(tempProfitPip, 0)
+  ) {
+    if (j >= 10000) {
+      console.warn("Max iterations reached (fn=forex_profit, precision=1)");
+      break;
+    }
+    j++;
 
-      if (mathBigNum.larger(tempProfitAmt, minProfit)) {
-        isLarger = true;
-        tempProfitPrice = isLong
-          ? subtractBig(tempProfitPrice, units[i])
-          : addBig(tempProfitPrice, units[i]);
-      } else {
-        if (isLarger) break;
-        tempProfitPrice = isLong
-          ? addBig(tempProfitPrice, units[i])
-          : subtractBig(tempProfitPrice, units[i]);
-      }
+    if (mathBigNum.larger(tempProfitAmt, minProfit)) {
+      isLarger = true;
+      tempProfitPip = isLong
+        ? subtractBig(tempProfitPip, 1)
+        : addBig(tempProfitPip, 1);
+    } else {
+      if (isLarger) break;
+      tempProfitPip = isLong
+        ? addBig(tempProfitPip, 1)
+        : subtractBig(tempProfitPip, 1);
+    }
 
-      const res = getProfitAmountFn(tempProfitPrice);
-      tempProfitAmt = res.profitAmt;
+    const res = getProfitAmountFn(tempProfitPip);
+    tempProfitAmt = res.profitAmt;
 
-      if (mathBigNum.largerEq(tempProfitAmt, minProfit)) {
-        profitAmount = res.profitAmt;
-        profitFee = res.profitFee;
-        swapValue = res.swapValue;
-      }
+    if (mathBigNum.largerEq(tempProfitAmt, minProfit)) {
+      profitAmount = res.profitAmt;
+      profitFee = res.profitFee;
+      profitPip = tempProfitPip;
     }
   }
 
-  return { profitAmount, profitPrice, profitFee, swapValue };
+  return { profitAmount, profitPip, profitFee };
 };
