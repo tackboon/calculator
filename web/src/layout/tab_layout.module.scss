@@ -1,0 +1,66 @@
+.tab-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .tab-nav-bar {
+    position: relative;
+
+    &.is-select {
+      width: 100%;
+    }
+
+    .tab-nav-bar-container {
+      display: flex;
+      justify-content: center;
+
+      &.is-select {
+        width: 100%;
+      }
+
+      .select-container {
+        margin-top: 24px;
+        width: calc(100% - 48px);
+      }
+
+      .tab-nav-item {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0.6rem;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #555;
+        box-sizing: border-box;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+          color: #000;
+        }
+
+        &.active {
+          color: #000000;
+          font-weight: 700;
+        }
+      }
+    }
+
+    .slider {
+      position: absolute;
+      height: 3px;
+      bottom: 0;
+      background-color: #007bff;
+      border-radius: 20px;
+    }
+  }
+}
+
+.tab-content {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
