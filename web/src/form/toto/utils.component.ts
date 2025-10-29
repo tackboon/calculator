@@ -264,69 +264,69 @@ export const validateTotoInput = (
   }
   avaiPoolSize = avaiPoolSize - mustExcludes.size;
 
-  // validate conditional group
-  let conditionalPoolLowCount = 0;
-  let conditionalPoolHighCount = 0;
-  const conditionalGroups = new Set<number>();
-  const conditionalPoolOdd = new Set<number>();
-  const conditionalPoolEven = new Set<number>();
-  const conditionalGroupParts = input.conditionalGroups.split(",");
-  for (const val of conditionalGroupParts) {
+  // validate custom group
+  let customPoolLowCount = 0;
+  let customPoolHighCount = 0;
+  const customGroups = new Set<number>();
+  const customPoolOdd = new Set<number>();
+  const customPoolEven = new Set<number>();
+  const customGroupParts = input.customGroups.split(",");
+  for (const val of customGroupParts) {
     if (val === "") continue;
 
     const n = Number(val);
     if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
       return {
         err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
-        field: ERROR_FIELD_TOTO.CONDITIONAL_GROUPS,
+        field: ERROR_FIELD_TOTO.CUSTOM_GROUPS,
       };
     }
 
     if (mustIncludes.has(n) || mustExcludes.has(n)) {
       return {
-        err: `Number ${n} in the conditional group cannot be in either the include or exclude list.`,
-        field: ERROR_FIELD_TOTO.CONDITIONAL_GROUPS,
+        err: `Number ${n} in the custom group cannot be in either the include or exclude list.`,
+        field: ERROR_FIELD_TOTO.CUSTOM_GROUPS,
       };
     }
 
-    if (!conditionalGroups.has(n)) {
-      conditionalGroups.add(n);
+    if (!customGroups.has(n)) {
+      customGroups.add(n);
 
       if (n % 2 !== 0) {
-        conditionalPoolOdd.add(n);
+        customPoolOdd.add(n);
       } else {
-        conditionalPoolEven.add(n);
+        customPoolEven.add(n);
       }
 
       if (n <= rangeInfo.low) {
-        conditionalPoolLowCount++;
+        customPoolLowCount++;
       } else {
-        conditionalPoolHighCount++;
+        customPoolHighCount++;
       }
     }
   }
 
-  // validate conditional count
-  const conditionalCount = Number(input.conditionalCount);
-  if (isNaN(conditionalCount) || conditionalCount < 0) {
+  // validate custom count
+  const customCount = Number(input.customCount);
+  if (isNaN(customCount) || customCount < 0) {
     return {
       err: `Please enter a valid minimum count.`,
-      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+      field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
     };
   }
-  if (conditionalCount > conditionalGroups.size) {
+  if (customCount > customGroups.size) {
     return {
       err: `The minimum count cannot exceed the number of selected group numbers.`,
-      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+      field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
     };
   }
   if (
-    conditionalCount > input.system - mustIncludes.size ||
-    conditionalCount > avaiPoolSize
+    customCount > input.system - mustIncludes.size ||
+    customCount > avaiPoolSize
   ) {
     return {
       err: `The minimum count cannot exceed the remaining available numbers or your system size limit.`,
-      field: ERROR_FIELD_TOTO.CONDITIONAL_COUNT,
+      field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
     };
   }
 
@@ -370,28 +370,28 @@ export const validateTotoInput = (
       };
     }
 
-    if (conditionalCount > 0) {
-      // if minimum odd/even count exists in conditional group
+    if (customCount > 0) {
+      // if minimum odd/even count exists in custom group
       const forcedOddCount = Math.max(
         0,
-        conditionalCount - conditionalPoolEven.size
+        customCount - customPoolEven.size
       );
       const forcedEvenCount = Math.max(
         0,
-        conditionalCount - conditionalPoolOdd.size
+        customCount - customPoolOdd.size
       );
       if (
         remainingOddCount < forcedOddCount ||
         remainingEvenCount < forcedEvenCount
       ) {
         return {
-          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field: ERROR_FIELD_TOTO.ODD_EVEN,
         };
       }
 
       if (forcedOddCount > 0) {
-        for (const oddNum of conditionalPoolOdd) {
+        for (const oddNum of customPoolOdd) {
           if (oddNum <= rangeInfo.low) {
             forcedOddLowCount++;
           } else {
@@ -401,7 +401,7 @@ export const validateTotoInput = (
       }
 
       if (forcedEvenCount > 0) {
-        for (const evenNum of conditionalPoolEven) {
+        for (const evenNum of customPoolEven) {
           if (evenNum <= rangeInfo.low) {
             forcedEvenLowCount++;
           } else {
@@ -448,22 +448,22 @@ export const validateTotoInput = (
       };
     }
 
-    if (conditionalCount > 0) {
-      // if minimum low/high count exists in conditional group
+    if (customCount > 0) {
+      // if minimum low/high count exists in custom group
       const forcedLowCount = Math.max(
         0,
-        conditionalCount - conditionalPoolHighCount
+        customCount - customPoolHighCount
       );
       const forcedHighCount = Math.max(
         0,
-        conditionalCount - conditionalPoolLowCount
+        customCount - customPoolLowCount
       );
       if (
         remainingLowCount < forcedLowCount ||
         remainingHighCount < forcedHighCount
       ) {
         return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and conditional group settings.",
+          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field: ERROR_FIELD_TOTO.LOW_HIGH,
         };
       }
@@ -475,7 +475,7 @@ export const validateTotoInput = (
         forcedEvenHighCount > remainingHighCount
       ) {
         return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, conditional group, and odd/even settings.",
+          err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
           field: ERROR_FIELD_TOTO.LOW_HIGH,
         };
       }
@@ -552,38 +552,38 @@ export const generateCombinations = (
     deletePoolNum(pools, n);
   }
 
-  // Read conditional groups
-  const conditionalCount = Number(input.conditionalCount);
-  const conditionalPool = initTotoPool();
-  if (conditionalCount > 0) {
-    const conditionalGroupParts = input.conditionalGroups.split(",");
-    for (const val of conditionalGroupParts) {
+  // Read custom groups
+  const customCount = Number(input.customCount);
+  const customPool = initTotoPool();
+  if (customCount > 0) {
+    const customGroupParts = input.customGroups.split(",");
+    for (const val of customGroupParts) {
       if (val === "") {
         continue;
       }
       const n = Number(val);
-      conditionalPool.allPools.add(n);
+      customPool.allPools.add(n);
 
       if (n % 2 === 0) {
-        conditionalPool.evenPools.add(n);
+        customPool.evenPools.add(n);
 
         if (n <= rangeInfo.low) {
-          conditionalPool.evenLowPools.add(n);
+          customPool.evenLowPools.add(n);
         } else {
-          conditionalPool.evenHighPools.add(n);
+          customPool.evenHighPools.add(n);
         }
       } else {
-        conditionalPool.oddPools.add(n);
+        customPool.oddPools.add(n);
 
         if (n <= rangeInfo.low) {
-          conditionalPool.oddLowPools.add(n);
+          customPool.oddLowPools.add(n);
         } else {
-          conditionalPool.oddHighPools.add(n);
+          customPool.oddHighPools.add(n);
         }
       }
 
-      if (n <= rangeInfo.low) conditionalPool.lowPools.add(n);
-      else conditionalPool.highPools.add(n);
+      if (n <= rangeInfo.low) customPool.lowPools.add(n);
+      else customPool.highPools.add(n);
     }
   }
 
@@ -611,13 +611,13 @@ export const generateCombinations = (
   while (combinations.length < count && k < 1000) {
     const poolsCopy = getTotoPoolCopy(pools);
     const selectedPoolCopy = getTotoPoolCopy(selectedPool);
-    const conditionalPoolCopy = getTotoPoolCopy(conditionalPool);
+    const customPoolCopy = getTotoPoolCopy(customPool);
 
     const combination = generateCombination(
       poolsCopy,
       selectedPoolCopy,
-      conditionalPoolCopy,
-      conditionalCount,
+      customPoolCopy,
+      customCount,
       includeOddEven,
       odd,
       even,
@@ -644,8 +644,8 @@ export const generateCombinations = (
 const generateCombination = (
   pools: TotoPools,
   selectedPool: TotoPools,
-  conditionalPool: TotoPools,
-  conditionalCount: number,
+  customPool: TotoPools,
+  customCount: number,
   includeOddEven: boolean,
   odd: number,
   even: number,
@@ -656,18 +656,18 @@ const generateCombination = (
   system: number
 ): Set<number> => {
   const remainingSlot = system - selectedPool.allPools.size;
-  const initialConditionalSize = conditionalPool.allPools.size;
+  const initialCustomSize = customPool.allPools.size;
 
   for (let i = 0; i < remainingSlot; i++) {
     let n: number | undefined;
-    const remainingConditionalCount =
-      conditionalCount -
-      (initialConditionalSize - conditionalPool.allPools.size);
+    const remainingCustomCount =
+      customCount -
+      (initialCustomSize - customPool.allPools.size);
 
     n =
-      remainingConditionalCount > 0
+      remainingCustomCount > 0
         ? randomNumber(
-            conditionalPool,
+            customPool,
             selectedPool,
             includeOddEven,
             odd,
@@ -689,7 +689,7 @@ const generateCombination = (
     if (n !== undefined) {
       updateSelectPool(n, selectedPool, rangeLow);
       deletePoolNum(pools, n);
-      deletePoolNum(conditionalPool, n);
+      deletePoolNum(customPool, n);
     } else {
       console.error("Failed to random on empty set.", i);
     }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useTransition, animated } from "@react-spring/web";
+import { useTransition, animated, useSpring } from "@react-spring/web";
 
 import styles from "./toto.module.scss";
 import {
   ERROR_FIELD_TOTO,
   TOTO_RANGE,
+  TOTO_VALUE,
   TotoCombination,
   TotoInputType,
 } from "./toto.type";
@@ -23,9 +24,17 @@ const DEFAULT_INPUT: TotoInputType = {
   numberRange: TOTO_RANGE.FOURTY_NINE,
   mustIncludes: "",
   mustExcludes: "",
-  conditionalGroups: "",
-  conditionalCount: "0",
-  oddEven: "",
+  includeOddEven: false,
+  oddValueTyp: TOTO_VALUE.EXACT_VALUE,
+  odd: "0",
+  minOdd: "0",
+  maxOdd: "0",
+  evenValueTyp: TOTO_VALUE.EXACT_VALUE,
+  even: "0",
+  minEven: "0",
+  maxEven: "0",
+  customGroups: "",
+  customCount: "0",
   lowHigh: "",
 };
 
@@ -74,6 +83,8 @@ const TotoForm = () => {
       ...DEFAULT_INPUT,
       system: prev.system,
       numberRange: prev.numberRange,
+      includeOddEven: prev.includeOddEven,
+      oddEvenTyp: prev.oddEvenTyp,
     }));
     setErrorField(null);
     setResult(null);
@@ -87,6 +98,17 @@ const TotoForm = () => {
       return updated;
     });
   };
+
+  const oddEvenStyles = useSpring({
+    height: input.includeOddEven ? 1000 : 0,
+    opacity: input.includeOddEven ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const oddEvenChildStyles = useSpring({
+    height: input.oddEvenTyp === TOTO_VALUE.EXACT_VALUE ? 600 : 800,
+    overflow: "hidden",
+  });
 
   const transitions = useTransition(result || [], {
     from: { opacity: 1, height: 360 },
@@ -198,46 +220,53 @@ const TotoForm = () => {
         </div>
 
         <div className={styles["form-group"]}>
-          <div className={styles["conditional-container"]}>
+          <label htmlFor="low-high">Low/High Distribution</label>
+          <SplitInput
+            id="low-high"
+            value={input.lowHigh}
+            isInvalid={errorField === ERROR_FIELD_TOTO.LOW_HIGH}
+            placeholder={`e.g: ${distribution}`}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, lowHigh: val }))
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <div className={styles["option-container"]}>
             <span className={styles["label"]}>
               Select a Number Group and Set How Many Must Appear
             </span>
 
-            <label
-              htmlFor="group-numbers"
-              className={`${styles["conditional-child"]} ${styles["conditional-label"]}`}
-            >
+            <label htmlFor="custom-numbers" className={styles["option-label"]}>
               Numbers in This Group
             </label>
             <NumArrInput
-              id="group-numbers"
-              className={styles["conditional-child"]}
-              value={input.conditionalGroups}
-              isInvalid={errorField === ERROR_FIELD_TOTO.CONDITIONAL_GROUPS}
+              id="custom-numbers"
+              className={styles["option-child"]}
+              value={input.customGroups}
+              isInvalid={errorField === ERROR_FIELD_TOTO.CUSTOM_GROUPS}
               placeholder="e.g: 1,2,3"
               onChangeHandler={(val) =>
-                setInput((prev) => ({ ...prev, conditionalGroups: val }))
+                setInput((prev) => ({ ...prev, customGroups: val }))
               }
             />
 
-            <label
-              htmlFor="group-count"
-              className={`${styles["conditional-child"]} ${styles["conditional-label"]}`}
-            >
+            <label htmlFor="custom-count" className={styles["custom-label"]}>
               Minimum Count
             </label>
             <Input
-              id="group-count"
-              className={styles["conditional-child"]}
+              id="custom-count"
+              className={styles["option-child"]}
               type="number"
               min={0}
               max={12}
-              value={input.conditionalCount}
-              isInvalid={errorField === ERROR_FIELD_TOTO.CONDITIONAL_COUNT}
+              value={input.customCount}
+              isInvalid={errorField === ERROR_FIELD_TOTO.CUSTOM_COUNT}
               onChange={(e) =>
                 setInput((prev) => ({
                   ...prev,
-                  conditionalCount: e.target.value,
+                  customCount: e.target.value,
                 }))
               }
               onBlur={(e) => {
@@ -249,37 +278,11 @@ const TotoForm = () => {
 
                 setInput((prev) => ({
                   ...prev,
-                  conditionalCount: e.target.value,
+                  customCount: e.target.value,
                 }));
               }}
             />
           </div>
-        </div>
-
-        <div className={styles["form-group"]}>
-          <label htmlFor="odd-even">Odd/Even Distribution</label>
-          <SplitInput
-            id="odd-even"
-            value={input.oddEven}
-            isInvalid={errorField === ERROR_FIELD_TOTO.ODD_EVEN}
-            placeholder={`e.g: ${distribution}`}
-            onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, oddEven: val }))
-            }
-          />
-        </div>
-
-        <div className={styles["form-group"]}>
-          <label htmlFor="low-high">Low/High Distribution</label>
-          <SplitInput
-            id="low-high"
-            value={input.lowHigh}
-            isInvalid={errorField === ERROR_FIELD_TOTO.LOW_HIGH}
-            placeholder={`e.g: ${distribution}`}
-            onChangeHandler={(val) =>
-              setInput((prev) => ({ ...prev, lowHigh: val }))
-            }
-          />
         </div>
 
         <p className={styles["error"]}>{errorMessage}</p>

@@ -6,25 +6,43 @@ export enum TOTO_RANGE {
   SIXTY_NINE,
 }
 
+export enum TOTO_VALUE {
+  EXACT_VALUE,
+  RANGE_VALUE,
+}
+
 export type TotoInputType = {
   count: string;
   system: number;
   numberRange: number;
   mustIncludes: string;
   mustExcludes: string;
-  conditionalGroups: string;
-  conditionalCount: string;
-  oddEven: string;
+  includeOddEven: boolean;
+  oddValueTyp: TOTO_VALUE;
+  odd: string;
+  minOdd: string;
+  maxOdd: string;
+  evenValueTyp: TOTO_VALUE;
+  even: string;
+  minEven: string;
+  maxEven: string;
   lowHigh: string;
+  customGroups: string;
+  customCount: string;
 };
 
 export enum ERROR_FIELD_TOTO {
   COUNT,
   MUST_INCLUDES,
   MUST_EXCLUDES,
-  CONDITIONAL_GROUPS,
-  CONDITIONAL_COUNT,
-  ODD_EVEN,
+  ODD,
+  MIN_ODD,
+  MAX_ODD,
+  EVEN,
+  MIN_EVEN,
+  MAX_EVEN,
+  CUSTOM_GROUPS,
+  CUSTOM_COUNT,
   LOW_HIGH,
 }
 

@@ -152,23 +152,10 @@
   }
 }
 
-.conditional-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  .conditional-label {
-    font-size: 0.9rem;
-    padding-left: 12px;
-    width: 5rem;
-    font-weight: 500;
-    margin-bottom: 0 !important;
-  }
-
-  .conditional-child {
-    width: calc(100% - 10px);
-    padding-left: 10px;
-  }
+.option-label {
+  font-size: 0.9rem;
+  width: 5rem;
+  font-weight: 500;
 }
 
 .delete-wrapper {
@@ -186,5 +173,19 @@
     &:hover {
       opacity: 0.6;
     }
+  }
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding-top: 5px;
+  color: #3a3b3c;
+
+  span {
+    font-weight: 700;
   }
 }
