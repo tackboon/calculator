@@ -2,13 +2,13 @@ import { FC, InputHTMLAttributes, useRef } from "react";
 
 import styles from "./input.module.scss";
 
-type SplitInputProps = {
+type RangeInputProps = {
   isInvalid?: boolean;
   maxChars?: number;
   onChangeHandler?: (value: string) => void;
 } & InputHTMLAttributes<HTMLInputElement>;
 
-const SplitInput: FC<SplitInputProps> = ({
+const RangeInput: FC<RangeInputProps> = ({
   isInvalid,
   maxChars = 40,
   value,
@@ -22,8 +22,7 @@ const SplitInput: FC<SplitInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Remove leading or trailing commas
-    let value = e.target.value.replace(/\s+/g, "");
+    let value = e.target.value;
 
     // Allow empty string
     if (value === "") {
@@ -33,21 +32,48 @@ const SplitInput: FC<SplitInputProps> = ({
       return;
     }
 
-    // Valid pattern: one or two digits / one or two digits
-    const validPattern = /^\d{1,2}\/\d{1,2}$/; // e.g. "3/3"
-    if (!validPattern.test(value)) {
-      // Reset if invalid
-      e.target.value = "";
+    // Sanitize input
+    const parts = value.split("-");
+    const nums = parts.map((val) => (val === "" ? NaN : Number(val)));
+
+    if (nums.length === 1 && !isNaN(nums[0])) {
+      value = `${nums[0]}`;
+    } else if (nums.length === 2) {
+      if (!isNaN(nums[0]) && !isNaN(nums[1])) {
+        if (nums[0] === nums[1]) {
+          value = `${nums[0]}`;
+        } else if (nums[0] > nums[1]) {
+          value = `${nums[0]}`;
+        } else {
+          value = `${nums[0]}-${nums[1]}`;
+        }
+      } else if (isNaN(nums[1])) {
+        value = `${nums[0]}`;
+      } else {
+        value = `${nums[1]}`;
+      }
     } else {
-      e.target.value = value;
+      value = "";
     }
 
+    e.target.value = value;
     if (onChangeHandler) onChangeHandler(e.target.value);
     if (onChange) onChange(e);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
+    // Allow digits and '-' only
+    let val = e.target.value.replace(/[^0-9-]/g, "");
+
+    // Keep only the first '-'
+    const firstDashIndex = val.indexOf("-");
+    if (firstDashIndex !== -1) {
+      // Remove all other '-' beyond the first one
+      val =
+        val.slice(0, firstDashIndex + 1) +
+        val.slice(firstDashIndex + 1).replace(/-/g, "");
+    }
+
     if (val.length > maxChars) val = val.slice(0, maxChars);
 
     e.target.value = val;
@@ -101,4 +127,4 @@ const SplitInput: FC<SplitInputProps> = ({
   );
 };
 
-export default SplitInput;
+export default RangeInput;

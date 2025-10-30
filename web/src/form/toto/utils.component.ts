@@ -8,13 +8,27 @@ import {
   TotoOutputGroup,
   TotoPools,
   TotoRangeInfo,
+  TotoSetPools,
 } from "./toto.type";
 
+export const getRangeGroupHeight = (
+  includeRangeGroup: boolean,
+  rangeTyp: number
+) => {
+  if (!includeRangeGroup) return 0;
+  if (rangeTyp === 5) return 470;
+  if (rangeTyp === 6) return 570;
+  return 670;
+};
+
 // const printTotoPoolString = (pools: TotoPools) => {
-//   const entries = Object.entries(pools).map(
-//     ([key, set]) => `${key}: [${[...set].join(", ")}]`
-//   );
-//   console.log(entries.join("\n"));
+//   const entries = Object.entries(pools).map(([key, poolSet]) => {
+//     const innerEntries = Object.entries(poolSet)
+//       .map(([innerKey, set]) => `${innerKey}: [${[...set].join(", ")}]`)
+//       .join("\n  ");
+//     return `${key}:\n  ${innerEntries}`;
+//   });
+//   console.log(entries.join("\n\n"));
 // };
 
 const poolCache: Record<TOTO_RANGE, TotoPools> = {} as Record<
@@ -22,7 +36,7 @@ const poolCache: Record<TOTO_RANGE, TotoPools> = {} as Record<
   TotoPools
 >;
 
-const initTotoPool = (): TotoPools => {
+const initTotoSetPool = (): TotoSetPools => {
   return {
     allPools: new Set<number>(),
     oddPools: new Set<number>(),
@@ -36,6 +50,78 @@ const initTotoPool = (): TotoPools => {
   };
 };
 
+const initTotoPool = (): TotoPools => {
+  return {
+    allPools: initTotoSetPool(),
+    range10Pools: initTotoSetPool(),
+    range20Pools: initTotoSetPool(),
+    range30Pools: initTotoSetPool(),
+    range40Pools: initTotoSetPool(),
+    range50Pools: initTotoSetPool(),
+    range60Pools: initTotoSetPool(),
+    range70Pools: initTotoSetPool(),
+  };
+};
+
+const addNumberToRangeGroup = (
+  pools: TotoPools,
+  key: keyof TotoSetPools,
+  num: number
+) => {
+  if (num <= 10) {
+    pools.range10Pools[key].add(num);
+  } else if (num <= 20) {
+    pools.range20Pools[key].add(num);
+  } else if (num <= 30) {
+    pools.range30Pools[key].add(num);
+  } else if (num <= 40) {
+    pools.range40Pools[key].add(num);
+  } else if (num <= 50) {
+    pools.range50Pools[key].add(num);
+  } else if (num <= 60) {
+    pools.range60Pools[key].add(num);
+  } else {
+    pools.range70Pools[key].add(num);
+  }
+};
+
+const addPoolNum = (pools: TotoPools, num: number, low: number) => {
+  pools.allPools.allPools.add(num);
+  addNumberToRangeGroup(pools, "allPools", num);
+
+  if (num % 2 === 0) {
+    pools.allPools.evenPools.add(num);
+    addNumberToRangeGroup(pools, "evenPools", num);
+
+    if (num <= low) {
+      pools.allPools.evenLowPools.add(num);
+      addNumberToRangeGroup(pools, "evenLowPools", num);
+    } else {
+      pools.allPools.evenHighPools.add(num);
+      addNumberToRangeGroup(pools, "evenHighPools", num);
+    }
+  } else {
+    pools.allPools.oddPools.add(num);
+    addNumberToRangeGroup(pools, "oddPools", num);
+
+    if (num <= low) {
+      pools.allPools.oddLowPools.add(num);
+      addNumberToRangeGroup(pools, "oddLowPools", num);
+    } else {
+      pools.allPools.oddHighPools.add(num);
+      addNumberToRangeGroup(pools, "oddHighPools", num);
+    }
+  }
+
+  if (num <= low) {
+    pools.allPools.lowPools.add(num);
+    addNumberToRangeGroup(pools, "lowPools", num);
+  } else {
+    pools.allPools.highPools.add(num);
+    addNumberToRangeGroup(pools, "highPools", num);
+  }
+};
+
 const initDefaultTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
   if (poolCache[rangeTyp]) return poolCache[rangeTyp];
 
@@ -43,26 +129,7 @@ const initDefaultTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
   const pools = initTotoPool();
 
   for (let i = min; i <= max; i++) {
-    pools.allPools.add(i);
-
-    if (i % 2 === 0) {
-      pools.evenPools.add(i);
-      if (i <= low) {
-        pools.evenLowPools.add(i);
-      } else {
-        pools.evenHighPools.add(i);
-      }
-    } else {
-      pools.oddPools.add(i);
-      if (i <= low) {
-        pools.oddLowPools.add(i);
-      } else {
-        pools.oddHighPools.add(i);
-      }
-    }
-
-    if (i <= low) pools.lowPools.add(i);
-    else pools.highPools.add(i);
+    addPoolNum(pools, i, low);
   }
 
   // store in cache
@@ -70,7 +137,7 @@ const initDefaultTotoPool = (rangeTyp: TOTO_RANGE): TotoPools => {
   return pools;
 };
 
-const getTotoPoolCopy = (pools: TotoPools): TotoPools => {
+const getTotoSetPoolCopy = (pools: TotoSetPools): TotoSetPools => {
   const {
     allPools,
     oddPools,
@@ -96,7 +163,41 @@ const getTotoPoolCopy = (pools: TotoPools): TotoPools => {
   };
 };
 
-const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
+const getTotoPoolsCopy = (pools: TotoPools): TotoPools => ({
+  allPools: getTotoSetPoolCopy(pools.allPools),
+  range10Pools: getTotoSetPoolCopy(pools.range10Pools),
+  range20Pools: getTotoSetPoolCopy(pools.range20Pools),
+  range30Pools: getTotoSetPoolCopy(pools.range30Pools),
+  range40Pools: getTotoSetPoolCopy(pools.range40Pools),
+  range50Pools: getTotoSetPoolCopy(pools.range50Pools),
+  range60Pools: getTotoSetPoolCopy(pools.range60Pools),
+  range70Pools: getTotoSetPoolCopy(pools.range70Pools),
+});
+
+const deletePoolSetNum = (pools: TotoSetPools, n: number) => {
+  pools.allPools.delete(n);
+  pools.oddPools.delete(n);
+  pools.evenPools.delete(n);
+  pools.lowPools.delete(n);
+  pools.highPools.delete(n);
+  pools.oddLowPools.delete(n);
+  pools.oddHighPools.delete(n);
+  pools.evenLowPools.delete(n);
+  pools.evenHighPools.delete(n);
+};
+
+const deletePoolNum = (pools: TotoPools, n: number) => {
+  deletePoolSetNum(pools.allPools, n);
+  deletePoolSetNum(pools.range10Pools, n);
+  deletePoolSetNum(pools.range20Pools, n);
+  deletePoolSetNum(pools.range30Pools, n);
+  deletePoolSetNum(pools.range40Pools, n);
+  deletePoolSetNum(pools.range50Pools, n);
+  deletePoolSetNum(pools.range60Pools, n);
+  deletePoolSetNum(pools.range70Pools, n);
+};
+
+export const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
   switch (rangeTyp) {
     case TOTO_RANGE.FOURTY_NINE:
       return {
@@ -163,52 +264,52 @@ export const validateTotoInput = (
   }
 
   const rangeInfo = getRangeInfo(input.numberRange);
-  let avaiPoolSize = rangeInfo.count;
 
-  // validate must includes field
-  let mustIncludesOddCount = 0;
-  let mustIncludesEvenCount = 0;
-  let mustIncludesLowCount = 0;
-  let mustIncludesHighCount = 0;
-  let avaiOddCount = rangeInfo.odd;
-  let avaiEvenCount = rangeInfo.even;
-  let avaiLowCount = rangeInfo.low - rangeInfo.min + 1;
-  let avaiHighCount = rangeInfo.count - rangeInfo.low;
+  // Build initial pool
+  const defaultPools = initDefaultTotoPool(input.numberRange);
+  const pools = getTotoPoolsCopy(defaultPools);
+
+  // Number filter rule
   const mustIncludes = new Set<number>();
-  const mustIncludeParts = input.mustIncludes.split(",");
-  for (const val of mustIncludeParts) {
-    if (val === "") {
-      continue;
-    }
-
-    const n = Number(val);
-    if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
-      return {
-        err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
-        field: ERROR_FIELD_TOTO.MUST_INCLUDES,
-      };
-    }
-
-    if (!mustIncludes.has(n)) {
-      mustIncludes.add(n);
-
-      if (n % 2 !== 0) {
-        mustIncludesOddCount++;
-        avaiOddCount--;
-      } else {
-        mustIncludesEvenCount++;
-        avaiEvenCount--;
+  const mustExcludes = new Set<number>();
+  if (input.includeNumberFilter) {
+    // Validate must includes rule
+    const mustIncludeParts = input.mustIncludes.split(",");
+    for (const val of mustIncludeParts) {
+      if (val === "") {
+        continue;
       }
 
-      if (n <= rangeInfo.low) {
-        mustIncludesLowCount++;
-        avaiLowCount--;
-      } else {
-        mustIncludesHighCount++;
-        avaiHighCount--;
+      const n = Number(val);
+      if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
+        return {
+          err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
+          field: ERROR_FIELD_TOTO.MUST_INCLUDES,
+        };
+      }
+
+      if (!mustIncludes.has(n)) {
+        mustIncludes.add(n);
+
+        if (n % 2 !== 0) {
+          mustIncludesOddCount++;
+          avaiOddCount--;
+        } else {
+          mustIncludesEvenCount++;
+          avaiEvenCount--;
+        }
+
+        if (n <= rangeInfo.low) {
+          mustIncludesLowCount++;
+          avaiLowCount--;
+        } else {
+          mustIncludesHighCount++;
+          avaiHighCount--;
+        }
       }
     }
   }
+
   if (mustIncludes.size > input.system) {
     return {
       err: `You can only include up to ${input.system} numbers.`,
@@ -372,14 +473,8 @@ export const validateTotoInput = (
 
     if (customCount > 0) {
       // if minimum odd/even count exists in custom group
-      const forcedOddCount = Math.max(
-        0,
-        customCount - customPoolEven.size
-      );
-      const forcedEvenCount = Math.max(
-        0,
-        customCount - customPoolOdd.size
-      );
+      const forcedOddCount = Math.max(0, customCount - customPoolEven.size);
+      const forcedEvenCount = Math.max(0, customCount - customPoolOdd.size);
       if (
         remainingOddCount < forcedOddCount ||
         remainingEvenCount < forcedEvenCount
@@ -450,14 +545,8 @@ export const validateTotoInput = (
 
     if (customCount > 0) {
       // if minimum low/high count exists in custom group
-      const forcedLowCount = Math.max(
-        0,
-        customCount - customPoolHighCount
-      );
-      const forcedHighCount = Math.max(
-        0,
-        customCount - customPoolLowCount
-      );
+      const forcedLowCount = Math.max(0, customCount - customPoolHighCount);
+      const forcedHighCount = Math.max(0, customCount - customPoolLowCount);
       if (
         remainingLowCount < forcedLowCount ||
         remainingHighCount < forcedHighCount
@@ -495,18 +584,6 @@ const updateSelectPool = (n: number, selectedPool: TotoPools, low: number) => {
   else selectedPool.highPools.add(n);
 };
 
-const deletePoolNum = (pools: TotoPools, n: number) => {
-  pools.allPools.delete(n);
-  pools.oddPools.delete(n);
-  pools.evenPools.delete(n);
-  pools.lowPools.delete(n);
-  pools.highPools.delete(n);
-  pools.oddLowPools.delete(n);
-  pools.oddHighPools.delete(n);
-  pools.evenLowPools.delete(n);
-  pools.evenHighPools.delete(n);
-};
-
 export const generateCombinations = (
   input: TotoInputType
 ): TotoCombination[] => {
@@ -516,7 +593,7 @@ export const generateCombinations = (
 
   // Build initial pool
   const defaultPools = initDefaultTotoPool(input.numberRange);
-  const pools = getTotoPoolCopy(defaultPools);
+  const pools = getTotoPoolsCopy(defaultPools);
   const selectedPool = initTotoPool();
 
   // Init output
@@ -661,8 +738,7 @@ const generateCombination = (
   for (let i = 0; i < remainingSlot; i++) {
     let n: number | undefined;
     const remainingCustomCount =
-      customCount -
-      (initialCustomSize - customPool.allPools.size);
+      customCount - (initialCustomSize - customPool.allPools.size);
 
     n =
       remainingCustomCount > 0

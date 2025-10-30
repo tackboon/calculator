@@ -33,21 +33,19 @@ const NumArrInput: FC<NumArrInputProps> = ({
       return;
     }
 
-    // Check comma-separated numbers pattern
-    const validPattern = /^(\d{1,2})(,\d{1,2})*$/; // e.g. "1,2,3,10"
-    if (!validPattern.test(value)) {
-      // Reset if invalid
-      e.target.value = "";
-    } else {
-      e.target.value = value;
-    }
+    e.target.value = value;
 
     if (onChangeHandler) onChangeHandler(e.target.value);
     if (onChange) onChange(e);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
+    // Keep only digits and commas
+    let val = e.target.value.replace(/[^0-9,]/g, "");
+
+    // Prevent consecutive commas (",,")
+    val = val.replace(/,+/g, ",");
+
     if (val.length > maxChars) val = val.slice(0, maxChars);
 
     e.target.value = val;

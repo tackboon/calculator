@@ -6,44 +6,49 @@ export enum TOTO_RANGE {
   SIXTY_NINE,
 }
 
-export enum TOTO_VALUE {
-  EXACT_VALUE,
-  RANGE_VALUE,
-}
-
 export type TotoInputType = {
   count: string;
   system: number;
   numberRange: number;
+  includeNumberFilter: boolean;
   mustIncludes: string;
   mustExcludes: string;
   includeOddEven: boolean;
-  oddValueTyp: TOTO_VALUE;
   odd: string;
-  minOdd: string;
-  maxOdd: string;
-  evenValueTyp: TOTO_VALUE;
   even: string;
-  minEven: string;
-  maxEven: string;
-  lowHigh: string;
+  includeLowHigh: boolean;
+  low: string;
+  high: string;
+  includeCustomGroup: boolean;
   customGroups: string;
   customCount: string;
+  includeRangeGroup: boolean;
+  rangeCount10: string;
+  rangeCount20: string;
+  rangeCount30: string;
+  rangeCount40: string;
+  rangeCount50: string;
+  rangeCount60: string;
+  rangeCount70: string;
 };
 
 export enum ERROR_FIELD_TOTO {
   COUNT,
   MUST_INCLUDES,
   MUST_EXCLUDES,
-  ODD,
-  MIN_ODD,
-  MAX_ODD,
-  EVEN,
-  MIN_EVEN,
-  MAX_EVEN,
   CUSTOM_GROUPS,
   CUSTOM_COUNT,
-  LOW_HIGH,
+  ODD,
+  EVEN,
+  LOW,
+  HIGH,
+  RANGE_10,
+  RANGE_20,
+  RANGE_30,
+  RANGE_40,
+  RANGE_50,
+  RANGE_60,
+  RANGE_70,
 }
 
 export type TotoOutputGroup = {
@@ -60,7 +65,7 @@ export type TotoCombination = {
   outputGroups: TotoOutputGroup[];
 };
 
-export type TotoPools = {
+export type TotoSetPools = {
   allPools: Set<number>;
   oddPools: Set<number>;
   evenPools: Set<number>;
@@ -70,6 +75,17 @@ export type TotoPools = {
   oddHighPools: Set<number>;
   evenLowPools: Set<number>;
   evenHighPools: Set<number>;
+};
+
+export type TotoPools = {
+  allPools: TotoSetPools;
+  range10Pools: TotoSetPools;
+  range20Pools: TotoSetPools;
+  range30Pools: TotoSetPools;
+  range40Pools: TotoSetPools;
+  range50Pools: TotoSetPools;
+  range60Pools: TotoSetPools;
+  range70Pools: TotoSetPools;
 };
 
 export type TotoRangeInfo = {
