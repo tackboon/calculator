@@ -12,7 +12,6 @@ import {
   generateCombinations,
   getRangeGroupHeight,
   getRangeInfo,
-  validateTotoInput,
 } from "./utils.component";
 import Button from "../../component/common/button/button.component";
 import Container from "../../component/common/container/container.component";
@@ -22,6 +21,7 @@ import NumArrInput from "../../component/common/input/num_arr_input.component";
 import RangeInput from "../../component/common/input/range_input.component";
 import TrashbinIcon from "../../component/common/icon/trashbin.component";
 import Checkbox from "../../component/common/checkbox/checkbox.component";
+import { validateTotoInput } from "./validation.component";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -53,7 +53,7 @@ const TotoForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorField, setErrorField] = useState<ERROR_FIELD_TOTO | null>(null);
   const [input, setInput] = useState<TotoInputType>(DEFAULT_INPUT);
-  const [rangeGroupCount, setRangeGroupCount] = useState(5);
+  const [rangeGroupCount, setRangeGroupCount] = useState(3);
 
   const [result, setResult] = useState<TotoCombination[] | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -538,70 +538,80 @@ const TotoForm = () => {
         <animated.div style={rangeStyles}>
           {input.includeRangeGroup && (
             <>
-              <div className={styles["form-group"]}>
-                <label htmlFor="range-10">1-10</label>
-                <RangeInput
-                  id="range-10"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_10}
-                  value={input.rangeCount10}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, rangeCount10: val }))
-                  }
-                />
-              </div>
+              {rangeGroupCount >= 1 && (
+                <div className={styles["form-group"]}>
+                  <label htmlFor="range-10">1-10</label>
+                  <RangeInput
+                    id="range-10"
+                    isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_10}
+                    value={input.rangeCount10}
+                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    onChangeHandler={(val) =>
+                      setInput((prev) => ({ ...prev, rangeCount10: val }))
+                    }
+                  />
+                </div>
+              )}
 
-              <div className={styles["form-group"]}>
-                <label htmlFor="range-20">11-20</label>
-                <RangeInput
-                  id="range-20"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_20}
-                  value={input.rangeCount20}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, rangeCount20: val }))
-                  }
-                />
-              </div>
+              {rangeGroupCount >= 2 && (
+                <div className={styles["form-group"]}>
+                  <label htmlFor="range-20">11-20</label>
+                  <RangeInput
+                    id="range-20"
+                    isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_20}
+                    value={input.rangeCount20}
+                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    onChangeHandler={(val) =>
+                      setInput((prev) => ({ ...prev, rangeCount20: val }))
+                    }
+                  />
+                </div>
+              )}
 
-              <div className={styles["form-group"]}>
-                <label htmlFor="range-30">21-30</label>
-                <RangeInput
-                  id="range-30"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_30}
-                  value={input.rangeCount30}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, rangeCount30: val }))
-                  }
-                />
-              </div>
+              {rangeGroupCount >= 3 && (
+                <div className={styles["form-group"]}>
+                  <label htmlFor="range-30">21-30</label>
+                  <RangeInput
+                    id="range-30"
+                    isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_30}
+                    value={input.rangeCount30}
+                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    onChangeHandler={(val) =>
+                      setInput((prev) => ({ ...prev, rangeCount30: val }))
+                    }
+                  />
+                </div>
+              )}
 
-              <div className={styles["form-group"]}>
-                <label htmlFor="range-40">31-40</label>
-                <RangeInput
-                  id="range-40"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_40}
-                  value={input.rangeCount40}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, rangeCount40: val }))
-                  }
-                />
-              </div>
+              {rangeGroupCount >= 4 && (
+                <div className={styles["form-group"]}>
+                  <label htmlFor="range-40">31-40</label>
+                  <RangeInput
+                    id="range-40"
+                    isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_40}
+                    value={input.rangeCount40}
+                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    onChangeHandler={(val) =>
+                      setInput((prev) => ({ ...prev, rangeCount40: val }))
+                    }
+                  />
+                </div>
+              )}
 
-              <div className={styles["form-group"]}>
-                <label htmlFor="range-50">41-50</label>
-                <RangeInput
-                  id="range-50"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_50}
-                  value={input.rangeCount50}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, rangeCount50: val }))
-                  }
-                />
-              </div>
+              {rangeGroupCount >= 5 && (
+                <div className={styles["form-group"]}>
+                  <label htmlFor="range-50">41-50</label>
+                  <RangeInput
+                    id="range-50"
+                    isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_50}
+                    value={input.rangeCount50}
+                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    onChangeHandler={(val) =>
+                      setInput((prev) => ({ ...prev, rangeCount50: val }))
+                    }
+                  />
+                </div>
+              )}
 
               {rangeGroupCount >= 6 && (
                 <div className={styles["form-group"]}>

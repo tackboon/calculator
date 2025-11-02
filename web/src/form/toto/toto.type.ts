@@ -4,6 +4,7 @@ export enum TOTO_RANGE {
   FIFTY_FIVE,
   FIFTY_EIGHT,
   SIXTY_NINE,
+  THIRTY
 }
 
 export type TotoInputType = {
@@ -96,4 +97,9 @@ export type TotoRangeInfo = {
   count: number;
   low: number;
   group: number;
+};
+
+export type RangeValue = {
+  min: number;
+  max: number;
 };
