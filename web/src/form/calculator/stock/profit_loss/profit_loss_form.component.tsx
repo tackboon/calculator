@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
-import { calculateResult, validateProfitLossInput } from "./utils.component";
+import { calculateResult, validateProfitLossInput } from "./utils";
 
 import styles from "../stock_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";

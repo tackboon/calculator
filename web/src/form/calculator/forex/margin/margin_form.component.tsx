@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { calculateResult, validateMarginInput } from "./utils.component";
+import { calculateResult, validateMarginInput } from "./utils";
 
 import styles from "../forex_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";

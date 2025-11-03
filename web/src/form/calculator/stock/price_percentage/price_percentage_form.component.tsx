@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   calculateResult,
   validatePricePercentageInput,
-} from "./utils.component";
+} from "./utils";
 
 import styles from "../stock_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";

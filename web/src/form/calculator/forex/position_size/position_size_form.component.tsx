@@ -21,7 +21,7 @@ import {
   calculateCrossHeight,
   calculateResult,
   validatePositionSizeInput,
-} from "./utils.component";
+} from "./utils";
 import {
   ERROR_FIELD_POSITION_SIZE,
   ForexPositionSizeInputType,

@@ -12,7 +12,7 @@ import {
   generateCombinations,
   getRangeGroupHeight,
   getRangeInfo,
-} from "./utils.component";
+} from "./utils";
 import Button from "../../component/common/button/button.component";
 import Container from "../../component/common/container/container.component";
 import Input from "../../component/common/input/input.component";
@@ -21,7 +21,7 @@ import NumArrInput from "../../component/common/input/num_arr_input.component";
 import RangeInput from "../../component/common/input/range_input.component";
 import TrashbinIcon from "../../component/common/icon/trashbin.component";
 import Checkbox from "../../component/common/checkbox/checkbox.component";
-import { validateTotoInput } from "./validation.component";
+import { validateTotoInput } from "./validation/validation";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",

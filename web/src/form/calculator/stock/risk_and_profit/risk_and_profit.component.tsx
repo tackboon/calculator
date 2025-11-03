@@ -7,7 +7,7 @@ import Link from "../../../../component/common/link/link.component";
 import NumberInput from "../../../../component/common/input/number_input.component";
 import OrderList from "../../../../component/stock/order/order_list.component";
 import Checkbox from "../../../../component/common/checkbox/checkbox.component";
-import { calculateResult, validateRiskAndProfitInput } from "./utils.component";
+import { calculateResult, validateRiskAndProfitInput } from "./utils";
 import Container from "../../../../component/common/container/container.component";
 import {
   ERROR_FIELD_RISK_AND_PROFIT,

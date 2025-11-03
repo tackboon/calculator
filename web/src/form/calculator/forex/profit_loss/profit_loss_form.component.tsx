@@ -5,7 +5,7 @@ import {
   calculateCrossHeight,
   calculateResult,
   validateProfitLossInput,
-} from "./utils.component";
+} from "./utils";
 
 import styles from "../forex_calculator_form.module.scss";
 import Button from "../../../../component/common/button/button.component";

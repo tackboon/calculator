@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 
-import { calculateResult, validatePositionSizeInput } from "./utils.component";
+import { calculateResult, validatePositionSizeInput } from "./utils";
 import {
   convertToLocaleString,
   parseNumberFromString,

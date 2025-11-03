@@ -1,5 +1,10 @@
-import { checkMinMax } from "../../common/validation/calculator.validation";
-import { ERROR_FIELD_TOTO, RangeValue, TotoInputType } from "./toto.type";
+import { checkMinMax } from "../../../common/validation/calculator.validation";
+import {
+  ERROR_FIELD_TOTO,
+  RangeValue,
+  TotoInputType,
+  TotoRangeInfo,
+} from "../toto.type";
 import {
   addPoolNum,
   deletePoolNum,
@@ -8,7 +13,52 @@ import {
   getTotoPoolsCopy,
   initDefaultTotoPool,
   initTotoPool,
-} from "./utils.component";
+} from "../utils";
+import { validateCustomGroup } from "./validation.custom_group";
+import {
+  validateIncludeList,
+  validateExcludeList,
+} from "./validation.number_filter";
+
+export const validateListInput = (
+  listStr: string,
+  rangeInfo: TotoRangeInfo,
+  fn: (n: number) => string
+): string => {
+  const parts = listStr.split(",");
+  for (const val of parts) {
+    if (val === "") continue;
+
+    const n = Number(val);
+    if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
+      return `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`;
+    }
+
+    const err = fn(n);
+    if (err !== "") return err;
+  }
+
+  return "";
+};
+
+export const validateRangeCountInput = (
+  countStr: string,
+  max: number
+): { count: RangeValue; err: string } => {
+  const count = extractRangeInput(countStr, max);
+  if (
+    isNaN(count.min) ||
+    isNaN(count.max) ||
+    count.min < 0 ||
+    count.min > max ||
+    count.max > max ||
+    count.max < count.min
+  ) {
+    return { count, err: "Please enter a valid number or range value." };
+  }
+
+  return { count, err: "" };
+};
 
 export const validateTotoInput = (
   input: TotoInputType
@@ -21,158 +71,39 @@ export const validateTotoInput = (
     };
   }
 
+  // Get number range info
   const rangeInfo = getRangeInfo(input.numberRange);
 
   // Build initial pool
   const defaultPools = initDefaultTotoPool(input.numberRange);
-  const pools = getTotoPoolsCopy(defaultPools);
+  const remainingPools = getTotoPoolsCopy(defaultPools);
 
-  // Number Filter Rule
-  const mustIncludePool = initTotoPool();
-  let requiredCount = input.system;
-  if (input.includeNumberFilter) {
-    // Validate must includes rule
-    const mustIncludeParts = input.mustIncludes.split(",");
-    for (const val of mustIncludeParts) {
-      if (val === "") {
-        continue;
-      }
+  // Validate must include numbers
+  const includeRes = validateIncludeList(input, rangeInfo, remainingPools);
+  const { mustIncludePools } = includeRes;
+  let { remainingCount, err, field } = includeRes;
+  if (err !== "") return { err, field };
 
-      const n = Number(val);
-      if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
-        return {
-          err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
-          field: ERROR_FIELD_TOTO.MUST_INCLUDES,
-        };
-      }
+  // Validate must exclude numbers
+  const excludeRes = validateExcludeList(
+    input,
+    rangeInfo,
+    remainingPools,
+    mustIncludePools
+  );
+  ({ err, field } = excludeRes);
+  if (err !== "") return { err, field };
 
-      if (!mustIncludePool.allPools.allPools.has(n)) {
-        addPoolNum(mustIncludePool, n, rangeInfo.low);
-        deletePoolNum(pools, n);
-      }
-    }
-    if (mustIncludePool.allPools.allPools.size > input.system) {
-      return {
-        err: `You can only include up to ${input.system} numbers.`,
-        field: ERROR_FIELD_TOTO.MUST_INCLUDES,
-      };
-    }
-    requiredCount = input.system - mustIncludePool.allPools.allPools.size;
-
-    // validate must excludes field
-    const mustExcludeParts = input.mustExcludes.split(",");
-    for (const val of mustExcludeParts) {
-      if (val === "") {
-        continue;
-      }
-
-      const n = Number(val);
-      if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
-        return {
-          err: `Each number must be between ${rangeInfo.min} and ${rangeInfo.max}.`,
-          field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
-        };
-      }
-      if (mustIncludePool.allPools.allPools.has(n)) {
-        return {
-          err: `Number ${n} cannot be in both include and exclude lists.`,
-          field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
-        };
-      }
-
-      if (pools.allPools.allPools.has(n)) {
-        deletePoolNum(pools, n);
-      }
-    }
-    if (
-      pools.allPools.allPools.size + mustIncludePool.allPools.allPools.size <
-      input.system
-    ) {
-      return {
-        err: `You can only exclude up to ${
-          rangeInfo.count - input.system
-        } numbers.`,
-        field: ERROR_FIELD_TOTO.MUST_EXCLUDES,
-      };
-    }
-  }
-
-  // Custom Group Rule
-  let minCustomCount = 0;
-  let maxCustomCount = 0;
-  const customPool = initTotoPool();
-  if (input.includeCustomGroup) {
-    // Validate custom group numbers
-    const customGroupParts = input.customGroups.split(",");
-    for (const val of customGroupParts) {
-      if (val === "") continue;
-
-      const n = Number(val);
-      if (isNaN(n) || n < rangeInfo.min || n > rangeInfo.max) {
-        return {
-          err: `Please enter values between ${rangeInfo.min} and ${rangeInfo.max}.`,
-          field: ERROR_FIELD_TOTO.CUSTOM_GROUPS,
-        };
-      }
-
-      if (!pools.allPools.allPools.has(n)) {
-        return {
-          err: `Number ${n} in the custom group cannot be in either the include or exclude list.`,
-          field: ERROR_FIELD_TOTO.CUSTOM_GROUPS,
-        };
-      }
-
-      if (!customPool.allPools.allPools.has(n)) {
-        addPoolNum(customPool, n, rangeInfo.low);
-      }
-    }
-
-    // Validate custom number count
-    const customCount = extractRangeInput(input.customCount, input.system);
-    if (
-      isNaN(customCount.min) ||
-      isNaN(customCount.max) ||
-      customCount.min < 0 ||
-      customCount.max < customCount.min ||
-      customCount.min > input.system ||
-      customCount.max > input.system
-    ) {
-      return {
-        err: `Please enter a valid custom number count.`,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
-      };
-    }
-    if (customCount.min > customPool.allPools.allPools.size) {
-      return {
-        err: `The custom number count cannot exceed the number of selected group numbers.`,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
-      };
-    }
-    if (
-      customCount.min > input.system - mustIncludePool.allPools.allPools.size ||
-      customCount.min > pools.allPools.allPools.size
-    ) {
-      return {
-        err: `The custom number count cannot exceed the remaining available numbers or your system size limit.`,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
-      };
-    }
-
-    if (
-      pools.allPools.allPools.size -
-        customPool.allPools.allPools.size +
-        customCount.max <
-      requiredCount
-    ) {
-      return {
-        err: "Not enough remaining numbers to complete a combination with the selected custom group count.",
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
-      };
-    }
-
-    minCustomCount = customCount.min;
-    maxCustomCount = customCount.max;
-  }
+  // Validate custom group rule
+  const customRes = validateCustomGroup(
+    input,
+    rangeInfo,
+    remainingPools,
+    remainingCount
+  );
+  ({ err, field } = customRes);
+  if (err !== "") return { err, field };
+  const { customPools, customCount } = customRes;
 
   // Odd/Even Rule
   let odd: RangeValue;
