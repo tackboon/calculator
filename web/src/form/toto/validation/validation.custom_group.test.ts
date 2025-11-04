@@ -149,25 +149,25 @@ describe("validateCustomGroup", () => {
       expectedErr,
       expectedField,
     }) => {
-      const remainingPools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools, remainingCount } = validateIncludeList(
+      const availablePools = getTotoPoolsCopy(defaultPools);
+      const { mustIncludePools, requiredCount } = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
-        remainingPools
+        availablePools
       );
 
       validateExcludeList(
         { mustExcludes, system: input.system },
         rangeInfo,
-        remainingPools,
+        availablePools,
         mustIncludePools
       );
 
       const { customPools, customCount, err, field } = validateCustomGroup(
         input,
         rangeInfo,
-        remainingPools,
-        remainingCount
+        availablePools,
+        requiredCount
       );
 
       expect(customPools.allPools.allPools.size).toBe(expectedCustomPoolSize);

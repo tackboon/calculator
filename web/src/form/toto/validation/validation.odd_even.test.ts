@@ -7,7 +7,7 @@ import {
 } from "./validation.number_filter";
 import { validateOddEven } from "./validation.odd_even";
 
-describe("validateCustomGroup", () => {
+describe("validateOddEven", () => {
   const rangeInfo = getRangeInfo(TOTO_RANGE.THIRTY);
   const defaultPools = initDefaultTotoPool(TOTO_RANGE.THIRTY);
 
@@ -28,8 +28,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 6,
       expectedMinEven: 0,
       expectedMaxEven: 6,
-      expectedRemainingOddCount: 0,
-      expectedRemainingEvenCount: 0,
+      expectedRequiredOddCount: 0,
+      expectedRequiredEvenCount: 0,
       expectedErr: "",
       expectedField: 0,
     },
@@ -48,8 +48,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 6,
       expectedMinEven: 5,
       expectedMaxEven: 6,
-      expectedRemainingOddCount: 0,
-      expectedRemainingEvenCount: 0,
+      expectedRequiredOddCount: 0,
+      expectedRequiredEvenCount: 0,
       expectedErr:
         "Please enter a valid odd/even distribution that matches your system size.",
       expectedField: ERROR_FIELD_TOTO.ODD,
@@ -69,8 +69,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 3,
       expectedMinEven: 1,
       expectedMaxEven: 2,
-      expectedRemainingOddCount: 0,
-      expectedRemainingEvenCount: 0,
+      expectedRequiredOddCount: 0,
+      expectedRequiredEvenCount: 0,
       expectedErr:
         "Please enter a valid odd/even distribution that matches your system size.",
       expectedField: ERROR_FIELD_TOTO.ODD,
@@ -90,8 +90,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 3,
       expectedMinEven: 3,
       expectedMaxEven: 6,
-      expectedRemainingOddCount: 0,
-      expectedRemainingEvenCount: 0,
+      expectedRequiredOddCount: 0,
+      expectedRequiredEvenCount: 0,
       expectedErr:
         "Your odd/even setting conflicts with the numbers you've included.",
       expectedField: ERROR_FIELD_TOTO.ODD,
@@ -112,8 +112,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 5,
       expectedMinEven: 1,
       expectedMaxEven: 1,
-      expectedRemainingOddCount: 1,
-      expectedRemainingEvenCount: 1,
+      expectedRequiredOddCount: 1,
+      expectedRequiredEvenCount: 1,
       expectedErr:
         "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
       expectedField: ERROR_FIELD_TOTO.ODD,
@@ -134,8 +134,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 5,
       expectedMinEven: 1,
       expectedMaxEven: 1,
-      expectedRemainingOddCount: 1,
-      expectedRemainingEvenCount: 1,
+      expectedRequiredOddCount: 1,
+      expectedRequiredEvenCount: 1,
       expectedErr: "",
       expectedField: 0,
     },
@@ -155,8 +155,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 5,
       expectedMinEven: 1,
       expectedMaxEven: 1,
-      expectedRemainingOddCount: 1,
-      expectedRemainingEvenCount: 1,
+      expectedRequiredOddCount: 1,
+      expectedRequiredEvenCount: 1,
       expectedErr:
         "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
       expectedField: ERROR_FIELD_TOTO.EVEN,
@@ -177,8 +177,8 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd: 2,
       expectedMinEven: 4,
       expectedMaxEven: 6,
-      expectedRemainingOddCount: 0,
-      expectedRemainingEvenCount: 4,
+      expectedRequiredOddCount: 0,
+      expectedRequiredEvenCount: 4,
       expectedErr:
         "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
       expectedField: ERROR_FIELD_TOTO.ODD,
@@ -195,22 +195,22 @@ describe("validateCustomGroup", () => {
       expectedMaxOdd,
       expectedMinEven,
       expectedMaxEven,
-      expectedRemainingOddCount,
-      expectedRemainingEvenCount,
+      expectedRequiredOddCount,
+      expectedRequiredEvenCount,
       expectedErr,
       expectedField,
     }) => {
-      const remainingPools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools, remainingCount } = validateIncludeList(
+      const availablePools = getTotoPoolsCopy(defaultPools);
+      const { mustIncludePools, requiredCount } = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
-        remainingPools
+        availablePools
       );
 
       validateExcludeList(
         { mustExcludes, system: input.system },
         rangeInfo,
-        remainingPools,
+        availablePools,
         mustIncludePools
       );
 
@@ -222,14 +222,14 @@ describe("validateCustomGroup", () => {
           system: input.system,
         },
         rangeInfo,
-        remainingPools,
-        remainingCount
+        availablePools,
+        requiredCount
       );
 
-      const { odd, even, remainingOddCount, remainingEvenCount, err, field } =
+      const { odd, even, requiredOddCount, requiredEvenCount, err, field } =
         validateOddEven(
           input,
-          remainingPools,
+          availablePools,
           mustIncludePools,
           customRes.customPools,
           customRes.customCount
@@ -239,8 +239,8 @@ describe("validateCustomGroup", () => {
       expect(odd.max).toBe(expectedMaxOdd);
       expect(even.min).toBe(expectedMinEven);
       expect(even.max).toBe(expectedMaxEven);
-      expect(remainingOddCount).toBe(expectedRemainingOddCount);
-      expect(remainingEvenCount).toBe(expectedRemainingEvenCount);
+      expect(requiredOddCount).toBe(expectedRequiredOddCount);
+      expect(requiredEvenCount).toBe(expectedRequiredEvenCount);
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);
     }

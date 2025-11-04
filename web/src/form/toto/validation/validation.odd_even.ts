@@ -10,22 +10,22 @@ type OddEvenInput = {
 
 export const validateOddEven = (
   input: OddEvenInput,
-  remainingPools: TotoPools,
+  availablePools: TotoPools,
   mustIncludePools: TotoPools,
   customPools: TotoPools,
   customCount: RangeValue
 ): {
   odd: RangeValue;
   even: RangeValue;
-  remainingOddCount: number;
-  remainingEvenCount: number;
+  requiredOddCount: number;
+  requiredEvenCount: number;
   err: string;
   field: ERROR_FIELD_TOTO;
 } => {
   let odd: RangeValue = { min: 0, max: input.system };
   let even: RangeValue = { min: 0, max: input.system };
-  let remainingOddCount = 0;
-  let remainingEvenCount = 0;
+  let requiredOddCount = 0;
+  let requiredEvenCount = 0;
   if (input.includeOddEven) {
     // validate odd number count field
     const oddRes = validateRangeCountInput(input.odd, input.system);
@@ -33,8 +33,8 @@ export const validateOddEven = (
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: oddRes.err,
         field: ERROR_FIELD_TOTO.ODD,
       };
@@ -47,8 +47,8 @@ export const validateOddEven = (
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: evenRes.err,
         field: ERROR_FIELD_TOTO.EVEN,
       };
@@ -63,8 +63,8 @@ export const validateOddEven = (
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: "Please enter a valid odd/even distribution that matches your system size.",
         field: ERROR_FIELD_TOTO.ODD,
       };
@@ -88,8 +88,8 @@ export const validateOddEven = (
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: "Your odd/even setting conflicts with the numbers you've included.",
         field:
           input.odd !== "" && !isMaxOddUpdated
@@ -103,8 +103,8 @@ export const validateOddEven = (
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: "Your odd/even setting conflicts with the numbers you've included.",
         field:
           input.even !== "" && !isMaxEvenUpdated
@@ -114,22 +114,22 @@ export const validateOddEven = (
     }
 
     // compute remaining odd/even number required
-    remainingOddCount = Math.max(
+    requiredOddCount = Math.max(
       0,
       odd.min - mustIncludePools.allPools.oddPools.size
     );
-    remainingEvenCount = Math.max(
+    requiredEvenCount = Math.max(
       0,
       even.min - mustIncludePools.allPools.evenPools.size
     );
 
     // Ensure remaining pool is enough for the required odd number count
-    if (remainingOddCount > remainingPools.allPools.oddPools.size) {
+    if (requiredOddCount > availablePools.allPools.oddPools.size) {
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
         field:
           input.odd !== "" && !isMinOddUpdated
@@ -139,12 +139,12 @@ export const validateOddEven = (
     }
 
     // Ensure remaining pool is enough for the required even number count
-    if (remainingEvenCount > remainingPools.allPools.evenPools.size) {
+    if (requiredEvenCount > availablePools.allPools.evenPools.size) {
       return {
         odd,
         even,
-        remainingOddCount,
-        remainingEvenCount,
+        requiredOddCount,
+        requiredEvenCount,
         err: "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
         field:
           input.even !== "" && !isMinEvenUpdated
@@ -157,16 +157,16 @@ export const validateOddEven = (
     if (customPools.allPools.allPools.size > 0) {
       // Ensure there are enough available odd numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining odd requirement.
       if (
-        remainingOddCount >
-        remainingPools.allPools.oddPools.size -
+        requiredOddCount >
+        availablePools.allPools.oddPools.size -
           customPools.allPools.oddPools.size +
           Math.min(customCount.max, customPools.allPools.oddPools.size)
       ) {
         return {
           odd,
           even,
-          remainingOddCount,
-          remainingEvenCount,
+          requiredOddCount,
+          requiredEvenCount,
           err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.odd !== "" && !isMinOddUpdated
@@ -177,16 +177,16 @@ export const validateOddEven = (
 
       // Ensure there are enough available even numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining even requirement.
       if (
-        remainingEvenCount >
-        remainingPools.allPools.evenPools.size -
+        requiredEvenCount >
+        availablePools.allPools.evenPools.size -
           customPools.allPools.evenPools.size +
           Math.min(customCount.max, customPools.allPools.evenPools.size)
       ) {
         return {
           odd,
           even,
-          remainingOddCount,
-          remainingEvenCount,
+          requiredOddCount,
+          requiredEvenCount,
           err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.even !== "" && !isMinEvenUpdated
@@ -213,8 +213,8 @@ export const validateOddEven = (
         return {
           odd,
           even,
-          remainingOddCount,
-          remainingEvenCount,
+          requiredOddCount,
+          requiredEvenCount,
           err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.odd !== "" && !isMaxOddUpdated
@@ -231,8 +231,8 @@ export const validateOddEven = (
         return {
           odd,
           even,
-          remainingOddCount,
-          remainingEvenCount,
+          requiredOddCount,
+          requiredEvenCount,
           err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.even !== "" && !isMaxEvenUpdated
@@ -246,8 +246,8 @@ export const validateOddEven = (
   return {
     odd,
     even,
-    remainingOddCount,
-    remainingEvenCount,
+    requiredOddCount,
+    requiredEvenCount,
     err: "",
     field: 0,
   };

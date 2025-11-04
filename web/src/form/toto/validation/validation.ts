@@ -12,6 +12,7 @@ import {
   initDefaultTotoPool,
 } from "../utils";
 import { validateCustomGroup } from "./validation.custom_group";
+import { validateLowHigh } from "./validation.low_high";
 import {
   validateIncludeList,
   validateExcludeList,
@@ -74,19 +75,19 @@ export const validateTotoInput = (
 
   // Build initial pool
   const defaultPools = initDefaultTotoPool(input.numberRange);
-  const remainingPools = getTotoPoolsCopy(defaultPools);
+  const availablePools = getTotoPoolsCopy(defaultPools);
 
   // Validate must include numbers
-  const includeRes = validateIncludeList(input, rangeInfo, remainingPools);
+  const includeRes = validateIncludeList(input, rangeInfo, availablePools);
   const { mustIncludePools } = includeRes;
-  let { remainingCount, err, field } = includeRes;
+  let { requiredCount, err, field } = includeRes;
   if (err !== "") return { err, field };
 
   // Validate must exclude numbers
   const excludeRes = validateExcludeList(
     input,
     rangeInfo,
-    remainingPools,
+    availablePools,
     mustIncludePools
   );
   ({ err, field } = excludeRes);
@@ -96,8 +97,8 @@ export const validateTotoInput = (
   const customRes = validateCustomGroup(
     input,
     rangeInfo,
-    remainingPools,
-    remainingCount
+    availablePools,
+    requiredCount
   );
   ({ err, field } = customRes);
   if (err !== "") return { err, field };
@@ -106,284 +107,38 @@ export const validateTotoInput = (
   // Validate odd/even rule
   const oddEvenRes = validateOddEven(
     input,
-    remainingPools,
+    availablePools,
     mustIncludePools,
     customPools,
     customCount
   );
   ({ err, field } = oddEvenRes);
-  const { odd, even, remainingOddCount, remainingEvenCount } = oddEvenRes;
+  if (err !== "") return { err, field };
+  const { odd, even, requiredOddCount, requiredEvenCount } = oddEvenRes;
 
-  // Low/High Rule
-  let low: RangeValue;
-  let high: RangeValue;
-  let requiredLowCount = 0;
-  let requiredHighCount = 0;
-  if (input.includeLowHigh) {
-    low = extractRangeInput(input.low, input.system);
-    if (
-      isNaN(low.min) ||
-      isNaN(low.max) ||
-      low.min > input.system ||
-      low.max > input.system
-    ) {
-      return {
-        err: `Please enter a valid low value`,
-        field: ERROR_FIELD_TOTO.LOW,
-      };
-    }
-
-    high = extractRangeInput(input.high, input.system);
-    if (
-      isNaN(high.min) ||
-      isNaN(high.max) ||
-      high.min > input.system ||
-      high.max > input.system
-    ) {
-      return {
-        err: `Please enter a valid high value`,
-        field: ERROR_FIELD_TOTO.HIGH,
-      };
-    }
-
-    if (
-      low.min + high.min > input.system ||
-      low.max + high.max < input.system
-    ) {
-      return {
-        err: "Please enter a valid low/high distribution that less than or equal to your system size.",
-        field: ERROR_FIELD_TOTO.LOW,
-      };
-    }
-
-    const isMinLowUpdated = input.system - high.max > low.min;
-    if (isMinLowUpdated) low.min = input.system - high.max;
-
-    const isMaxLowUpdated = input.system - high.min < low.max;
-    if (isMaxLowUpdated) low.max = input.system - high.min;
-
-    const isMinHighUpdated = input.system - low.max > high.min;
-    if (isMinHighUpdated) high.min = input.system - low.max;
-
-    const isMaxHighUpdated = input.system - low.min < high.max;
-    if (isMaxHighUpdated) high.max = input.system - low.min;
-
-    if (low.max < mustIncludePool.allPools.lowPools.size) {
-      return {
-        err: "Your low/high setting conflicts with the numbers you've included.",
-        field:
-          input.low !== "" && !isMaxLowUpdated
-            ? ERROR_FIELD_TOTO.LOW
-            : ERROR_FIELD_TOTO.HIGH,
-      };
-    }
-
-    if (high.max < mustIncludePool.allPools.highPools.size) {
-      return {
-        err: "Your low/high setting conflicts with the numbers you've included.",
-        field:
-          input.high !== "" && !isMaxHighUpdated
-            ? ERROR_FIELD_TOTO.HIGH
-            : ERROR_FIELD_TOTO.LOW,
-      };
-    }
-
-    requiredLowCount = Math.max(
-      0,
-      low.min - mustIncludePool.allPools.lowPools.size
-    );
-    if (requiredLowCount > pools.allPools.lowPools.size) {
-      return {
-        err: "Your low/high setting cannot be satisfied after applying your include and exclude settings.",
-        field:
-          input.low !== "" && !isMinLowUpdated
-            ? ERROR_FIELD_TOTO.LOW
-            : ERROR_FIELD_TOTO.HIGH,
-      };
-    }
-
-    requiredHighCount = Math.max(
-      0,
-      high.min - mustIncludePool.allPools.highPools.size
-    );
-    if (requiredHighCount > pools.allPools.highPools.size) {
-      return {
-        err: "Your low/high setting cannot be satisfied after applying your include and exclude settings.",
-        field:
-          input.high !== "" && !isMinHighUpdated
-            ? ERROR_FIELD_TOTO.HIGH
-            : ERROR_FIELD_TOTO.LOW,
-      };
-    }
-
-    const minOddLowCount = requiredLowCount + requiredOddCount - requiredCount;
-    const minEvenLowCount =
-      requiredLowCount + requiredEvenCount - requiredCount;
-    if (
-      minOddLowCount > pools.allPools.oddLowPools.size ||
-      minEvenLowCount > pools.allPools.evenLowPools.size
-    ) {
-      return {
-        err: "Your low/high setting cannot be satisfied after applying your include, exclude, and odd/even settings.",
-        field:
-          input.low !== "" && !isMinLowUpdated
-            ? ERROR_FIELD_TOTO.LOW
-            : ERROR_FIELD_TOTO.HIGH,
-      };
-    }
-
-    const minOddHighCount =
-      requiredHighCount + requiredOddCount - requiredCount;
-    const minEvenHighCount =
-      requiredHighCount + requiredEvenCount - requiredCount;
-    if (
-      minOddHighCount > pools.allPools.oddHighPools.size ||
-      minEvenHighCount > pools.allPools.evenHighPools.size
-    ) {
-      return {
-        err: "Your low/high setting cannot be satisfied after applying your include, exclude, and odd/even settings.",
-        field:
-          input.high !== "" && !isMinHighUpdated
-            ? ERROR_FIELD_TOTO.HIGH
-            : ERROR_FIELD_TOTO.LOW,
-      };
-    }
-
-    if (input.includeCustomGroup) {
-      if (
-        low.min >
-        pools.allPools.lowPools.size -
-          customPool.allPools.lowPools.size +
-          Math.min(maxCustomCount, customPool.allPools.lowPools.size)
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.low !== "" && !isMinLowUpdated
-              ? ERROR_FIELD_TOTO.LOW
-              : ERROR_FIELD_TOTO.HIGH,
-        };
-      }
-
-      if (
-        high.min >
-        pools.allPools.highPools.size -
-          customPool.allPools.highPools.size +
-          Math.min(maxCustomCount, customPool.allPools.highPools.size)
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.high !== "" && !isMinHighUpdated
-              ? ERROR_FIELD_TOTO.HIGH
-              : ERROR_FIELD_TOTO.LOW,
-        };
-      }
-
-      if (
-        minOddLowCount >
-          pools.allPools.oddLowPools.size -
-            customPool.allPools.oddLowPools.size +
-            Math.min(maxCustomCount, customPool.allPools.oddLowPools.size) ||
-        minEvenLowCount >
-          pools.allPools.evenLowPools.size -
-            customPool.allPools.evenLowPools.size +
-            Math.min(maxCustomCount, customPool.allPools.evenLowPools.size)
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
-          field:
-            input.low !== "" && !isMinLowUpdated
-              ? ERROR_FIELD_TOTO.LOW
-              : ERROR_FIELD_TOTO.HIGH,
-        };
-      }
-
-      if (
-        minOddHighCount >
-          pools.allPools.oddHighPools.size -
-            customPool.allPools.oddHighPools.size +
-            Math.min(maxCustomCount, customPool.allPools.oddHighPools.size) ||
-        minEvenHighCount >
-          pools.allPools.evenHighPools.size -
-            customPool.allPools.evenHighPools.size +
-            Math.min(maxCustomCount, customPool.allPools.evenHighPools.size)
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
-          field:
-            input.high !== "" && !isMinHighUpdated
-              ? ERROR_FIELD_TOTO.HIGH
-              : ERROR_FIELD_TOTO.LOW,
-        };
-      }
-
-      const minCustomLowCount = Math.max(
-        0,
-        minCustomCount - customPool.allPools.highPools.size
-      );
-      if (
-        low.max - mustIncludePool.allPools.lowPools.size <
-        minCustomLowCount
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.low !== "" && !isMaxLowUpdated
-              ? ERROR_FIELD_TOTO.LOW
-              : ERROR_FIELD_TOTO.HIGH,
-        };
-      }
-
-      const minCustomHighCount = Math.max(
-        0,
-        minCustomCount - customPool.allPools.lowPools.size
-      );
-      if (
-        high.max - mustIncludePool.allPools.highPools.size <
-        minCustomHighCount
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.high !== "" && !isMaxHighUpdated
-              ? ERROR_FIELD_TOTO.HIGH
-              : ERROR_FIELD_TOTO.LOW,
-        };
-      }
-
-      const skipCount = requiredCount - minCustomCount;
-      const minCustomOddLowCount = Math.max(0, minOddLowCount - skipCount);
-      const minCustomEvenLowCount = Math.max(0, minEvenLowCount - skipCount);
-      if (
-        minCustomOddLowCount > customPool.allPools.oddLowPools.size ||
-        minCustomEvenLowCount > customPool.allPools.evenLowPools.size
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
-          field:
-            input.low !== "" && !isMinLowUpdated
-              ? ERROR_FIELD_TOTO.LOW
-              : ERROR_FIELD_TOTO.HIGH,
-        };
-      }
-
-      const minCustomOddHighCount = Math.max(0, minOddHighCount - skipCount);
-      const minCustomEvenHighCount = Math.max(0, minEvenHighCount - skipCount);
-      if (
-        minCustomOddHighCount > customPool.allPools.oddHighPools.size ||
-        minCustomEvenHighCount > customPool.allPools.evenHighPools.size
-      ) {
-        return {
-          err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
-          field:
-            input.high !== "" && !isMinHighUpdated
-              ? ERROR_FIELD_TOTO.HIGH
-              : ERROR_FIELD_TOTO.LOW,
-        };
-      }
-    }
-  }
+  // Validate low/high rule
+  const lowHighRes = validateLowHigh(
+    input,
+    requiredCount,
+    availablePools,
+    mustIncludePools,
+    customPools,
+    customCount,
+    requiredOddCount,
+    requiredEvenCount
+  );
+  ({ err, field } = lowHighRes);
+  if (err !== "") return { err, field };
+  const {
+    low,
+    high,
+    requiredLowCount,
+    requiredHighCount,
+    requiredOddLowCount,
+    requiredOddHighCount,
+    requiredEvenLowCount,
+    requiredEvenHighCount,
+  } = lowHighRes;
 
   // Range Group Rule
   if (input.includeRangeGroup) {

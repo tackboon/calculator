@@ -10,29 +10,29 @@ type IncludeInput = {
 export const validateIncludeList = (
   input: IncludeInput,
   rangeInfo: TotoRangeInfo,
-  remainingPools: TotoPools
+  availablePools: TotoPools
 ): {
   mustIncludePools: TotoPools;
-  remainingCount: number;
+  requiredCount: number;
   err: string;
   field: ERROR_FIELD_TOTO;
 } => {
   const mustIncludePools = initTotoPool();
-  let remainingCount = input.system;
+  let requiredCount = input.system;
 
   if (input.mustIncludes !== "") {
     // validate must includes field
     let err = validateListInput(input.mustIncludes, rangeInfo, (n) => {
       if (!mustIncludePools.allPools.allPools.has(n)) {
         addPoolNum(mustIncludePools, n, rangeInfo.low);
-        deletePoolNum(remainingPools, n);
+        deletePoolNum(availablePools, n);
       }
       return "";
     });
     if (err !== "")
       return {
         mustIncludePools,
-        remainingCount,
+        requiredCount,
         err,
         field: ERROR_FIELD_TOTO.MUST_INCLUDES,
       };
@@ -41,17 +41,17 @@ export const validateIncludeList = (
     if (mustIncludePools.allPools.allPools.size > input.system) {
       return {
         mustIncludePools,
-        remainingCount,
+        requiredCount,
         err: `You can only include up to ${input.system} numbers.`,
         field: ERROR_FIELD_TOTO.MUST_INCLUDES,
       };
     }
 
     // recompute remaining count
-    remainingCount = input.system - mustIncludePools.allPools.allPools.size;
+    requiredCount = input.system - mustIncludePools.allPools.allPools.size;
   }
 
-  return { mustIncludePools, remainingCount, err: "", field: 0 };
+  return { mustIncludePools, requiredCount, err: "", field: 0 };
 };
 
 type ExcludeInput = {
@@ -62,7 +62,7 @@ type ExcludeInput = {
 export const validateExcludeList = (
   input: ExcludeInput,
   rangeInfo: TotoRangeInfo,
-  remainingPools: TotoPools,
+  availablePools: TotoPools,
   mustIncludePools: TotoPools
 ): { err: string; field: ERROR_FIELD_TOTO } => {
   if (input.mustExcludes !== "") {
@@ -71,15 +71,15 @@ export const validateExcludeList = (
       if (mustIncludePools.allPools.allPools.has(n)) {
         return `Number ${n} cannot be in both include and exclude lists.`;
       }
-      if (remainingPools.allPools.allPools.has(n))
-        deletePoolNum(remainingPools, n);
+      if (availablePools.allPools.allPools.has(n))
+        deletePoolNum(availablePools, n);
       return "";
     });
     if (err !== "") return { err, field: ERROR_FIELD_TOTO.MUST_EXCLUDES };
 
     // Ensure the remaining pool is sufficient for the system size
     if (
-      remainingPools.allPools.allPools.size +
+      availablePools.allPools.allPools.size +
         mustIncludePools.allPools.allPools.size <
       input.system
     ) {

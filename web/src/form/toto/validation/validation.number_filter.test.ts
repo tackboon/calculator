@@ -13,32 +13,32 @@ describe("validateIncludeList", () => {
     {
       input: { mustIncludes: "1,2,3", system: 6 },
       expectedSize: 3,
-      expectedRemaining: 3,
-      expectedRemainingPoolSize: 27,
+      expectedRequiredCount: 3,
+      expectedAvailablePoolSize: 27,
       expectedErr: "",
       expectedField: 0,
     },
     {
       input: { mustIncludes: "", system: 6 },
       expectedSize: 0,
-      expectedRemaining: 6,
-      expectedRemainingPoolSize: 30,
+      expectedRequiredCount: 6,
+      expectedAvailablePoolSize: 30,
       expectedErr: "",
       expectedField: 0,
     },
     {
       input: { mustIncludes: "1,2,31", system: 6 },
       expectedSize: 2,
-      expectedRemaining: 6,
-      expectedRemainingPoolSize: 28,
+      expectedRequiredCount: 6,
+      expectedAvailablePoolSize: 28,
       expectedErr: "Please enter values between 1 and 30.",
       expectedField: ERROR_FIELD_TOTO.MUST_INCLUDES,
     },
     {
       input: { mustIncludes: "1,2,3,4,5,6,7", system: 6 },
       expectedSize: 7,
-      expectedRemaining: 6,
-      expectedRemainingPoolSize: 23,
+      expectedRequiredCount: 6,
+      expectedAvailablePoolSize: 23,
       expectedErr: "You can only include up to 6 numbers.",
       expectedField: ERROR_FIELD_TOTO.MUST_INCLUDES,
     },
@@ -47,19 +47,19 @@ describe("validateIncludeList", () => {
     ({
       input,
       expectedSize,
-      expectedRemaining,
-      expectedRemainingPoolSize,
+      expectedRequiredCount,
+      expectedAvailablePoolSize,
       expectedErr,
       expectedField,
     }) => {
-      const remainingPools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools, remainingCount, err, field } =
-        validateIncludeList(input, rangeInfo, remainingPools);
+      const availablePools = getTotoPoolsCopy(defaultPools);
+      const { mustIncludePools, requiredCount, err, field } =
+        validateIncludeList(input, rangeInfo, availablePools);
 
       expect(mustIncludePools.allPools.allPools.size).toBe(expectedSize);
-      expect(remainingCount).toBe(expectedRemaining);
-      expect(remainingPools.allPools.allPools.size).toBe(
-        expectedRemainingPoolSize
+      expect(requiredCount).toBe(expectedRequiredCount);
+      expect(availablePools.allPools.allPools.size).toBe(
+        expectedAvailablePoolSize
       );
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);
@@ -75,21 +75,21 @@ describe("validateExcludeList", () => {
     {
       input: { mustExcludes: "1,2,3", system: 6 },
       mustIncludes: "",
-      expectedRemainingPoolSize: 27,
+      expectedAvailablePoolSize: 27,
       expectedErr: "",
       expectedField: 0,
     },
     {
       input: { mustExcludes: "", system: 6 },
       mustIncludes: "",
-      expectedRemainingPoolSize: 30,
+      expectedAvailablePoolSize: 30,
       expectedErr: "",
       expectedField: 0,
     },
     {
       input: { mustExcludes: "1,2,3", system: 6 },
       mustIncludes: "1",
-      expectedRemainingPoolSize: 29,
+      expectedAvailablePoolSize: 29,
       expectedErr: "Number 1 cannot be in both include and exclude lists.",
       expectedField: ERROR_FIELD_TOTO.MUST_EXCLUDES,
     },
@@ -100,7 +100,7 @@ describe("validateExcludeList", () => {
         system: 6,
       },
       mustIncludes: "25",
-      expectedRemainingPoolSize: 5,
+      expectedAvailablePoolSize: 5,
       expectedErr: "",
       expectedField: 0,
     },
@@ -111,7 +111,7 @@ describe("validateExcludeList", () => {
         system: 6,
       },
       mustIncludes: "25",
-      expectedRemainingPoolSize: 4,
+      expectedAvailablePoolSize: 4,
       expectedErr: "You can only exclude up to 24 numbers.",
       expectedField: ERROR_FIELD_TOTO.MUST_EXCLUDES,
     },
@@ -120,26 +120,26 @@ describe("validateExcludeList", () => {
     ({
       input,
       mustIncludes,
-      expectedRemainingPoolSize,
+      expectedAvailablePoolSize,
       expectedErr,
       expectedField,
     }) => {
-      const remainingPools = getTotoPoolsCopy(defaultPools);
+      const availablePools = getTotoPoolsCopy(defaultPools);
       const { mustIncludePools } = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
-        remainingPools
+        availablePools
       );
 
       const { err, field } = validateExcludeList(
         input,
         rangeInfo,
-        remainingPools,
+        availablePools,
         mustIncludePools
       );
 
-      expect(remainingPools.allPools.allPools.size).toBe(
-        expectedRemainingPoolSize
+      expect(availablePools.allPools.allPools.size).toBe(
+        expectedAvailablePoolSize
       );
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);

@@ -17,8 +17,8 @@ type CustomGroupInput = {
 export const validateCustomGroup = (
   input: CustomGroupInput,
   rangeInfo: TotoRangeInfo,
-  remainingPools: TotoPools,
-  remainingCount: number
+  availablePools: TotoPools,
+  requiredCount: number
 ): {
   customPools: TotoPools;
   customCount: RangeValue;
@@ -31,7 +31,7 @@ export const validateCustomGroup = (
   if (input.includeCustomGroup) {
     // validate custom group numbers field
     let err = validateListInput(input.customGroups, rangeInfo, (n) => {
-      if (!remainingPools.allPools.allPools.has(n)) {
+      if (!availablePools.allPools.allPools.has(n)) {
         return `Number ${n} in the custom group cannot be in either the include or exclude list.`;
       }
 
@@ -72,7 +72,7 @@ export const validateCustomGroup = (
     }
 
     // check is count number exceed the available limit
-    if (customCount.min > remainingCount) {
+    if (customCount.min > requiredCount) {
       return {
         customPools,
         customCount,
@@ -83,10 +83,10 @@ export const validateCustomGroup = (
 
     // Ensure the remaining pool is sufficient for the system size
     if (
-      remainingPools.allPools.allPools.size -
+      availablePools.allPools.allPools.size -
         customPools.allPools.allPools.size +
         customCount.max <
-      remainingCount
+      requiredCount
     ) {
       return {
         customPools,
@@ -97,11 +97,11 @@ export const validateCustomGroup = (
     }
 
     // adjust custom count
-    customCount.max = Math.min(customCount.max, remainingCount);
+    customCount.max = Math.min(customCount.max, requiredCount);
     customCount.min = Math.max(
       customCount.min,
       input.system -
-        (remainingPools.allPools.allPools.size -
+        (availablePools.allPools.allPools.size -
           customPools.allPools.allPools.size)
     );
   }

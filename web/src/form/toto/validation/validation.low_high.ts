@@ -10,27 +10,33 @@ type LowHighInput = {
 
 export const validateLowHigh = (
   input: LowHighInput,
-  remainingCount: number,
-  remainingPools: TotoPools,
+  requiredCount: number,
+  availablePools: TotoPools,
   mustIncludePools: TotoPools,
   customPools: TotoPools,
   customCount: RangeValue,
-  odd: RangeValue,
-  even: RangeValue,
-  remainingOddCount: number,
-  remainingEvenCount: number
+  requiredOddCount: number,
+  requiredEvenCount: number
 ): {
   low: RangeValue;
   high: RangeValue;
-  remainingLowCount: number;
-  remainingHighCount: number;
+  requiredLowCount: number;
+  requiredHighCount: number;
+  requiredOddLowCount: number;
+  requiredOddHighCount: number;
+  requiredEvenLowCount: number;
+  requiredEvenHighCount: number;
   err: string;
   field: ERROR_FIELD_TOTO;
 } => {
   let low: RangeValue = { min: 0, max: input.system };
   let high: RangeValue = { min: 0, max: input.system };
-  let remainingLowCount = 0;
-  let remainingHighCount = 0;
+  let requiredLowCount = 0;
+  let requiredHighCount = 0;
+  let requiredOddLowCount = 0;
+  let requiredOddHighCount = 0;
+  let requiredEvenLowCount = 0;
+  let requiredEvenHighCount = 0;
   if (input.includeLowHigh) {
     // validate low number count field
     const lowRes = validateRangeCountInput(input.low, input.system);
@@ -38,8 +44,12 @@ export const validateLowHigh = (
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: lowRes.err,
         field: ERROR_FIELD_TOTO.LOW,
       };
@@ -52,8 +62,12 @@ export const validateLowHigh = (
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: highRes.err,
         field: ERROR_FIELD_TOTO.HIGH,
       };
@@ -68,8 +82,12 @@ export const validateLowHigh = (
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Please enter a valid low/high distribution that matches your system size.",
         field: ERROR_FIELD_TOTO.LOW,
       };
@@ -93,8 +111,12 @@ export const validateLowHigh = (
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting conflicts with the numbers you've included.",
         field:
           input.low !== "" && !isMaxLowUpdated
@@ -108,8 +130,12 @@ export const validateLowHigh = (
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting conflicts with the numbers you've included.",
         field:
           input.high !== "" && !isMaxHighUpdated
@@ -119,22 +145,26 @@ export const validateLowHigh = (
     }
 
     // compute remaining low/high number required
-    remainingLowCount = Math.max(
+    requiredLowCount = Math.max(
       0,
       low.min - mustIncludePools.allPools.lowPools.size
     );
-    remainingHighCount = Math.max(
+    requiredHighCount = Math.max(
       0,
       high.min - mustIncludePools.allPools.highPools.size
     );
 
     // Ensure remaining pool is enough for the required low number count
-    if (remainingLowCount > remainingPools.allPools.lowPools.size) {
+    if (requiredLowCount > availablePools.allPools.lowPools.size) {
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting cannot be satisfied after applying your include and exclude settings.",
         field:
           input.low !== "" && !isMinLowUpdated
@@ -144,12 +174,16 @@ export const validateLowHigh = (
     }
 
     // Ensure remaining pool is enough for the required high number count
-    if (remainingHighCount > remainingPools.allPools.highPools.size) {
+    if (requiredHighCount > availablePools.allPools.highPools.size) {
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting cannot be satisfied after applying your include and exclude settings.",
         field:
           input.high !== "" && !isMinHighUpdated
@@ -159,27 +193,28 @@ export const validateLowHigh = (
     }
 
     // compute remaining odd/even + low number required
-    const remainingOddLowCount =
-      remainingLowCount + remainingOddCount - remainingCount;
-    const remainingEvenLowCount =
-      remainingLowCount + remainingEvenCount - remainingCount;
+    requiredOddLowCount = requiredLowCount + requiredOddCount - requiredCount;
+    requiredEvenLowCount = requiredLowCount + requiredEvenCount - requiredCount;
 
     // compute remaining odd/even + high number required
-    const remainingOddHighCount =
-      remainingHighCount + remainingOddCount - remainingCount;
-    const remainingEvenHighCount =
-      remainingHighCount + remainingEvenCount - remainingCount;
+    requiredOddHighCount = requiredHighCount + requiredOddCount - requiredCount;
+    requiredEvenHighCount =
+      requiredHighCount + requiredEvenCount - requiredCount;
 
     // Ensure remaining pool is enough for the required odd/even + low number
     if (
-      remainingOddLowCount > remainingPools.allPools.oddLowPools.size ||
-      remainingEvenLowCount > remainingPools.allPools.evenLowPools.size
+      requiredOddLowCount > availablePools.allPools.oddLowPools.size ||
+      requiredEvenLowCount > availablePools.allPools.evenLowPools.size
     ) {
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting cannot be satisfied after applying your include, exclude, and odd/even settings.",
         field:
           input.low !== "" && !isMinLowUpdated
@@ -190,14 +225,18 @@ export const validateLowHigh = (
 
     // Ensure remaining pool is enough for the required odd/even + high number
     if (
-      remainingOddHighCount > remainingPools.allPools.oddHighPools.size ||
-      remainingEvenHighCount > remainingPools.allPools.evenHighPools.size
+      requiredOddHighCount > availablePools.allPools.oddHighPools.size ||
+      requiredEvenHighCount > availablePools.allPools.evenHighPools.size
     ) {
       return {
         low,
         high,
-        remainingLowCount,
-        remainingHighCount,
+        requiredLowCount,
+        requiredHighCount,
+        requiredOddLowCount,
+        requiredOddHighCount,
+        requiredEvenLowCount,
+        requiredEvenHighCount,
         err: "Your low/high setting cannot be satisfied after applying your include, exclude, and odd/even settings.",
         field:
           input.high !== "" && !isMinHighUpdated
@@ -210,16 +249,20 @@ export const validateLowHigh = (
     if (customPools.allPools.allPools.size > 0) {
       // Ensure there are enough available low numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining low requirement.
       if (
-        remainingLowCount >
-        remainingPools.allPools.lowPools.size -
+        requiredLowCount >
+        availablePools.allPools.lowPools.size -
           customPools.allPools.lowPools.size +
           Math.min(customCount.max, customPools.allPools.lowPools.size)
       ) {
         return {
           low,
           high,
-          remainingLowCount,
-          remainingHighCount,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.low !== "" && !isMinLowUpdated
@@ -230,16 +273,20 @@ export const validateLowHigh = (
 
       // Ensure there are enough available high numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining high requirement.
       if (
-        remainingHighCount >
-        remainingPools.allPools.highPools.size -
+        requiredHighCount >
+        availablePools.allPools.highPools.size -
           customPools.allPools.highPools.size +
           Math.min(customCount.max, customPools.allPools.highPools.size)
       ) {
         return {
           low,
           high,
-          remainingLowCount,
-          remainingHighCount,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.high !== "" && !isMinHighUpdated
@@ -250,20 +297,24 @@ export const validateLowHigh = (
 
       // Ensure there are enough available low numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining low requirement.
       if (
-        remainingOddLowCount >
-          remainingPools.allPools.oddLowPools.size -
+        requiredOddLowCount >
+          availablePools.allPools.oddLowPools.size -
             customPools.allPools.oddLowPools.size +
             Math.min(customCount.max, customPools.allPools.oddLowPools.size) ||
-        remainingEvenLowCount >
-          remainingPools.allPools.evenLowPools.size -
+        requiredEvenLowCount >
+          availablePools.allPools.evenLowPools.size -
             customPools.allPools.evenLowPools.size +
             Math.min(customCount.max, customPools.allPools.evenLowPools.size)
       ) {
         return {
           low,
           high,
-          remainingLowCount,
-          remainingHighCount,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
           field:
             input.low !== "" && !isMinLowUpdated
@@ -272,18 +323,26 @@ export const validateLowHigh = (
         };
       }
 
-      // Ensure there are enough available low numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining low requirement.
+      // Ensure there are enough available high numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining high requirement.
       if (
-        minOddHighCount >
-          pools.allPools.oddHighPools.size -
-            customPool.allPools.oddHighPools.size +
-            Math.min(maxCustomCount, customPool.allPools.oddHighPools.size) ||
-        minEvenHighCount >
-          pools.allPools.evenHighPools.size -
-            customPool.allPools.evenHighPools.size +
-            Math.min(maxCustomCount, customPool.allPools.evenHighPools.size)
+        requiredOddHighCount >
+          availablePools.allPools.oddHighPools.size -
+            customPools.allPools.oddHighPools.size +
+            Math.min(customCount.max, customPools.allPools.oddHighPools.size) ||
+        requiredEvenHighCount >
+          availablePools.allPools.evenHighPools.size -
+            customPools.allPools.evenHighPools.size +
+            Math.min(customCount.max, customPools.allPools.evenHighPools.size)
       ) {
         return {
+          low,
+          high,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
           field:
             input.high !== "" && !isMinHighUpdated
@@ -292,15 +351,30 @@ export const validateLowHigh = (
         };
       }
 
+      // calculate minimum low/high count from custom group
       const minCustomLowCount = Math.max(
         0,
-        minCustomCount - customPool.allPools.highPools.size
+        customCount.min - customPools.allPools.highPools.size
       );
+      const minCustomHighCount = Math.max(
+        0,
+        customCount.min - customPools.allPools.lowPools.size
+      );
+
+      // Ensure there are enough low numbers remaining to fulfill the minimum requirement from custom groups.
       if (
-        low.max - mustIncludePool.allPools.lowPools.size <
+        low.max - mustIncludePools.allPools.lowPools.size <
         minCustomLowCount
       ) {
         return {
+          low,
+          high,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.low !== "" && !isMaxLowUpdated
@@ -309,15 +383,20 @@ export const validateLowHigh = (
         };
       }
 
-      const minCustomHighCount = Math.max(
-        0,
-        minCustomCount - customPool.allPools.lowPools.size
-      );
+      // Ensure there are enough high numbers remaining to fulfill the minimum requirement from custom groups.
       if (
-        high.max - mustIncludePool.allPools.highPools.size <
+        high.max - mustIncludePools.allPools.highPools.size <
         minCustomHighCount
       ) {
         return {
+          low,
+          high,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, and custom group settings.",
           field:
             input.high !== "" && !isMaxHighUpdated
@@ -326,14 +405,38 @@ export const validateLowHigh = (
         };
       }
 
-      const skipCount = requiredCount - minCustomCount;
-      const minCustomOddLowCount = Math.max(0, minOddLowCount - skipCount);
-      const minCustomEvenLowCount = Math.max(0, minEvenLowCount - skipCount);
+      // Calculate minimum odd/even + low numbers in custom group
+      const skipCount = requiredCount - customCount.min;
+      const minCustomOddLowCount = Math.max(0, requiredOddLowCount - skipCount);
+      const minCustomEvenLowCount = Math.max(
+        0,
+        requiredEvenLowCount - skipCount
+      );
+
+      // Calculate minimum odd/even + high numbers in custom group
+      const minCustomOddHighCount = Math.max(
+        0,
+        requiredOddHighCount - skipCount
+      );
+      const minCustomEvenHighCount = Math.max(
+        0,
+        requiredEvenHighCount - skipCount
+      );
+
+      // Ensure custom pools has sufficient numbers for the odd/even + low settings
       if (
-        minCustomOddLowCount > customPool.allPools.oddLowPools.size ||
-        minCustomEvenLowCount > customPool.allPools.evenLowPools.size
+        minCustomOddLowCount > customPools.allPools.oddLowPools.size ||
+        minCustomEvenLowCount > customPools.allPools.evenLowPools.size
       ) {
         return {
+          low,
+          high,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
           field:
             input.low !== "" && !isMinLowUpdated
@@ -342,13 +445,20 @@ export const validateLowHigh = (
         };
       }
 
-      const minCustomOddHighCount = Math.max(0, minOddHighCount - skipCount);
-      const minCustomEvenHighCount = Math.max(0, minEvenHighCount - skipCount);
+      // Ensure custom pools has sufficient numbers for the odd/even + low settings
       if (
-        minCustomOddHighCount > customPool.allPools.oddHighPools.size ||
-        minCustomEvenHighCount > customPool.allPools.evenHighPools.size
+        minCustomOddHighCount > customPools.allPools.oddHighPools.size ||
+        minCustomEvenHighCount > customPools.allPools.evenHighPools.size
       ) {
         return {
+          low,
+          high,
+          requiredLowCount,
+          requiredHighCount,
+          requiredOddLowCount,
+          requiredOddHighCount,
+          requiredEvenLowCount,
+          requiredEvenHighCount,
           err: "Your low/high setting cannot be satisfied after applying your include, exclude, custom group, and odd/even settings.",
           field:
             input.high !== "" && !isMinHighUpdated
@@ -362,8 +472,12 @@ export const validateLowHigh = (
   return {
     low,
     high,
-    remainingLowCount,
-    remainingHighCount,
+    requiredLowCount,
+    requiredHighCount,
+    requiredOddLowCount,
+    requiredOddHighCount,
+    requiredEvenLowCount,
+    requiredEvenHighCount,
     err: "",
     field: 0,
   };
