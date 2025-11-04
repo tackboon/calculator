@@ -6,19 +6,17 @@ import {
   TotoRangeInfo,
 } from "../toto.type";
 import {
-  addPoolNum,
-  deletePoolNum,
   extractRangeInput,
   getRangeInfo,
   getTotoPoolsCopy,
   initDefaultTotoPool,
-  initTotoPool,
 } from "../utils";
 import { validateCustomGroup } from "./validation.custom_group";
 import {
   validateIncludeList,
   validateExcludeList,
 } from "./validation.number_filter";
+import { validateOddEven } from "./validation.odd_even";
 
 export const validateListInput = (
   listStr: string,
@@ -105,174 +103,16 @@ export const validateTotoInput = (
   if (err !== "") return { err, field };
   const { customPools, customCount } = customRes;
 
-  // Odd/Even Rule
-  let odd: RangeValue;
-  let even: RangeValue;
-  let requiredOddCount = 0;
-  let requiredEvenCount = 0;
-  if (input.includeOddEven) {
-    odd = extractRangeInput(input.odd, input.system);
-    if (
-      isNaN(odd.min) ||
-      isNaN(odd.max) ||
-      odd.min > input.system ||
-      odd.max > input.system
-    ) {
-      return {
-        err: `Please enter a valid odd value`,
-        field: ERROR_FIELD_TOTO.ODD,
-      };
-    }
-
-    even = extractRangeInput(input.even, input.system);
-    if (
-      isNaN(even.min) ||
-      isNaN(even.max) ||
-      even.min > input.system ||
-      even.max > input.system
-    ) {
-      return {
-        err: `Please enter a valid even value`,
-        field: ERROR_FIELD_TOTO.EVEN,
-      };
-    }
-
-    if (
-      odd.min + even.min > input.system ||
-      odd.max + even.max < input.system
-    ) {
-      return {
-        err: "Please enter a valid odd/even distribution that less than or equal to your system size.",
-        field: ERROR_FIELD_TOTO.ODD,
-      };
-    }
-
-    const isMinOddUpdated = input.system - even.max > odd.min;
-    if (isMinOddUpdated) odd.min = input.system - even.max;
-
-    const isMaxOddUpdated = input.system - even.min < odd.max;
-    if (isMaxOddUpdated) odd.max = input.system - even.min;
-
-    const isMinEvenUpdated = input.system - odd.max > even.min;
-    if (isMinEvenUpdated) even.min = input.system - odd.max;
-
-    const isMaxEvenUpdated = input.system - odd.min < even.max;
-    if (isMaxEvenUpdated) even.max = input.system - odd.min;
-
-    if (odd.max < mustIncludePool.allPools.oddPools.size) {
-      return {
-        err: "Your odd/even setting conflicts with the numbers you've included.",
-        field:
-          input.odd !== "" && !isMaxOddUpdated
-            ? ERROR_FIELD_TOTO.ODD
-            : ERROR_FIELD_TOTO.EVEN,
-      };
-    }
-
-    if (even.max < mustIncludePool.allPools.evenPools.size) {
-      return {
-        err: "Your odd/even setting conflicts with the numbers you've included.",
-        field:
-          input.even !== "" && !isMaxEvenUpdated
-            ? ERROR_FIELD_TOTO.EVEN
-            : ERROR_FIELD_TOTO.ODD,
-      };
-    }
-
-    requiredOddCount = Math.max(
-      0,
-      odd.min - mustIncludePool.allPools.oddPools.size
-    );
-    if (requiredOddCount > pools.allPools.oddPools.size) {
-      return {
-        err: "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
-        field:
-          input.odd !== "" && !isMinOddUpdated
-            ? ERROR_FIELD_TOTO.ODD
-            : ERROR_FIELD_TOTO.EVEN,
-      };
-    }
-
-    requiredEvenCount = Math.max(
-      0,
-      even.min - mustIncludePool.allPools.evenPools.size
-    );
-    if (requiredEvenCount > pools.allPools.evenPools.size) {
-      return {
-        err: "Your odd/even setting cannot be satisfied after applying your include and exclude settings.",
-        field:
-          input.even !== "" && !isMinEvenUpdated
-            ? ERROR_FIELD_TOTO.EVEN
-            : ERROR_FIELD_TOTO.ODD,
-      };
-    }
-
-    if (input.includeCustomGroup) {
-      if (
-        odd.min >
-        pools.allPools.oddPools.size -
-          customPool.allPools.oddPools.size +
-          Math.min(maxCustomCount, customPool.allPools.oddPools.size)
-      ) {
-        return {
-          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.odd !== "" && !isMinOddUpdated
-              ? ERROR_FIELD_TOTO.ODD
-              : ERROR_FIELD_TOTO.EVEN,
-        };
-      }
-
-      if (
-        even.min >
-        pools.allPools.evenPools.size -
-          customPool.allPools.evenPools.size +
-          Math.min(maxCustomCount, customPool.allPools.evenPools.size)
-      ) {
-        return {
-          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.even !== "" && !isMinEvenUpdated
-              ? ERROR_FIELD_TOTO.EVEN
-              : ERROR_FIELD_TOTO.ODD,
-        };
-      }
-
-      const minCustomOddCount = Math.max(
-        0,
-        minCustomCount - customPool.allPools.evenPools.size
-      );
-      if (
-        odd.max - mustIncludePool.allPools.oddPools.size <
-        minCustomOddCount
-      ) {
-        return {
-          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.odd !== "" && !isMaxOddUpdated
-              ? ERROR_FIELD_TOTO.ODD
-              : ERROR_FIELD_TOTO.EVEN,
-        };
-      }
-
-      const minCustomEvenCount = Math.max(
-        0,
-        minCustomCount - customPool.allPools.oddPools.size
-      );
-      if (
-        even.max - mustIncludePool.allPools.evenPools.size <
-        minCustomEvenCount
-      ) {
-        return {
-          err: "Your odd/even setting cannot be satisfied after applying your include, exclude, and custom group settings.",
-          field:
-            input.even !== "" && !isMaxEvenUpdated
-              ? ERROR_FIELD_TOTO.EVEN
-              : ERROR_FIELD_TOTO.ODD,
-        };
-      }
-    }
-  }
+  // Validate odd/even rule
+  const oddEvenRes = validateOddEven(
+    input,
+    remainingPools,
+    mustIncludePools,
+    customPools,
+    customCount
+  );
+  ({ err, field } = oddEvenRes);
+  const { odd, even, remainingOddCount, remainingEvenCount } = oddEvenRes;
 
   // Low/High Rule
   let low: RangeValue;

@@ -138,7 +138,7 @@ describe("validateCustomGroup", () => {
       expectedField: ERROR_FIELD_TOTO.CUSTOM_COUNT,
     },
   ])(
-    "returns correct result for input: $input.mustExcludes",
+    "includes: $mustIncludes, excludes: $mustExcludes, customGroups: $input.customGroups, customCount: $input.customCount",
     ({
       input,
       mustIncludes,

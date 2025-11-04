@@ -81,7 +81,7 @@ export const validateCustomGroup = (
       };
     }
 
-    // make sure the remaining pool is sufficient for the system size
+    // Ensure the remaining pool is sufficient for the system size
     if (
       remainingPools.allPools.allPools.size -
         customPools.allPools.allPools.size +
@@ -96,7 +96,7 @@ export const validateCustomGroup = (
       };
     }
 
-    // recompute custom count
+    // adjust custom count
     customCount.max = Math.min(customCount.max, remainingCount);
     customCount.min = Math.max(
       customCount.min,

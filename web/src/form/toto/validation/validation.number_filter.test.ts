@@ -43,7 +43,7 @@ describe("validateIncludeList", () => {
       expectedField: ERROR_FIELD_TOTO.MUST_INCLUDES,
     },
   ])(
-    "returns correct result for input: $input.mustIncludes",
+    "includes: $input.mustIncludes",
     ({
       input,
       expectedSize,
@@ -116,7 +116,7 @@ describe("validateExcludeList", () => {
       expectedField: ERROR_FIELD_TOTO.MUST_EXCLUDES,
     },
   ])(
-    "returns correct result for input: $input.mustExcludes",
+    "includes: $mustIncludes, excludes: $input.mustExcludes",
     ({
       input,
       mustIncludes,

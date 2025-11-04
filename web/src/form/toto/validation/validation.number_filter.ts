@@ -37,7 +37,7 @@ export const validateIncludeList = (
         field: ERROR_FIELD_TOTO.MUST_INCLUDES,
       };
 
-    // make sure included numbers less than system size
+    // Ensure included numbers less than system size
     if (mustIncludePools.allPools.allPools.size > input.system) {
       return {
         mustIncludePools,
@@ -77,7 +77,7 @@ export const validateExcludeList = (
     });
     if (err !== "") return { err, field: ERROR_FIELD_TOTO.MUST_EXCLUDES };
 
-    // make sure the remaining pool is sufficient for the system size
+    // Ensure the remaining pool is sufficient for the system size
     if (
       remainingPools.allPools.allPools.size +
         mustIncludePools.allPools.allPools.size <
