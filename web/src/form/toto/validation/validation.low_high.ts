@@ -106,7 +106,7 @@ export const validateLowHigh = (
     const isMaxHighUpdated = input.system - low.min < high.max;
     if (isMaxHighUpdated) high.max = input.system - low.min;
 
-    // Ensure low numbers is enough for must include list
+    // Ensure low numbers are enough for must include list
     if (low.max < mustIncludePools.allPools.lowPools.size) {
       return {
         low,
@@ -125,7 +125,7 @@ export const validateLowHigh = (
       };
     }
 
-    // Ensure high numbers is enough for must include list
+    // Ensure high numbers are enough for must include list
     if (high.max < mustIncludePools.allPools.highPools.size) {
       return {
         low,

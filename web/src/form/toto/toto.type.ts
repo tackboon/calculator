@@ -4,7 +4,7 @@ export enum TOTO_RANGE {
   FIFTY_FIVE,
   FIFTY_EIGHT,
   SIXTY_NINE,
-  THIRTY
+  THIRTY,
 }
 
 export type TotoInputType = {
@@ -88,6 +88,16 @@ export type TotoPools = {
   range60Pools: TotoSetPools;
   range70Pools: TotoSetPools;
 };
+
+export const TotoPoolKeys: Array<keyof TotoPools> = [
+  "range10Pools",
+  "range20Pools",
+  "range30Pools",
+  "range40Pools",
+  "range50Pools",
+  "range60Pools",
+  "range70Pools",
+];
 
 export type TotoRangeInfo = {
   min: number;

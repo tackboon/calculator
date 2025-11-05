@@ -83,7 +83,7 @@ export const validateOddEven = (
     const isMaxEvenUpdated = input.system - odd.min < even.max;
     if (isMaxEvenUpdated) even.max = input.system - odd.min;
 
-    // Ensure odd numbers is enough for must include list
+    // Ensure odd numbers are enough for must include list
     if (odd.max < mustIncludePools.allPools.oddPools.size) {
       return {
         odd,
@@ -98,7 +98,7 @@ export const validateOddEven = (
       };
     }
 
-    // Ensure even numbers is enough for must include list
+    // Ensure even numbers are enough for must include list
     if (even.max < mustIncludePools.allPools.evenPools.size) {
       return {
         odd,
