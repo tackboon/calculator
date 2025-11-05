@@ -201,13 +201,14 @@ describe("validateOddEven", () => {
       expectedField,
     }) => {
       const availablePools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools, requiredCount } = validateIncludeList(
+      const includeRes = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
         availablePools
       );
+      const { mustIncludePools, requiredCount } = includeRes;
 
-      validateExcludeList(
+      const excludeRes = validateExcludeList(
         { mustExcludes, system: input.system },
         rangeInfo,
         availablePools,
@@ -216,7 +217,6 @@ describe("validateOddEven", () => {
 
       const customRes = validateCustomGroup(
         {
-          includeCustomGroup: true,
           customGroups,
           customCount,
           system: input.system,
@@ -241,6 +241,9 @@ describe("validateOddEven", () => {
       expect(even.max).toBe(expectedMaxEven);
       expect(requiredOddCount).toBe(expectedRequiredOddCount);
       expect(requiredEvenCount).toBe(expectedRequiredEvenCount);
+      expect(includeRes.err).toBe("");
+      expect(excludeRes.err).toBe("");
+      expect(customRes.err).toBe("");
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);
     }

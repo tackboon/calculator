@@ -155,7 +155,7 @@ export const validateOddEven = (
 
     // Handle odd/even + custom group settings
     if (customPools.allPools.allPools.size > 0) {
-      // Ensure there are enough available odd numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining odd requirement.
+      // Ensure there are enough available odd numbers left (after applying include, exclude, and custom group filters) to satisfy the remaining odd requirement.
       if (
         requiredOddCount >
         availablePools.allPools.oddPools.size -
@@ -175,7 +175,7 @@ export const validateOddEven = (
         };
       }
 
-      // Ensure there are enough available even numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining even requirement.
+      // Ensure there are enough available even numbers left (after applying include, exclude, and custom group filters) to satisfy the remaining even requirement.
       if (
         requiredEvenCount >
         availablePools.allPools.evenPools.size -

@@ -13,7 +13,6 @@ describe("validateCustomGroup", () => {
   it.each([
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "1,2,3",
         customCount: "1",
         system: 6,
@@ -28,7 +27,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "1",
         customCount: "",
         system: 6,
@@ -44,7 +42,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "1",
         customCount: "2-3",
         system: 6,
@@ -60,7 +57,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "25,26,27,28",
         customCount: "0-1",
         system: 6,
@@ -75,7 +71,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "25,26,27,28",
         customCount: "2",
         system: 6,
@@ -91,7 +86,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups:
           "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
         customCount: "0-1",
@@ -107,7 +101,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups: "23,24,25",
         customCount: "0-6",
         system: 6,
@@ -122,7 +115,6 @@ describe("validateCustomGroup", () => {
     },
     {
       input: {
-        includeCustomGroup: true,
         customGroups:
           "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
         customCount: "0-1",
@@ -150,13 +142,14 @@ describe("validateCustomGroup", () => {
       expectedField,
     }) => {
       const availablePools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools, requiredCount } = validateIncludeList(
+      const includeRes = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
         availablePools
       );
+      const { mustIncludePools, requiredCount } = includeRes;
 
-      validateExcludeList(
+      const excludeRes = validateExcludeList(
         { mustExcludes, system: input.system },
         rangeInfo,
         availablePools,
@@ -173,6 +166,8 @@ describe("validateCustomGroup", () => {
       expect(customPools.allPools.allPools.size).toBe(expectedCustomPoolSize);
       expect(customCount.min).toBe(expectedMin);
       expect(customCount.max).toBe(expectedMax);
+      expect(includeRes.err).toBe("");
+      expect(excludeRes.err).toBe("");
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);
     }

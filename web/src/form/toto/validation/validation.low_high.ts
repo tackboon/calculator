@@ -193,13 +193,24 @@ export const validateLowHigh = (
     }
 
     // compute remaining odd/even + low number required
-    requiredOddLowCount = requiredLowCount + requiredOddCount - requiredCount;
-    requiredEvenLowCount = requiredLowCount + requiredEvenCount - requiredCount;
+    requiredOddLowCount = Math.max(
+      0,
+      requiredLowCount + requiredOddCount - requiredCount
+    );
+    requiredEvenLowCount = Math.max(
+      0,
+      requiredLowCount + requiredEvenCount - requiredCount
+    );
 
     // compute remaining odd/even + high number required
-    requiredOddHighCount = requiredHighCount + requiredOddCount - requiredCount;
-    requiredEvenHighCount =
-      requiredHighCount + requiredEvenCount - requiredCount;
+    requiredOddHighCount = Math.max(
+      0,
+      requiredHighCount + requiredOddCount - requiredCount
+    );
+    requiredEvenHighCount = Math.max(
+      0,
+      requiredHighCount + requiredEvenCount - requiredCount
+    );
 
     // Ensure remaining pool is enough for the required odd/even + low number
     if (
@@ -247,7 +258,7 @@ export const validateLowHigh = (
 
     // Handle low/high + custom group settings
     if (customPools.allPools.allPools.size > 0) {
-      // Ensure there are enough available low numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining low requirement.
+      // Ensure there are enough available low numbers left (after applying include, exclude, and custom group filters) to satisfy the remaining low requirement.
       if (
         requiredLowCount >
         availablePools.allPools.lowPools.size -
@@ -271,7 +282,7 @@ export const validateLowHigh = (
         };
       }
 
-      // Ensure there are enough available high numbers left (after applying include, exclude, custom group, and odd/even filters) to satisfy the remaining high requirement.
+      // Ensure there are enough available high numbers left (after applying include, exclude, and custom group filters) to satisfy the remaining high requirement.
       if (
         requiredHighCount >
         availablePools.allPools.highPools.size -

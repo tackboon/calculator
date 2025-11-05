@@ -8,7 +8,6 @@ import { addPoolNum, initTotoPool } from "../utils";
 import { validateListInput, validateRangeCountInput } from "./validation";
 
 type CustomGroupInput = {
-  includeCustomGroup: boolean;
   customGroups: string;
   customCount: string;
   system: number;
@@ -28,7 +27,7 @@ export const validateCustomGroup = (
   // Custom Group Rule
   let customCount: RangeValue = { min: 0, max: 0 };
   const customPools = initTotoPool();
-  if (input.includeCustomGroup) {
+  if (input.customGroups !== "") {
     // validate custom group numbers field
     let err = validateListInput(input.customGroups, rangeInfo, (n) => {
       if (!availablePools.allPools.allPools.has(n)) {

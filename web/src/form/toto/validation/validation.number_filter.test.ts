@@ -125,11 +125,12 @@ describe("validateExcludeList", () => {
       expectedField,
     }) => {
       const availablePools = getTotoPoolsCopy(defaultPools);
-      const { mustIncludePools } = validateIncludeList(
+      const includeRes = validateIncludeList(
         { mustIncludes, system: input.system },
         rangeInfo,
         availablePools
       );
+      const { mustIncludePools } = includeRes;
 
       const { err, field } = validateExcludeList(
         input,
@@ -141,6 +142,7 @@ describe("validateExcludeList", () => {
       expect(availablePools.allPools.allPools.size).toBe(
         expectedAvailablePoolSize
       );
+      expect(includeRes.err).toBe("");
       expect(err).toBe(expectedErr);
       expect(field).toBe(expectedField);
     }
