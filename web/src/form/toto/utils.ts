@@ -223,6 +223,16 @@ export const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
         low: 15,
         group: 3,
       };
+    case TOTO_RANGE.THIRTY_FIVE:
+      return {
+        min: 1,
+        max: 35,
+        odd: 18,
+        even: 17,
+        count: 35,
+        low: 17,
+        group: 4,
+      };
     case TOTO_RANGE.FOURTY_NINE:
       return {
         min: 1,

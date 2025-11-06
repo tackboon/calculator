@@ -5,6 +5,7 @@ export enum TOTO_RANGE {
   FIFTY_EIGHT,
   SIXTY_NINE,
   THIRTY,
+  THIRTY_FIVE,
 }
 
 export type TotoInputType = {
