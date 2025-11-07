@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTransition, animated, useSpring } from "@react-spring/web";
+import toast from "react-hot-toast";
 
 import styles from "./toto.module.scss";
 import {
@@ -83,7 +84,10 @@ const TotoForm = () => {
     setIsGenerating(true);
 
     // generate combinations
-    setResult(generateCombinations(input));
+    const combinations = generateCombinations(input);
+    setResult(combinations.length > 0 ? combinations : null);
+    if (combinations.length === 0)
+      toast.error("Could not generate possible combinations.");
   };
 
   const handleReset = (e: React.FormEvent) => {
@@ -94,9 +98,11 @@ const TotoForm = () => {
       ...DEFAULT_INPUT,
       system: prev.system,
       numberRange: prev.numberRange,
+      includeNumberFilter: prev.includeNumberFilter,
       includeOddEven: prev.includeOddEven,
       includeLowHigh: prev.includeLowHigh,
       includeCustomGroup: prev.includeCustomGroup,
+      includeRangeGroup: prev.includeRangeGroup,
     }));
     setErrorField(null);
     setResult(null);

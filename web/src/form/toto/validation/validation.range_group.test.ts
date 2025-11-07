@@ -265,6 +265,27 @@ describe("validateRangeGroup", () => {
         "Your range group setting cannot be satisfied after applying odd/even settings.",
       expectedField: ERROR_FIELD_TOTO.RANGE_10,
     },
+    {
+      input: {
+        system: 6,
+        includeRangeGroup: true,
+        rangeCount10: "",
+        rangeCount20: "",
+        rangeCount30: "0",
+        rangeCount40: "",
+      },
+      mustIncludes: "",
+      mustExcludes: "",
+      customGroups: "21,22,23,24,25,31,32",
+      customCount: "3",
+      odd: "",
+      even: "",
+      low: "",
+      high: "",
+      expectedErr:
+        "Your range group setting cannot be satisfied after applying your custom group settings.",
+      expectedField: ERROR_FIELD_TOTO.RANGE_30,
+    },
   ])(
     "includes: $mustIncludes, excludes: $mustExcludes, customGroups: $customGroups, customCount: $customCount, odd: $odd, even: $even, low: $low, high: $high, range10: $input.rangeCount10, range20: $input.rangeCount20, range30: $input.rangeCount30, range40: $input.rangeCount40",
     ({
@@ -333,7 +354,6 @@ describe("validateRangeGroup", () => {
           rangeCount70: "",
         },
         rangeInfo,
-        requiredCount,
         availablePools,
         mustIncludePools,
         customRes.customPools,

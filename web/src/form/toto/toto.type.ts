@@ -100,6 +100,16 @@ export const TotoPoolKeys: Array<keyof TotoPools> = [
   "range70Pools",
 ];
 
+export const TotoRangeInputKeys = [
+  "rangeCount10",
+  "rangeCount20",
+  "rangeCount30",
+  "rangeCount40",
+  "rangeCount50",
+  "rangeCount60",
+  "rangeCount70",
+] as const;
+
 export type TotoRangeInfo = {
   min: number;
   max: number;

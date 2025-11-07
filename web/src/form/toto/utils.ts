@@ -1,5 +1,4 @@
 import { randomFromSet } from "../../common/random/random";
-import { checkMinMax } from "../../common/validation/calculator.validation";
 import {
   RangeValue,
   TOTO_RANGE,
@@ -8,6 +7,7 @@ import {
   TotoOutputGroup,
   TotoPools,
   TotoRangeInfo,
+  TotoRangeInputKeys,
   TotoSetPools,
 } from "./toto.type";
 
@@ -286,339 +286,374 @@ export const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
   }
 };
 
-// const updateSelectPool = (n: number, selectedPool: TotoPools, low: number) => {
-//   selectedPool.allPools.add(n);
-
-//   if (n % 2 === 0) selectedPool.evenPools.add(n);
-//   else selectedPool.oddPools.add(n);
-
-//   if (n <= low) selectedPool.lowPools.add(n);
-//   else selectedPool.highPools.add(n);
-// };
-
-// export const generateCombinations = (
-//   input: TotoInputType
-// ): TotoCombination[] => {
-//   // Read params
-//   const count = Number(input.count);
-//   const rangeInfo = getRangeInfo(input.numberRange);
-
-//   // Build initial pool
-//   const defaultPools = initDefaultTotoPool(input.numberRange);
-//   const pools = getTotoPoolsCopy(defaultPools);
-//   const selectedPool = initTotoPool();
-
-//   // Init output
-//   const combinationSet = new Set<string>();
-//   const combinations: TotoCombination[] = [];
-
-//   // Read must includes
-//   const mustIncludeParts = input.mustIncludes.split(",");
-//   for (const val of mustIncludeParts) {
-//     if (val === "") {
-//       continue;
-//     }
-//     const n = Number(val);
-//     updateSelectPool(n, selectedPool, rangeInfo.low);
-//     deletePoolNum(pools, n);
-//   }
-
-//   if (selectedPool.allPools.size === input.system) {
-//     const combinationStr = setToString(selectedPool.allPools, " ");
-//     const out = analyseData(selectedPool.allPools, combinationStr, rangeInfo);
-//     combinations.push(out);
-
-//     return combinations;
-//   }
-
-//   // Read must excludes
-//   const mustExcludeParts = input.mustExcludes.split(",");
-//   for (const val of mustExcludeParts) {
-//     if (val === "") {
-//       continue;
-//     }
-//     const n = Number(val);
-//     deletePoolNum(pools, n);
-//   }
-
-//   // Read custom groups
-//   const customCount = Number(input.customCount);
-//   const customPool = initTotoPool();
-//   if (customCount > 0) {
-//     const customGroupParts = input.customGroups.split(",");
-//     for (const val of customGroupParts) {
-//       if (val === "") {
-//         continue;
-//       }
-//       const n = Number(val);
-//       customPool.allPools.add(n);
-
-//       if (n % 2 === 0) {
-//         customPool.evenPools.add(n);
-
-//         if (n <= rangeInfo.low) {
-//           customPool.evenLowPools.add(n);
-//         } else {
-//           customPool.evenHighPools.add(n);
-//         }
-//       } else {
-//         customPool.oddPools.add(n);
-
-//         if (n <= rangeInfo.low) {
-//           customPool.oddLowPools.add(n);
-//         } else {
-//           customPool.oddHighPools.add(n);
-//         }
-//       }
-
-//       if (n <= rangeInfo.low) customPool.lowPools.add(n);
-//       else customPool.highPools.add(n);
-//     }
-//   }
-
-//   // Read odd/even
-//   let odd = 0;
-//   let even = 0;
-//   const includeOddEven = input.oddEven !== "";
-//   const oddEvenParts = input.oddEven.split("/");
-//   if (oddEvenParts.length === 2) {
-//     odd = Number(oddEvenParts[0]);
-//     even = Number(oddEvenParts[1]);
-//   }
-
-//   // Read low/high
-//   let low = 0;
-//   let high = 0;
-//   const includeLowHigh = input.lowHigh !== "";
-//   const lowHighParts = input.lowHigh.split("/");
-//   if (lowHighParts.length === 2) {
-//     low = Number(lowHighParts[0]);
-//     high = Number(lowHighParts[1]);
-//   }
-
-//   let k = 0;
-//   while (combinations.length < count && k < 1000) {
-//     const poolsCopy = getTotoPoolCopy(pools);
-//     const selectedPoolCopy = getTotoPoolCopy(selectedPool);
-//     const customPoolCopy = getTotoPoolCopy(customPool);
-
-//     const combination = generateCombination(
-//       poolsCopy,
-//       selectedPoolCopy,
-//       customPoolCopy,
-//       customCount,
-//       includeOddEven,
-//       odd,
-//       even,
-//       includeLowHigh,
-//       low,
-//       high,
-//       rangeInfo.low,
-//       input.system
-//     );
-
-//     const combinationStr = setToString(combination, " ");
-//     if (!combinationSet.has(combinationStr)) {
-//       const out = analyseData(combination, combinationStr, rangeInfo);
-//       combinations.push(out);
-//       combinationSet.add(combinationStr);
-//     }
-
-//     k++;
-//   }
-
-//   return combinations;
-// };
-
-// const generateCombination = (
-//   pools: TotoPools,
-//   selectedPool: TotoPools,
-//   customPool: TotoPools,
-//   customCount: number,
-//   includeOddEven: boolean,
-//   odd: number,
-//   even: number,
-//   includeLowHigh: boolean,
-//   low: number,
-//   high: number,
-//   rangeLow: number,
-//   system: number
-// ): Set<number> => {
-//   const remainingSlot = system - selectedPool.allPools.size;
-//   const initialCustomSize = customPool.allPools.size;
-
-//   for (let i = 0; i < remainingSlot; i++) {
-//     let n: number | undefined;
-//     const remainingCustomCount =
-//       customCount - (initialCustomSize - customPool.allPools.size);
-
-//     n =
-//       remainingCustomCount > 0
-//         ? randomNumber(
-//             customPool,
-//             selectedPool,
-//             includeOddEven,
-//             odd,
-//             even,
-//             includeLowHigh,
-//             low,
-//             high
-//           )
-//         : randomNumber(
-//             pools,
-//             selectedPool,
-//             includeOddEven,
-//             odd,
-//             even,
-//             includeLowHigh,
-//             low,
-//             high
-//           );
-//     if (n !== undefined) {
-//       updateSelectPool(n, selectedPool, rangeLow);
-//       deletePoolNum(pools, n);
-//       deletePoolNum(customPool, n);
-//     } else {
-//       console.error("Failed to random on empty set.", i);
-//     }
-//   }
-
-//   return selectedPool.allPools;
-// };
-
-// const randomNumber = (
-//   pools: TotoPools,
-//   selectedPool: TotoPools,
-//   includeOddEven: boolean,
-//   odd: number,
-//   even: number,
-//   includeLowHigh: boolean,
-//   low: number,
-//   high: number
-// ) => {
-//   let oddEvenRule = "both";
-//   if (includeOddEven) {
-//     const remainingOddCount = Math.max(0, odd - selectedPool.oddPools.size);
-//     const remainingEvenCount = Math.max(0, even - selectedPool.evenPools.size);
-
-//     if (remainingOddCount !== remainingEvenCount) {
-//       if (remainingEvenCount === 0 || remainingOddCount === 1) {
-//         oddEvenRule = "odd";
-//       } else if (remainingOddCount === 0 || remainingEvenCount === 1) {
-//         oddEvenRule = "even";
-//       }
-//     }
-//   }
-
-//   let lowHighRule = "both";
-//   if (includeLowHigh) {
-//     const remainingLowCount = Math.max(0, low - selectedPool.lowPools.size);
-//     const remainingHighCount = Math.max(0, high - selectedPool.highPools.size);
-
-//     if (remainingLowCount !== remainingHighCount) {
-//       if (remainingHighCount === 0 || remainingLowCount === 1) {
-//         lowHighRule = "low";
-//       } else if (remainingLowCount === 0 || remainingHighCount === 1) {
-//         lowHighRule = "high";
-//       }
-//     }
-//   }
-
-//   let n: number | undefined;
-//   if (oddEvenRule === "both" && lowHighRule === "both") {
-//     n = randomFromSet(pools.allPools);
-//   } else {
-//     if (oddEvenRule === "both") {
-//       if (lowHighRule === "low") {
-//         n = randomFromSet(pools.lowPools);
-//       } else {
-//         n = randomFromSet(pools.highPools);
-//       }
-//     } else if (oddEvenRule === "odd") {
-//       if (lowHighRule === "both") {
-//         n = randomFromSet(pools.oddPools);
-//       } else if (lowHighRule === "low") {
-//         n = randomFromSet(pools.oddLowPools);
-//       } else {
-//         n = randomFromSet(pools.oddHighPools);
-//       }
-//     } else {
-//       if (lowHighRule === "both") {
-//         n = randomFromSet(pools.evenPools);
-//       } else if (lowHighRule === "low") {
-//         n = randomFromSet(pools.evenLowPools);
-//       } else {
-//         n = randomFromSet(pools.evenHighPools);
-//       }
-//     }
-//   }
-
-//   return n;
-// };
-
-// const setToString = (set: Set<number>, separator: string) => {
-//   return Array.from(set)
-//     .sort((a, b) => a - b)
-//     .join(separator);
-// };
-
-// const analyseData = (
-//   combination: Set<number>,
-//   combinationStr: string,
-//   rangeInfo: TotoRangeInfo
-// ): TotoCombination => {
-//   const outputGroups: TotoOutputGroup[] = [];
-//   for (let i = 1; i <= rangeInfo.group * 10; i += 10) {
-//     const name = `${i}-${i + 9}`;
-//     const outputGroup: TotoOutputGroup = {
-//       name,
-//       count: 0,
-//     };
-//     outputGroups.push(outputGroup);
-//   }
-
-//   let sum = 0;
-//   let average = 0;
-//   let oddCount = 0;
-//   let evenCount = 0;
-//   let lowCount = 0;
-//   let highCount = 0;
-//   for (const n of combination) {
-//     sum += n;
-
-//     if (n % 2 === 0) evenCount++;
-//     else oddCount++;
-
-//     if (n <= rangeInfo.low) lowCount++;
-//     else highCount++;
-
-//     const divide = Math.floor(n / 10);
-//     const remainder = n % 10;
-
-//     let group = 0;
-//     if (divide > 0) {
-//       group = remainder > 0 ? divide : divide - 1;
-//     }
-
-//     outputGroups[group].count++;
-//   }
-
-//   if (combination.size > 0) {
-//     average = Math.round(sum / combination.size);
-//   }
-
-//   return {
-//     combination: combinationStr,
-//     oddEven: `${oddCount}/${evenCount}`,
-//     lowHigh: `${lowCount}/${highCount}`,
-//     sum,
-//     average,
-//     outputGroups,
-//   };
-// };
-
 export const generateCombinations = (
   input: TotoInputType
 ): TotoCombination[] => {
-  return [];
+  // Read params
+  const count = Number(input.count);
+  const rangeInfo = getRangeInfo(input.numberRange);
+
+  // Build initial pool
+  const defaultPools = initDefaultTotoPool(input.numberRange);
+  const availablePools = getTotoPoolsCopy(defaultPools);
+  const selectedPools = initTotoPool();
+
+  // Init output
+  const combinationSet = new Set<string>();
+  const combinations: TotoCombination[] = [];
+
+  // Read must include setting
+  const mustIncludeParts = input.mustIncludes.split(",");
+  for (const val of mustIncludeParts) {
+    if (val === "") {
+      continue;
+    }
+    const n = Number(val);
+    addPoolNum(selectedPools, n, rangeInfo.low);
+    deletePoolNum(availablePools, n);
+  }
+
+  // Check is selected pools full
+  if (selectedPools.allPools.allPools.size === input.system) {
+    const combinationStr = setToString(selectedPools.allPools.allPools, " ");
+    const out = analyseData(
+      selectedPools.allPools.allPools,
+      combinationStr,
+      rangeInfo
+    );
+    combinations.push(out);
+
+    return combinations;
+  }
+
+  // Read must excludes setting
+  const mustExcludeParts = input.mustExcludes.split(",");
+  for (const val of mustExcludeParts) {
+    if (val === "") {
+      continue;
+    }
+    const n = Number(val);
+    deletePoolNum(availablePools, n);
+  }
+
+  // Read custom group setting
+  const customCount = extractRangeInput(input.customCount, input.system);
+  const customPools = initTotoPool();
+  const customGroupParts = input.customGroups.split(",");
+  for (const val of customGroupParts) {
+    if (val === "") {
+      continue;
+    }
+    const n = Number(val);
+    addPoolNum(customPools, n, rangeInfo.low);
+  }
+
+  // Read odd/even setting
+  const odd = extractRangeInput(input.odd, input.system);
+  const even = extractRangeInput(input.even, input.system);
+
+  // Adjust odd/even count
+  odd.min = input.system - even.max;
+  odd.max = input.system - even.min;
+  even.min = input.system - odd.max;
+  even.max = input.system - odd.min;
+
+  // Read low/high setting
+  const low = extractRangeInput(input.low, input.system);
+  const high = extractRangeInput(input.high, input.system);
+
+  // Adjust low/high count
+  low.min = input.system - high.max;
+  low.max = input.system - high.min;
+  high.min = input.system - low.max;
+  high.max = input.system - low.min;
+
+  // Read range group settings
+  let minRangeSum = 0;
+  let maxRangeSum = 0;
+  const rangeValues: RangeValue[] = [];
+  for (let i = 0; i < rangeInfo.group; i++) {
+    // validate range group fields
+    const rangeInput = extractRangeInput(
+      input[TotoRangeInputKeys[i]],
+      input.system
+    );
+    rangeValues.push(rangeInput);
+
+    // calculate sum of min/max
+    minRangeSum += rangeInput.min;
+    maxRangeSum += rangeInput.max;
+  }
+
+  // Adjust range group count
+  for (const [idx, rangeValue] of rangeValues.entries()) {
+    const minSumExcludingGroup = Math.max(
+      input.system - rangeValue.max,
+      minRangeSum - rangeValue.min
+    );
+    const maxSumExcludingGroup = Math.min(
+      input.system - rangeValue.min,
+      maxRangeSum - rangeValue.max
+    );
+
+    // adjust range value
+    rangeValue.min = Math.max(
+      rangeValue.min,
+      input.system - maxSumExcludingGroup
+    );
+    rangeValue.max = Math.min(
+      rangeValue.max,
+      input.system - minSumExcludingGroup
+    );
+    rangeValues[idx] = rangeValue;
+  }
+
+  // Generate combinations
+  let k = 0;
+  while (combinations.length < count && k < 1000) {
+    // duplication pools to prevent overwrite of the default pools
+    const availablePoolsCopy = getTotoPoolsCopy(availablePools);
+    const selectedPoolsCopy = getTotoPoolsCopy(selectedPools);
+    const customPoolsCopy = getTotoPoolsCopy(customPools);
+
+    // generate combination
+    const combination = generateCombination(
+      input.system,
+      rangeInfo,
+      availablePoolsCopy,
+      selectedPoolsCopy,
+      customPoolsCopy,
+      customCount,
+      odd,
+      even,
+      low,
+      high,
+      rangeValues
+    );
+
+    // analyse result and write to the output list
+    const combinationStr = setToString(combination, " ");
+    if (!combinationSet.has(combinationStr)) {
+      const out = analyseData(combination, combinationStr, rangeInfo);
+      combinations.push(out);
+      combinationSet.add(combinationStr);
+    }
+
+    k++;
+  }
+
+  return combinations;
+};
+
+const generateCombination = (
+  system: number,
+  rangeInfo: TotoRangeInfo,
+  availablePools: TotoPools,
+  selectedPools: TotoPools,
+  customPools: TotoPools,
+  customCount: RangeValue,
+  odd: RangeValue,
+  even: RangeValue,
+  low: RangeValue,
+  high: RangeValue,
+  rangeValues: RangeValue[]
+): Set<number> => {
+  // Find out the remaining numbers to fill in
+  const remainingSlot = system - selectedPools.allPools.allPools.size;
+
+  // Record the initial custom group size
+  const initialCustomSize = customPools.allPools.allPools.size;
+
+  // Random numbers with the selected settings
+  for (let i = 0; i < remainingSlot; i++) {
+    // Calculate selected custom numbers
+    const selectedCustomCount =
+      initialCustomSize - customPools.allPools.allPools.size;
+
+    // Calculate required custom numbers to select
+    const requiredCustomCount = Math.max(
+      0,
+      customCount.min - selectedCustomCount
+    );
+
+    // Remove unnessary custom numbers
+    if (requiredCustomCount === 0 && selectedCustomCount >= customCount.max) {
+      for (const num of customPools.allPools.allPools) {
+        deletePoolNum(availablePools, num);
+        deletePoolNum(customPools, num);
+      }
+    }
+
+    // Random number with selected settings
+    const n =
+      requiredCustomCount > 0
+        ? randomNumber(
+            customPools,
+            selectedPools,
+            odd,
+            even,
+            low,
+            high,
+            rangeValues
+          )
+        : randomNumber(
+            availablePools,
+            selectedPools,
+            odd,
+            even,
+            low,
+            high,
+            rangeValues
+          );
+
+    // add generated number
+    if (n !== undefined) {
+      addPoolNum(selectedPools, n, rangeInfo.low);
+      deletePoolNum(availablePools, n);
+      deletePoolNum(customPools, n);
+    } else {
+      console.error("Failed to random on empty set.", i);
+    }
+  }
+
+  return selectedPools.allPools.allPools;
+};
+
+const randomNumber = (
+  availablePools: TotoPools,
+  selectedPools: TotoPools,
+  odd: RangeValue,
+  even: RangeValue,
+  low: RangeValue,
+  high: RangeValue,
+  rangeValues: RangeValue[]
+) => {
+  // Set selection bias for odd/even
+  let oddEvenRule = "both";
+  const remainingOddCount = Math.max(
+    0,
+    odd.max - selectedPools.allPools.oddPools.size
+  );
+  const remainingEvenCount = Math.max(
+    0,
+    even.max - selectedPools.allPools.evenPools.size
+  );
+  if (remainingOddCount !== remainingEvenCount) {
+    if (remainingEvenCount === 0 || remainingOddCount === 1) {
+      oddEvenRule = "odd";
+    } else if (remainingOddCount === 0 || remainingEvenCount === 1) {
+      oddEvenRule = "even";
+    }
+  }
+
+  // Set selection bias for odd/even
+  let lowHighRule = "both";
+  const remainingLowCount = Math.max(
+    0,
+    low.max - selectedPools.allPools.lowPools.size
+  );
+  const remainingHighCount = Math.max(
+    0,
+    high.max - selectedPools.allPools.highPools.size
+  );
+  if (remainingLowCount !== remainingHighCount) {
+    if (remainingHighCount === 0 || remainingLowCount === 1) {
+      lowHighRule = "low";
+    } else if (remainingLowCount === 0 || remainingHighCount === 1) {
+      lowHighRule = "high";
+    }
+  }
+
+  // Generate number based on bias
+  let n: number | undefined;
+  if (oddEvenRule === "both" && lowHighRule === "both") {
+    n = randomFromSet(availablePools.allPools.allPools);
+  } else {
+    if (oddEvenRule === "both") {
+      if (lowHighRule === "low") {
+        n = randomFromSet(availablePools.allPools.lowPools);
+      } else {
+        n = randomFromSet(availablePools.allPools.highPools);
+      }
+    } else if (oddEvenRule === "odd") {
+      if (lowHighRule === "both") {
+        n = randomFromSet(availablePools.allPools.oddPools);
+      } else if (lowHighRule === "low") {
+        n = randomFromSet(availablePools.allPools.oddLowPools);
+      } else {
+        n = randomFromSet(availablePools.allPools.oddHighPools);
+      }
+    } else {
+      if (lowHighRule === "both") {
+        n = randomFromSet(availablePools.allPools.evenPools);
+      } else if (lowHighRule === "low") {
+        n = randomFromSet(availablePools.allPools.evenLowPools);
+      } else {
+        n = randomFromSet(availablePools.allPools.evenHighPools);
+      }
+    }
+  }
+
+  return n;
+};
+
+const setToString = (set: Set<number>, separator: string) => {
+  return Array.from(set)
+    .sort((a, b) => a - b)
+    .join(separator);
+};
+
+const analyseData = (
+  combination: Set<number>,
+  combinationStr: string,
+  rangeInfo: TotoRangeInfo
+): TotoCombination => {
+  const outputGroups: TotoOutputGroup[] = [];
+  for (let i = 1; i <= rangeInfo.group * 10; i += 10) {
+    const name = `${i}-${i + 9}`;
+    const outputGroup: TotoOutputGroup = {
+      name,
+      count: 0,
+    };
+    outputGroups.push(outputGroup);
+  }
+
+  let sum = 0;
+  let average = 0;
+  let oddCount = 0;
+  let evenCount = 0;
+  let lowCount = 0;
+  let highCount = 0;
+  for (const n of combination) {
+    sum += n;
+
+    if (n % 2 === 0) evenCount++;
+    else oddCount++;
+
+    if (n <= rangeInfo.low) lowCount++;
+    else highCount++;
+
+    const divide = Math.floor(n / 10);
+    const remainder = n % 10;
+
+    let group = 0;
+    if (divide > 0) {
+      group = remainder > 0 ? divide : divide - 1;
+    }
+
+    outputGroups[group].count++;
+  }
+
+  if (combination.size > 0) {
+    average = Math.round(sum / combination.size);
+  }
+
+  return {
+    combination: combinationStr,
+    oddEven: `${oddCount}/${evenCount}`,
+    lowHigh: `${lowCount}/${highCount}`,
+    sum,
+    average,
+    outputGroups,
+  };
 };

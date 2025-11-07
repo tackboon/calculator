@@ -22,7 +22,6 @@ type RangeInput = {
 export const validateRangeGroup = (
   input: RangeInput,
   rangeInfo: TotoRangeInfo,
-  requiredCount: number,
   availablePools: TotoPools,
   mustIncludePools: TotoPools,
   customPools: TotoPools,
@@ -177,6 +176,42 @@ export const validateRangeGroup = (
               customCount.max,
               customPools[TotoPoolKeys[idx]].allPools.size
             )
+        ) {
+          let field = ERROR_FIELD_TOTO.RANGE_10;
+          if (rangeCounts[idx] === "") {
+            for (let i = 0; i < rangeCounts.length; i++) {
+              if (i === idx) continue;
+
+              if (rangeCounts[i] !== "") {
+                field += i;
+                break;
+              }
+            }
+          } else {
+            field = ERROR_FIELD_TOTO.RANGE_10 + idx;
+          }
+
+          return {
+            err:
+              availablePools.allPools.allPools.size < rangeInfo.count
+                ? "Your range group setting cannot be satisfied after applying your include, exclude, and custom group settings."
+                : "Your range group setting cannot be satisfied after applying your custom group settings.",
+            field,
+          };
+        }
+
+        // Calculate min/max sum of range group in custom settings
+        const minCustomRangeCount = Math.max(
+          0,
+          customCount.min -
+            (customPools.allPools.allPools.size -
+              customPools[TotoPoolKeys[idx]].allPools.size)
+        );
+
+        // Ensure there are enough numbers remaininig in the range group to fulfill the minimum requirement from custom groups.
+        if (
+          rangeValue.max - mustIncludePools[TotoPoolKeys[idx]].allPools.size <
+          minCustomRangeCount
         ) {
           let field = ERROR_FIELD_TOTO.RANGE_10;
           if (rangeCounts[idx] === "") {
