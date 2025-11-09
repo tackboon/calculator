@@ -54,7 +54,7 @@ const TotoForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorField, setErrorField] = useState<ERROR_FIELD_TOTO | null>(null);
   const [input, setInput] = useState<TotoInputType>(DEFAULT_INPUT);
-  const [rangeGroupCount, setRangeGroupCount] = useState(3);
+  const [rangeGroupCount, setRangeGroupCount] = useState(5);
 
   const [result, setResult] = useState<TotoCombination[] | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);

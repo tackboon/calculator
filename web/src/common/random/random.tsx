@@ -21,3 +21,9 @@ export const randomFromSet = <T,>(
 
   return value;
 };
+
+export const randomFromList = <T,>(list: readonly T[]): T | undefined => {
+  if (list.length === 0) return undefined;
+  
+  return list[Math.floor(Math.random() * list.length)];
+};
