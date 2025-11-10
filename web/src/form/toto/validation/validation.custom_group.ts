@@ -96,7 +96,10 @@ export const validateCustomGroup = (
     }
 
     // adjust custom count
-    customCount.max = Math.min(customCount.max, requiredCount);
+    customCount.max = Math.min(
+      customPools.allPools.allPools.size,
+      Math.min(customCount.max, requiredCount)
+    );
     customCount.min = Math.max(
       customCount.min,
       input.system -

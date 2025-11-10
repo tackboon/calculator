@@ -129,6 +129,20 @@ describe("validateCustomGroup", () => {
         "Not enough remaining numbers to complete a combination with the selected custom group count.",
       expectedField: ERROR_FIELD_TOTO.CUSTOM_COUNT,
     },
+    {
+      input: {
+        customGroups: "1",
+        customCount: "",
+        system: 6,
+      },
+      mustIncludes: "",
+      mustExcludes: "",
+      expectedCustomPoolSize: 1,
+      expectedMin: 0,
+      expectedMax: 1,
+      expectedErr: "",
+      expectedField: 0,
+    },
   ])(
     "includes: $mustIncludes, excludes: $mustExcludes, customGroups: $input.customGroups, customCount: $input.customCount",
     ({

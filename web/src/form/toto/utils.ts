@@ -36,6 +36,13 @@ export const extractRangeInput = (
   return { min: Number(parts[0]), max: Number(parts[0]) };
 };
 
+export const printTotoSetPoolString = (pool: TotoSetPools) => {
+  const entries = Object.entries(pool)
+    .map(([innerKey, set]) => `${innerKey}: [${[...set].join(", ")}]`)
+    .join("\n  ");
+  console.log(entries);
+};
+
 export const printTotoPoolString = (pools: TotoPools) => {
   const entries = Object.entries(pools).map(([key, poolSet]) => {
     const innerEntries = Object.entries(poolSet)
@@ -349,6 +356,19 @@ export const generateCombinations = (
     addPoolNum(customPools, n, rangeInfo.low);
   }
 
+  // Adjust custom group setting
+  const remainingSlot = input.system - selectedPools.allPools.allPools.size;
+  customCount.max = Math.min(
+    customPools.allPools.allPools.size,
+    Math.min(customCount.max, remainingSlot)
+  );
+  customCount.min = Math.max(
+    customCount.min,
+    remainingSlot -
+      (availablePools.allPools.allPools.size -
+        customPools.allPools.allPools.size)
+  );
+
   // Read odd/even setting
   const odd = extractRangeInput(input.odd, input.system);
   const even = extractRangeInput(input.even, input.system);
@@ -420,6 +440,7 @@ export const generateCombinations = (
     // generate combination
     const combination = generateCombination(
       input.system,
+      remainingSlot,
       rangeInfo,
       availablePoolsCopy,
       selectedPoolsCopy,
@@ -448,6 +469,7 @@ export const generateCombinations = (
 
 const generateCombination = (
   system: number,
+  remainingSlot: number,
   rangeInfo: TotoRangeInfo,
   availablePools: TotoPools,
   selectedPools: TotoPools,
@@ -460,12 +482,66 @@ const generateCombination = (
   rangeValues: RangeValue[]
 ): Set<number> => {
   let selectedCustomCount = 0;
-  const remainingSlot = system - selectedPools.allPools.allPools.size;
   for (let i = 0; i < remainingSlot; i++) {
     // Calculate remaining numbers to fill
     const remainingCount = remainingSlot - i;
 
+    // Calculate remaining and required custom numbers
+    const requiredCustomCount = Math.max(
+      0,
+      customCount.min - selectedCustomCount
+    );
+    const remainingCustomCount = Math.min(
+      customCount.max - selectedCustomCount,
+      customPools.allPools.allPools.size
+    );
+
+    // Remove unnessary custom numbers
+    if (remainingCustomCount === 0) {
+      for (const num of customPools.allPools.allPools) {
+        deletePoolNum(availablePools, num);
+        deletePoolNum(customPools, num);
+      }
+    }
+
+    // Calculate the remaining and required odd/even numbers
+    const remainingOddCount = Math.max(
+      0,
+      odd.max - selectedPools.allPools.oddPools.size
+    );
+    const requiredOddCount = Math.max(
+      0,
+      odd.min - selectedPools.allPools.oddPools.size
+    );
+    const remainingEvenCount = Math.max(
+      0,
+      even.max - selectedPools.allPools.evenPools.size
+    );
+    const requiredEvenCount = Math.max(
+      0,
+      even.min - selectedPools.allPools.evenPools.size
+    );
+
+    // Caculate the remaining and required low/high numbers
+    const remainingLowCount = Math.max(
+      0,
+      low.max - selectedPools.allPools.lowPools.size
+    );
+    const requiredLowCount = Math.max(
+      0,
+      low.min - selectedPools.allPools.lowPools.size
+    );
+    const remainingHighCount = Math.max(
+      0,
+      high.max - selectedPools.allPools.highPools.size
+    );
+    const requiredHighCount = Math.max(
+      0,
+      high.min - selectedPools.allPools.highPools.size
+    );
+
     // Calculate remaining and required numbers in each range group
+    const remainingRangeCounts: number[] = [];
     const requiredRangeCounts: number[] = [];
     for (const [idx, rangeValue] of rangeValues.entries()) {
       // Calculate remaining numbers in each range group
@@ -473,6 +549,7 @@ const generateCombination = (
         0,
         rangeValue.max - selectedPools[TotoPoolKeys[idx]].allPools.size
       );
+      remainingRangeCounts.push(remainingRangeCount);
 
       // Remove the numbers if the range group limit is reached
       if (remainingRangeCount === 0) {
@@ -490,61 +567,163 @@ const generateCombination = (
       requiredRangeCounts.push(requiredRangeCount);
     }
 
-    // Calculate required custom numbers to select
-    const requiredCustomCount = Math.max(
-      0,
-      customCount.min - selectedCustomCount
-    );
-
-    // Remove unnessary custom numbers
-    if (requiredCustomCount === 0 && selectedCustomCount >= customCount.max) {
-      for (const num of customPools.allPools.allPools) {
-        deletePoolNum(availablePools, num);
-        deletePoolNum(customPools, num);
+    // Select pool to draw
+    let pools: TotoPools;
+    let pool: TotoSetPools;
+    let selectedRangeGroupIdx: number | undefined;
+    let requiredRangeCount = remainingCount + 1;
+    if (requiredCustomCount > 0) {
+      // Choose the range group to draw with
+      pools = customPools;
+      pool = customPools.allPools;
+      for (let j = 0; j < rangeInfo.group; j++) {
+        const requiredCustomRangeCount = Math.max(
+          0,
+          requiredRangeCounts[j] -
+            (availablePools[TotoPoolKeys[j]].allPools.size -
+              customPools[TotoPoolKeys[j]].allPools.size)
+        );
+        if (
+          requiredCustomRangeCount > 0 &&
+          requiredCustomRangeCount < requiredRangeCount
+        ) {
+          requiredRangeCount = requiredCustomRangeCount;
+          pool = customPools[TotoPoolKeys[j]];
+          selectedRangeGroupIdx = j;
+        }
+      }
+    } else {
+      // Choose the range group to draw with
+      pools = availablePools;
+      pool = availablePools.allPools;
+      for (let j = 0; j < rangeInfo.group; j++) {
+        if (
+          requiredRangeCounts[j] > 0 &&
+          requiredRangeCounts[j] < requiredRangeCount
+        ) {
+          requiredRangeCount = requiredRangeCounts[j];
+          pool = customPools[TotoPoolKeys[j]];
+          selectedRangeGroupIdx = j;
+        }
       }
     }
 
-    // Calculate the remaining and required odd/even numbers
-    const remainingOddCount = Math.max(
-      0,
-      odd.max - selectedPools.allPools.oddPools.size
-    );
-    const remainingEvenCount = Math.max(
-      0,
-      even.max - selectedPools.allPools.evenPools.size
-    );
-
-    // Caculate the remaining and required low/high numbers
-    const remainingLowCount = Math.max(
-      0,
-      low.max - selectedPools.allPools.lowPools.size
-    );
-    const remainingHighCount = Math.max(
-      0,
-      high.max - selectedPools.allPools.highPools.size
-    );
-
-    // Select pool to draw
-    const pools = requiredCustomCount > 0 ? customPools : availablePools;
-
     // Set selection bias for odd/even setting
+    const poolAvailOddCount =
+      selectedRangeGroupIdx === undefined
+        ? pools.allPools.oddPools.size
+        : pools[TotoPoolKeys[selectedRangeGroupIdx]].oddPools.size;
+    const poolAvailEvenCount =
+      selectedRangeGroupIdx === undefined
+        ? pools.allPools.evenPools.size
+        : pools[TotoPoolKeys[selectedRangeGroupIdx]].evenPools.size;
+
+    let requiredPoolOddCount = 0;
+    if (poolAvailOddCount > 0) {
+      requiredPoolOddCount = Math.max(
+        0,
+        requiredOddCount -
+          (availablePools.allPools.oddPools.size - poolAvailOddCount)
+      );
+    }
+    let requiredPoolEvenCount = 0;
+    if (poolAvailEvenCount > 0) {
+      requiredPoolEvenCount = Math.max(
+        0,
+        requiredEvenCount -
+          (availablePools.allPools.evenPools.size - poolAvailEvenCount)
+      );
+    }
+
     let oddEvenRule = "both";
-    if (remainingEvenCount === 0) {
+    if (
+      remainingEvenCount === 0 ||
+      poolAvailEvenCount === 0 ||
+      requiredPoolOddCount > 0
+    ) {
       oddEvenRule = "odd";
-    } else if (remainingOddCount === 0) {
+    } else if (
+      remainingOddCount === 0 ||
+      poolAvailOddCount === 0 ||
+      requiredPoolEvenCount > 0
+    ) {
       oddEvenRule = "even";
     }
 
     // Set selection bias for low/high setting
+    const poolAvailLowCount =
+      selectedRangeGroupIdx === undefined
+        ? pools.allPools.lowPools.size
+        : pools[TotoPoolKeys[selectedRangeGroupIdx]].lowPools.size;
+    const poolAvailHighCount =
+      selectedRangeGroupIdx === undefined
+        ? pools.allPools.highPools.size
+        : pools[TotoPoolKeys[selectedRangeGroupIdx]].highPools.size;
+
+    let requiredPoolLowCount = 0;
+    if (poolAvailLowCount > 0) {
+      requiredPoolLowCount = Math.max(
+        0,
+        requiredLowCount -
+          (availablePools.allPools.lowPools.size - poolAvailLowCount)
+      );
+    }
+    let requiredPoolHighCount = 0;
+    if (poolAvailHighCount > 0) {
+      requiredPoolHighCount = Math.max(
+        0,
+        requiredHighCount -
+          (availablePools.allPools.highPools.size - poolAvailHighCount)
+      );
+    }
+
     let lowHighRule = "both";
-    if (remainingHighCount === 0) {
+    if (
+      remainingHighCount === 0 ||
+      poolAvailHighCount === 0 ||
+      requiredPoolLowCount > 0
+    ) {
       lowHighRule = "low";
-    } else if (remainingLowCount === 0) {
+    } else if (
+      remainingLowCount === 0 ||
+      poolAvailLowCount === 0 ||
+      requiredPoolHighCount > 0
+    ) {
       lowHighRule = "high";
     }
 
-    // Select the range group to draw with
-    let pool = pools.allPools;
+    console.log(requiredCustomCount, selectedRangeGroupIdx);
+    printTotoSetPoolString(pool);
+    console.log(oddEvenRule);
+    console.log(
+      "odd:",
+      remainingOddCount,
+      requiredOddCount,
+      poolAvailOddCount,
+      requiredPoolOddCount
+    );
+    console.log(
+      "even:",
+      remainingEvenCount,
+      requiredEvenCount,
+      poolAvailEvenCount,
+      requiredPoolEvenCount
+    );
+    console.log(lowHighRule);
+    console.log(
+      "low:",
+      remainingLowCount,
+      requiredLowCount,
+      poolAvailLowCount,
+      requiredPoolLowCount
+    );
+    console.log(
+      "high:",
+      remainingHighCount,
+      requiredHighCount,
+      poolAvailHighCount,
+      requiredPoolHighCount
+    );
 
     // Random number with selected settings
     const n = randomNumber(pool, oddEvenRule, lowHighRule);
