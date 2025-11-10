@@ -541,6 +541,10 @@ const generateCombination = (
     );
 
     // Calculate remaining and required numbers in each range group
+    let totalAvailRangeOddCount = 0;
+    let totalAvailRangeEvenCount = 0;
+    let totalAvailRangeLowCount = 0;
+    let totalAvailRangeHighCount = 0;
     const remainingRangeCounts: number[] = [];
     const requiredRangeCounts: number[] = [];
     for (const [idx, rangeValue] of rangeValues.entries()) {
@@ -565,6 +569,34 @@ const generateCombination = (
         rangeValue.min - selectedPools[TotoPoolKeys[idx]].allPools.size
       );
       requiredRangeCounts.push(requiredRangeCount);
+
+      // Calculate available odd count in range group
+      const availRangeOddCount = Math.min(
+        rangeValue.max,
+        availablePools[TotoPoolKeys[idx]].oddPools.size
+      );
+      totalAvailRangeOddCount += availRangeOddCount;
+
+      // Calculate available even count in range group
+      const availRangeEvenCount = Math.min(
+        rangeValue.max,
+        availablePools[TotoPoolKeys[idx]].evenPools.size
+      );
+      totalAvailRangeEvenCount += availRangeEvenCount;
+
+      // Calculate available low count in range group
+      const availRangeLowCount = Math.min(
+        rangeValue.max,
+        availablePools[TotoPoolKeys[idx]].lowPools.size
+      );
+      totalAvailRangeLowCount += availRangeLowCount;
+
+      // Calculate available high count in range group
+      const availRangeHighCount = Math.min(
+        rangeValue.max,
+        availablePools[TotoPoolKeys[idx]].highPools.size
+      );
+      totalAvailRangeHighCount += availRangeHighCount;
     }
 
     // Select pool to draw
@@ -602,7 +634,7 @@ const generateCombination = (
           requiredRangeCounts[j] < requiredRangeCount
         ) {
           requiredRangeCount = requiredRangeCounts[j];
-          pool = customPools[TotoPoolKeys[j]];
+          pool = availablePools[TotoPoolKeys[j]];
           selectedRangeGroupIdx = j;
         }
       }
@@ -622,16 +654,14 @@ const generateCombination = (
     if (poolAvailOddCount > 0) {
       requiredPoolOddCount = Math.max(
         0,
-        requiredOddCount -
-          (availablePools.allPools.oddPools.size - poolAvailOddCount)
+        requiredOddCount - (totalAvailRangeOddCount - poolAvailOddCount)
       );
     }
     let requiredPoolEvenCount = 0;
     if (poolAvailEvenCount > 0) {
       requiredPoolEvenCount = Math.max(
         0,
-        requiredEvenCount -
-          (availablePools.allPools.evenPools.size - poolAvailEvenCount)
+        requiredEvenCount - (totalAvailRangeEvenCount - poolAvailEvenCount)
       );
     }
 
@@ -664,16 +694,14 @@ const generateCombination = (
     if (poolAvailLowCount > 0) {
       requiredPoolLowCount = Math.max(
         0,
-        requiredLowCount -
-          (availablePools.allPools.lowPools.size - poolAvailLowCount)
+        requiredLowCount - (totalAvailRangeLowCount - poolAvailLowCount)
       );
     }
     let requiredPoolHighCount = 0;
     if (poolAvailHighCount > 0) {
       requiredPoolHighCount = Math.max(
         0,
-        requiredHighCount -
-          (availablePools.allPools.highPools.size - poolAvailHighCount)
+        requiredHighCount - (totalAvailRangeHighCount - poolAvailHighCount)
       );
     }
 
@@ -692,9 +720,13 @@ const generateCombination = (
       lowHighRule = "high";
     }
 
-    console.log(requiredCustomCount, selectedRangeGroupIdx);
+    console.log(
+      "required custom count:",
+      requiredCustomCount,
+      selectedRangeGroupIdx
+    );
     printTotoSetPoolString(pool);
-    console.log(oddEvenRule);
+    console.log("odd/even rule:", oddEvenRule);
     console.log(
       "odd:",
       remainingOddCount,
@@ -709,7 +741,7 @@ const generateCombination = (
       poolAvailEvenCount,
       requiredPoolEvenCount
     );
-    console.log(lowHighRule);
+    console.log("low/high rule:", lowHighRule);
     console.log(
       "low:",
       remainingLowCount,
@@ -727,6 +759,7 @@ const generateCombination = (
 
     // Random number with selected settings
     const n = randomNumber(pool, oddEvenRule, lowHighRule);
+    console.log("n:", n);
     if (n !== undefined) {
       // Calculate selected custom numbers
       if (customPools.allPools.allPools.has(n)) {
