@@ -643,12 +643,18 @@ const generateCombination = (
     // Set selection bias for odd/even setting
     const poolAvailOddCount =
       selectedRangeGroupIdx === undefined
-        ? pools.allPools.oddPools.size
-        : pools[TotoPoolKeys[selectedRangeGroupIdx]].oddPools.size;
+        ? Math.min(totalAvailRangeOddCount, pools.allPools.oddPools.size)
+        : Math.min(
+            rangeValues[selectedRangeGroupIdx].max,
+            pools[TotoPoolKeys[selectedRangeGroupIdx]].oddPools.size
+          );
     const poolAvailEvenCount =
       selectedRangeGroupIdx === undefined
-        ? pools.allPools.evenPools.size
-        : pools[TotoPoolKeys[selectedRangeGroupIdx]].evenPools.size;
+        ? Math.min(totalAvailRangeEvenCount, pools.allPools.evenPools.size)
+        : Math.min(
+            rangeValues[selectedRangeGroupIdx].max,
+            pools[TotoPoolKeys[selectedRangeGroupIdx]].evenPools.size
+          );
 
     let requiredPoolOddCount = 0;
     if (poolAvailOddCount > 0) {
@@ -683,12 +689,18 @@ const generateCombination = (
     // Set selection bias for low/high setting
     const poolAvailLowCount =
       selectedRangeGroupIdx === undefined
-        ? pools.allPools.lowPools.size
-        : pools[TotoPoolKeys[selectedRangeGroupIdx]].lowPools.size;
+        ? Math.min(totalAvailRangeLowCount, pools.allPools.lowPools.size)
+        : Math.min(
+            rangeValues[selectedRangeGroupIdx].max,
+            pools[TotoPoolKeys[selectedRangeGroupIdx]].lowPools.size
+          );
     const poolAvailHighCount =
       selectedRangeGroupIdx === undefined
-        ? pools.allPools.highPools.size
-        : pools[TotoPoolKeys[selectedRangeGroupIdx]].highPools.size;
+        ? Math.min(totalAvailRangeHighCount, pools.allPools.highPools.size)
+        : Math.min(
+            rangeValues[selectedRangeGroupIdx].max,
+            pools[TotoPoolKeys[selectedRangeGroupIdx]].highPools.size
+          );
 
     let requiredPoolLowCount = 0;
     if (poolAvailLowCount > 0) {
@@ -720,46 +732,8 @@ const generateCombination = (
       lowHighRule = "high";
     }
 
-    console.log(
-      "required custom count:",
-      requiredCustomCount,
-      selectedRangeGroupIdx
-    );
-    printTotoSetPoolString(pool);
-    console.log("odd/even rule:", oddEvenRule);
-    console.log(
-      "odd:",
-      remainingOddCount,
-      requiredOddCount,
-      poolAvailOddCount,
-      requiredPoolOddCount
-    );
-    console.log(
-      "even:",
-      remainingEvenCount,
-      requiredEvenCount,
-      poolAvailEvenCount,
-      requiredPoolEvenCount
-    );
-    console.log("low/high rule:", lowHighRule);
-    console.log(
-      "low:",
-      remainingLowCount,
-      requiredLowCount,
-      poolAvailLowCount,
-      requiredPoolLowCount
-    );
-    console.log(
-      "high:",
-      remainingHighCount,
-      requiredHighCount,
-      poolAvailHighCount,
-      requiredPoolHighCount
-    );
-
     // Random number with selected settings
     const n = randomNumber(pool, oddEvenRule, lowHighRule);
-    console.log("n:", n);
     if (n !== undefined) {
       // Calculate selected custom numbers
       if (customPools.allPools.allPools.has(n)) {
