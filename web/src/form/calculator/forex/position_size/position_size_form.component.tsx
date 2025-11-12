@@ -518,7 +518,7 @@ const ForexPositionSizeForm = () => {
           {input.includeTradingFee && (
             <>
               <div className={styles["form-group"]}>
-                <span className={styles[".label"]}>Fee Type</span>
+                <span className={styles["label"]}>Fee Type</span>
                 <SelectBox
                   id="fee-type"
                   options={[
