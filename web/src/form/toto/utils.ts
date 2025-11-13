@@ -431,7 +431,7 @@ export const generateCombinations = (
 
   // Generate combinations
   let k = 0;
-  while (combinations.length < count && k < 1000) {
+  OuterLoop: while (combinations.length < count && k < 1000) {
     // duplication pools to prevent overwrite of the default pools
     const availablePoolsCopy = getTotoPoolsCopy(availablePools);
     const selectedPoolsCopy = getTotoPoolsCopy(selectedPools);
@@ -439,7 +439,6 @@ export const generateCombinations = (
 
     // generate combination
     const combination = generateCombination(
-      input.system,
       remainingSlot,
       rangeInfo,
       availablePoolsCopy,
@@ -453,10 +452,55 @@ export const generateCombinations = (
       rangeValues
     );
 
+    // ensure the combination size is correct
+    if (combination.size !== input.system) continue;
+
+    // ensure the custom group setting is correct
+    if (customPools.allPools.allPools.size > 0) {
+      let selectedCustomCount = 0;
+      for (const num of combination) {
+        if (customPools.allPools.allPools.has(num)) selectedCustomCount++;
+      }
+      if (
+        selectedCustomCount < customCount.min ||
+        selectedCustomCount > customCount.max
+      )
+        continue;
+    }
+
     // analyse result and write to the output list
     const combinationStr = setToString(combination, " ");
     if (!combinationSet.has(combinationStr)) {
       const out = analyseData(combination, combinationStr, rangeInfo);
+
+      // ensure the odd/even setting is correct
+      if (
+        out.oddCount < odd.min ||
+        out.oddCount > odd.max ||
+        out.evenCount < even.min ||
+        out.evenCount > even.max
+      )
+        continue;
+
+      // ensure the low/high setting is correct
+      if (
+        out.lowCount < low.min ||
+        out.lowCount > low.max ||
+        out.highCount < high.min ||
+        out.highCount > high.max
+      )
+        continue;
+
+      // ensure the range group setting is correct
+      for (const [idx, rangeValue] of rangeValues.entries()) {
+        if (
+          out.outputGroups[idx].count < rangeValue.min ||
+          out.outputGroups[idx].count > rangeValue.max
+        )
+          continue OuterLoop;
+      }
+
+      // save combination
       combinations.push(out);
       combinationSet.add(combinationStr);
     }
@@ -468,7 +512,6 @@ export const generateCombinations = (
 };
 
 const generateCombination = (
-  system: number,
   remainingSlot: number,
   rangeInfo: TotoRangeInfo,
   availablePools: TotoPools,
@@ -850,5 +893,9 @@ const analyseData = (
     sum,
     average,
     outputGroups,
+    oddCount,
+    evenCount,
+    lowCount,
+    highCount,
   };
 };

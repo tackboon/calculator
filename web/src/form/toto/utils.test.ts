@@ -1,5 +1,5 @@
 import { RangeValue, TOTO_RANGE } from "./toto.type";
-import { extractRangeInput, generateCombinations, getRangeInfo } from "./utils";
+import { extractRangeInput, generateCombinations } from "./utils";
 import { validateTotoInput } from "./validation/validation";
 
 describe("generateCombinations", () => {

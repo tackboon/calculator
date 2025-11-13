@@ -65,6 +65,10 @@ export type TotoCombination = {
   sum: number;
   average: number;
   outputGroups: TotoOutputGroup[];
+  oddCount: number;
+  evenCount: number;
+  lowCount: number;
+  highCount: number;
 };
 
 export type TotoSetPools = {
