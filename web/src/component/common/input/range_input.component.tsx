@@ -76,8 +76,7 @@ const RangeInput: FC<RangeInputProps> = ({
 
     if (val.length > maxChars) val = val.slice(0, maxChars);
 
-    e.target.value = val;
-    if (onChangeHandler) onChangeHandler(e.target.value);
+    if (onChangeHandler) onChangeHandler(val);
     if (onChange) onChange(e);
   };
 
