@@ -17,9 +17,9 @@ export const getRangeGroupHeight = (
   rangeTyp: number
 ) => {
   if (!includeRangeGroup) return 0;
-  if (rangeTyp === 5) return 472;
-  if (rangeTyp === 6) return 572;
-  return 672;
+  if (rangeTyp === 5) return 476;
+  if (rangeTyp === 6) return 576;
+  return 676;
 };
 
 export const extractRangeInput = (
