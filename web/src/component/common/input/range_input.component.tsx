@@ -1,4 +1,4 @@
-import { FC, InputHTMLAttributes, useRef } from "react";
+import { FC, InputHTMLAttributes, useLayoutEffect, useRef } from "react";
 
 import styles from "./input.module.scss";
 
@@ -20,6 +20,14 @@ const RangeInput: FC<RangeInputProps> = ({
   ...props
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const caretPosRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (!inputRef.current) return;
+
+    const pos = caretPosRef.current;
+    inputRef.current.setSelectionRange(pos, pos);
+  });
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     let value = e.target.value;
@@ -62,6 +70,8 @@ const RangeInput: FC<RangeInputProps> = ({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const prevCursorPos = e.target.selectionStart ?? 0;
+
     // Allow digits and '-' only
     let val = e.target.value.replace(/[^0-9-]/g, "");
 
@@ -74,7 +84,12 @@ const RangeInput: FC<RangeInputProps> = ({
         val.slice(firstDashIndex + 1).replace(/-/g, "");
     }
 
+    // Remove overflow characters
     if (val.length > maxChars) val = val.slice(0, maxChars);
+
+    // Count removed chars
+    const diff = e.target.value.length - val.length;
+    caretPosRef.current = prevCursorPos - diff;
 
     if (onChangeHandler) onChangeHandler(val);
     if (onChange) onChange(e);

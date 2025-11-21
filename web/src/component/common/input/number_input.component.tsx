@@ -1,4 +1,4 @@
-import React, { FC, InputHTMLAttributes, useRef } from "react";
+import React, { FC, InputHTMLAttributes, useLayoutEffect, useRef } from "react";
 
 import styles from "./input.module.scss";
 import {
@@ -62,6 +62,14 @@ const NumberInput: FC<NumberInputProps> = ({
   ...props
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const caretPosRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (!inputRef.current) return;
+
+    const pos = caretPosRef.current;
+    inputRef.current.setSelectionRange(pos, pos);
+  });
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // Fix multiple dot entries (1.2.34 => 1.234)
@@ -72,15 +80,21 @@ const NumberInput: FC<NumberInputProps> = ({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const prevCursorPos = e.target.selectionStart ?? 0;
+
     // Allow digits, arithmetic operators (+, -, *, /, (, )) and decimal points
     let val = allowPlusMinus
       ? e.target.value.replace(/[^0-9+\-*/().,]/g, "")
       : e.target.value.replace(/[^0-9.,]/g, "");
 
+    // Remove overflow characters
     if (val.length > maxChars) val = val.slice(0, maxChars);
 
-    e.target.value = val;
-    if (onChangeHandler) onChangeHandler(e.target.value);
+    // Count removed chars
+    const diff = e.target.value.length - val.length;
+    caretPosRef.current = prevCursorPos - diff;
+
+    if (onChangeHandler) onChangeHandler(val);
     if (onChange) onChange(e);
   };
 

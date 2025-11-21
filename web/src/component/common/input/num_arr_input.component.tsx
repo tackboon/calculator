@@ -1,4 +1,4 @@
-import { FC, InputHTMLAttributes, useRef } from "react";
+import { FC, InputHTMLAttributes, useLayoutEffect, useRef } from "react";
 
 import styles from "./input.module.scss";
 
@@ -20,10 +20,21 @@ const NumArrInput: FC<NumArrInputProps> = ({
   ...props
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const caretPosRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (!inputRef.current) return;
+
+    const pos = caretPosRef.current;
+    inputRef.current.setSelectionRange(pos, pos);
+  });
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     // Remove leading or trailing commas
     let value = e.target.value.replace(/\s+/g, "").replace(/^,|,$/g, "");
+
+    // Prevent consecutive commas (",,")
+    value = value.replace(/,+/g, ",");
 
     // Allow empty string
     if (value === "") {
@@ -40,13 +51,17 @@ const NumArrInput: FC<NumArrInputProps> = ({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const prevCursorPos = e.target.selectionStart ?? 0;
+
     // Keep only digits and commas
     let val = e.target.value.replace(/[^0-9,]/g, "");
 
-    // Prevent consecutive commas (",,")
-    val = val.replace(/,+/g, ",");
-
+    // Remvoe overflow characters
     if (val.length > maxChars) val = val.slice(0, maxChars);
+
+    // Count removed chars
+    const diff = e.target.value.length - val.length;
+    caretPosRef.current = prevCursorPos - diff;
 
     if (onChangeHandler) onChangeHandler(val);
     if (onChange) onChange(e);

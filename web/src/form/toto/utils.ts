@@ -297,6 +297,8 @@ export const getRangeInfo = (rangeTyp: TOTO_RANGE): TotoRangeInfo => {
 export const generateCombinations = (
   input: TotoInputType
 ): TotoCombination[] => {
+  console.log(input)
+
   // Read params
   const count = Number(input.count);
   const rangeInfo = getRangeInfo(input.numberRange);

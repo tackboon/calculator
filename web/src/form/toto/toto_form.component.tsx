@@ -176,7 +176,6 @@ const TotoForm = () => {
             id="count"
             type="number"
             min={1}
-            max={100}
             value={input.count}
             isInvalid={errorField === ERROR_FIELD_TOTO.COUNT}
             onChange={(e) =>
@@ -184,7 +183,7 @@ const TotoForm = () => {
             }
             onBlur={(e) => {
               let count = Number(e.target.value);
-              if (isNaN(count) || count < 1 || count > 100) {
+              if (isNaN(count) || count < 1) {
                 count = 1;
               }
               e.target.value = count.toString();
