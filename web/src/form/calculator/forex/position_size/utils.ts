@@ -176,6 +176,15 @@ export const calculateResult = (
   Handle calculation
   */
 
+  // Calculate maximum lot size to hold
+  // portfolioCapital = lotSize * contractSize * baseRate / leverage
+  // maxLotSize = (portfolioCapital * leverage) / (contractSize * baseRate)
+  let maxLotSize = divideBig(
+    multiplyBig(portfolioCapital, input.leverage),
+    multiplyBig(contractSize, baseRate)
+  );
+  maxLotSize = mathBigNum.floor(maxLotSize, input.lotTyp);
+
   // Calculate max loss
   // maxLoss = portfolioCapital * maxPortfolioRiskRate
   const maxLoss = multiplyBig(portfolioCapital, maxPortfolioRiskRate);
@@ -196,7 +205,8 @@ export const calculateResult = (
       input.lotTyp,
       contractSize,
       quoteRate,
-      stopPriceDiff
+      stopPriceDiff,
+      maxLotSize
     );
 
     // riskAmount = lotSize * contractSize * stopPriceDiff * quoteRate
@@ -215,7 +225,8 @@ export const calculateResult = (
         stopPriceDiff,
         swapRate,
         commissionFee,
-        pipDecimal
+        pipDecimal,
+        maxLotSize
       );
 
       const getRiskAmountFn = (lotSize: BigNumber) => {
@@ -258,7 +269,8 @@ export const calculateResult = (
         getRiskAmountFn,
         maxLoss,
         lotSize,
-        input.lotTyp
+        input.lotTyp,
+        maxLotSize
       );
 
       lotSize = adjustedRes.lotSize;
@@ -278,7 +290,8 @@ export const calculateResult = (
         quoteRate,
         swapRate,
         commissionFeeRate,
-        pipDecimal
+        pipDecimal,
+        maxLotSize
       );
 
       const getRiskAmountFn = (lotSize: BigNumber) => {
@@ -332,7 +345,8 @@ export const calculateResult = (
         getRiskAmountFn,
         maxLoss,
         lotSize,
-        input.lotTyp
+        input.lotTyp,
+        maxLotSize
       );
 
       lotSize = adjustedRes.lotSize;
@@ -353,9 +367,10 @@ export const calculateResult = (
   let positionSize = multiplyBig(lotSize, contractSize);
 
   // marginToHold = positionSize * baseRate / leverage
-  const marginToHold = input.isLong
-    ? multiplyBig(positionSize, divideBig(baseRate, input.leverage))
-    : multiplyBig(positionSize, divideBig(baseRate, input.leverage));
+  const marginToHold = multiplyBig(
+    positionSize,
+    divideBig(baseRate, input.leverage)
+  );
 
   // Calculate profit and profit fee
   let profitPip: BigNumber | undefined;
@@ -590,7 +605,8 @@ const calcLotSize = (
   lotPrecision: number,
   contractSize: BigNumber,
   quoteRate: BigNumber,
-  priceDiff: BigNumber
+  priceDiff: BigNumber,
+  maxLotSize: BigNumber
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
@@ -604,6 +620,7 @@ const calcLotSize = (
   }
   lotSize = divideBig(maxLoss, diff);
   lotSize = mathBigNum.floor(lotSize, lotPrecision);
+  lotSize = mathBigNum.min(lotSize, maxLotSize);
 
   return lotSize;
 };
@@ -616,7 +633,8 @@ const calcLotSizeWithLotBasedCommission = (
   priceDiff: BigNumber,
   swapRate: BigNumber,
   commissionFee: BigNumber,
-  pipDecimal: BigNumber
+  pipDecimal: BigNumber,
+  maxLotSize: BigNumber
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
@@ -651,6 +669,7 @@ const calcLotSizeWithLotBasedCommission = (
 
   lotSize = divideBig(maxLoss, divisor);
   lotSize = mathBigNum.floor(lotSize, lotPrecision);
+  lotSize = mathBigNum.min(lotSize, maxLotSize);
 
   return lotSize;
 };
@@ -664,7 +683,8 @@ const calcLotSizeWith100KBasedCommission = (
   quoteRate: BigNumber,
   swapRate: BigNumber,
   commissionFeeRate: BigNumber,
-  pipDecimal: BigNumber
+  pipDecimal: BigNumber,
+  maxLotSize: BigNumber
 ) => {
   let lotSize = mathBigNum.bignumber(0);
 
@@ -706,6 +726,7 @@ const calcLotSizeWith100KBasedCommission = (
 
   lotSize = divideBig(maxLoss, divisor);
   lotSize = mathBigNum.floor(lotSize, lotPrecision);
+  lotSize = mathBigNum.min(lotSize, maxLotSize);
 
   return lotSize;
 };
@@ -719,7 +740,8 @@ const adjustLotSize = (
   },
   maxLoss: BigNumber,
   lotSize: BigNumber,
-  lotTyp: LotTyp
+  lotTyp: LotTyp,
+  maxLotSize: BigNumber
 ) => {
   if (mathBigNum.equal(lotSize, 0)) {
     return {
@@ -736,6 +758,9 @@ const adjustLotSize = (
   let entryFee = res.entryFee;
   let stopFee = res.stopFee;
   let swapValue = res.swapValue;
+
+  if (mathBigNum.equal(lotSize, maxLotSize))
+    return { lotSize, riskAmount, entryFee, stopFee, swapValue };
 
   const units = [1, 0.1, 0.01, 0.001];
   for (let i = 0; i <= lotTyp; i++) {
@@ -811,19 +836,14 @@ const adjustProfitPip = (
 
     if (mathBigNum.larger(tempProfitAmt, minProfit)) {
       isLarger = true;
-      tempProfitPip = isLong
-        ? subtractBig(tempProfitPip, 1)
-        : addBig(tempProfitPip, 1);
+      tempProfitPip = subtractBig(tempProfitPip, 1);
     } else {
       if (isLarger) break;
-      tempProfitPip = isLong
-        ? addBig(tempProfitPip, 1)
-        : subtractBig(tempProfitPip, 1);
+      tempProfitPip = addBig(tempProfitPip, 1);
     }
 
     const res = getProfitAmountFn(tempProfitPip);
     tempProfitAmt = res.profitAmt;
-
     if (mathBigNum.largerEq(tempProfitAmt, minProfit)) {
       profitAmount = res.profitAmt;
       profitPip = tempProfitPip;
