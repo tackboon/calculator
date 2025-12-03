@@ -87,6 +87,7 @@ const ForexPipForm = () => {
       quotePair: prev.quotePair,
       quoteCrossRate: prev.quoteCrossRate,
       pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
+      positionSize: `${supportedAssets[prev.currencyPair].lot}`
     }));
     setErrorField(null);
     setResult(null);
@@ -139,7 +140,8 @@ const ForexPipForm = () => {
                 const pairInfo = supportedAssets[pair];
                 return {
                   ...prev,
-                  pipSize: `${pairInfo.pip}`,
+                  pipDecimal: `${pairInfo.pip}`,
+                  positionSize: `${pairInfo.lot}`,
                   currencyPair: pair,
                 };
               });

@@ -85,14 +85,19 @@ const ForexMarginForm = () => {
     e.preventDefault();
 
     setErrorMessage("");
-    setInput((prev) => ({
-      ...DEFAULT_INPUT,
-      accBaseCurrency: prev.accBaseCurrency,
-      currencyPair: prev.currencyPair,
-      basePair: prev.basePair,
-      baseCrossRate: prev.baseCrossRate,
-      leverage: prev.leverage,
-    }));
+    setInput((prev) => {
+      const pairInfo = supportedAssets[prev.currencyPair];
+
+      return {
+        ...DEFAULT_INPUT,
+        accBaseCurrency: prev.accBaseCurrency,
+        currencyPair: prev.currencyPair,
+        basePair: prev.basePair,
+        baseCrossRate: prev.baseCrossRate,
+        leverage: prev.leverage,
+        positionSize: pairInfo.lot,
+      };
+    });
     setErrorField(null);
     setResult(null);
   };
@@ -144,8 +149,7 @@ const ForexMarginForm = () => {
                 const pairInfo = supportedAssets[pair];
                 return {
                   ...prev,
-                  pipSize: pairInfo.pip,
-                  contractSize: pairInfo.lot,
+                  positionSize: pairInfo.lot,
                   currencyPair: pair,
                 };
               });

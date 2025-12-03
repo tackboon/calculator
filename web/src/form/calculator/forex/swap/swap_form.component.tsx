@@ -89,7 +89,8 @@ const ForexSwapForm = () => {
       currencyPair: prev.currencyPair,
       quotePair: prev.quotePair,
       quoteCrossRate: prev.quoteCrossRate,
-      pipSize: `${supportedAssets[prev.currencyPair].pip}`,
+      pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
+      positionSize: `${supportedAssets[prev.currencyPair].lot}`,
     }));
     setErrorField(null);
     setResult(null);
@@ -142,7 +143,8 @@ const ForexSwapForm = () => {
                 const pairInfo = supportedAssets[pair];
                 return {
                   ...prev,
-                  pipSize: `${pairInfo.pip}`,
+                  pipDecimal: `${pairInfo.pip}`,
+                  positionSize: `${pairInfo.lot}`,
                   currencyPair: pair,
                 };
               });
