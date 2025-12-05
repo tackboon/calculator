@@ -196,3 +196,11 @@
     font-weight: 600;
   }
 }
+
+.result-margin {
+  margin-top: 2.5rem;
+
+  @media (min-width: 768px) {
+    margin-top: 5rem;
+  }
+}

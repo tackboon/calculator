@@ -10,6 +10,7 @@ import { useCheckIsLargeView } from "../../common/screen/size";
 import ForexPipForm from "../../form/calculator/forex/pip/pip_form.component";
 import ForexMarginForm from "../../form/calculator/forex/margin/margin_form.component";
 import ForexSwapForm from "../../form/calculator/forex/swap/swap_form.component";
+import ForexPipMovementForm from "../../form/calculator/forex/pip_movement/pip_movement_form.component";
 
 const CalculatorPage = () => {
   const isLargeView = useCheckIsLargeView();
@@ -30,7 +31,7 @@ const CalculatorPage = () => {
               <TabContent name="Position Sizing">
                 <PositionSizeForm />
               </TabContent>
-              <TabContent name="Price-Percentage">
+              <TabContent name="Price Change">
                 <PricePercentageForm />
               </TabContent>
               <TabContent name="Risk & Profit">
@@ -55,6 +56,9 @@ const CalculatorPage = () => {
               <TabContent name="Pip Value">
                 <ForexPipForm />
               </TabContent>
+              <TabContent name="Price Change">
+                <ForexPipMovementForm />
+              </TabContent>
               <TabContent name="Margin to Hold">
                 <ForexMarginForm />
               </TabContent>
@@ -69,8 +73,8 @@ const CalculatorPage = () => {
       <div className={styles["footer"]}>
         <p>
           <strong>Risk Disclaimer & Warning:</strong> All calculators provided
-          on this site including stock and forex tools are for informational
-          and educational purposes only. They are designed to assist users in
+          on this site including stock and forex tools are for informational and
+          educational purposes only. They are designed to assist users in
           performing general trading-related calculations and do not constitute
           investment advice or financial recommendations. Actual trading
           outcomes may differ due to market volatility, execution speed, fees,
