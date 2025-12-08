@@ -1,6 +1,5 @@
 import {
   addBig,
-  divideBig,
   mathBigNum,
   MILLION,
   multiplyBig,
@@ -14,7 +13,6 @@ import {
   PipMovementInputType,
   PipMovementResultType,
 } from "./pip_movement.type";
-import { getBaseAndQuote } from "../../../../common/forex/forex";
 import { BigNumber } from "mathjs";
 
 export const validatePipMovementInput = (
