@@ -373,7 +373,7 @@ const ForexPositionSizeForm = () => {
             postUnit="PIP"
             isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.STOP_LOSS}
             minDecimalPlace={0}
-            maxDecimalPlace={0}
+            maxDecimalPlace={1}
             value={input.stopPip}
             onChangeHandler={(val) =>
               setInput((prev) => ({ ...prev, stopPip: val }))
@@ -463,7 +463,7 @@ const ForexPositionSizeForm = () => {
                     input.profitGoalTyp === ProfitGoalTyp.PIP_BASED ? 0 : 2
                   }
                   maxDecimalPlace={
-                    input.profitGoalTyp === ProfitGoalTyp.PIP_BASED ? 0 : 5
+                    input.profitGoalTyp === ProfitGoalTyp.PIP_BASED ? 1 : 5
                   }
                   value={input.profitGoal}
                   onChangeHandler={(val) =>

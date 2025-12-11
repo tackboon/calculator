@@ -1,6 +1,21 @@
 import { RangeValue, TOTO_RANGE } from "./toto.type";
-import { extractRangeInput, generateCombinations } from "./utils";
+import {
+  calcCombination,
+  extractRangeInput,
+  generateCombinations,
+} from "./utils";
 import { validateTotoInput } from "./validation/validation";
+
+describe("calcCombination", () => {
+  it.each([
+    { input: { n: 6, k: 6 }, output: 1 },
+    { input: { n: 7, k: 6 }, output: 7 },
+    { input: { n: 12, k: 6 }, output: 924 },
+  ])("$input", ({ input, output }) => {
+    const out = calcCombination(input.n, input.k);
+    expect(out).toBe(output);
+  });
+});
 
 describe("generateCombinations", () => {
   it.each([
@@ -35,10 +50,10 @@ describe("generateCombinations", () => {
     {
       input: {
         count: "100",
-        system: 6,
+        system: 7,
         numberRange: TOTO_RANGE.FOURTY_NINE,
         includeNumberFilter: true,
-        mustIncludes: "1,2,3,4,5,6",
+        mustIncludes: "1,2,3,4,5,6,7",
         mustExcludes: "",
         includeOddEven: false,
         odd: "",
@@ -172,14 +187,14 @@ describe("generateCombinations", () => {
       },
       expectedCount: 100,
     },
-  ])("$input", ({ input, expectedCount }) => {
+  ])("$input", async ({ input, expectedCount }) => {
     const { err } = validateTotoInput(input);
     expect(err).toBe("");
 
-    const results = generateCombinations(input);
-    expect(results.length).toBe(expectedCount);
+    const results = await generateCombinations(input);
+    expect(results.combinations.length).toBe(expectedCount);
 
-    for (const result of results) {
+    for (const result of results.combinations) {
       // verify odd/even setting
       const oddEvenParts = result.oddEven.split("/");
       expect(oddEvenParts.length).toBe(2);

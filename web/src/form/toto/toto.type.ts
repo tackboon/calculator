@@ -128,3 +128,23 @@ export type RangeValue = {
   min: number;
   max: number;
 };
+
+export type WorkerInput = {
+  system: number;
+  rangeInfo: TotoRangeInfo;
+  customCount: RangeValue;
+  odd: RangeValue;
+  even: RangeValue;
+  low: RangeValue;
+  high: RangeValue;
+  rangeValues: RangeValue[];
+  mustIncludeSize: number;
+  availableBit: boolean[];
+  selectedBit: boolean[];
+  customBit: boolean[];
+  oddBit: boolean[];
+  lowBit: boolean[];
+  rangeBit: number[];
+  startNum: number;
+  endNum: number;
+};

@@ -23,6 +23,7 @@ import RangeInput from "../../component/common/input/range_input.component";
 import TrashbinIcon from "../../component/common/icon/trashbin.component";
 import Checkbox from "../../component/common/checkbox/checkbox.component";
 import { validateTotoInput } from "./validation/validation";
+import { convertToLocaleString } from "../../common/number/number";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -57,6 +58,7 @@ const TotoForm = () => {
   const [rangeGroupCount, setRangeGroupCount] = useState(5);
 
   const [result, setResult] = useState<TotoCombination[] | null>(null);
+  const [possibleCount, setPossibleCount] = useState<number | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -83,11 +85,14 @@ const TotoForm = () => {
 
     setIsGenerating(true);
 
-    // generate combinations
-    const combinations = generateCombinations(input);
-    setResult(combinations.length > 0 ? combinations : null);
-    if (combinations.length === 0)
-      toast.error("Could not generate possible combinations.");
+    (async () => {
+      // generate combinations
+      const { combinations, count } = await generateCombinations(input);
+      setResult(combinations.length > 0 ? combinations : null);
+      if (combinations.length === 0)
+        toast.error("Could not generate possible combinations.");
+      setPossibleCount(count);
+    })();
   };
 
   const handleReset = (e: React.FormEvent) => {
@@ -671,6 +676,15 @@ const TotoForm = () => {
       <div ref={resultRef}>
         {result && result.length > 0 && (
           <div className={`${styles["result-container"]}`}>
+            {possibleCount !== null && (
+              <div>
+                <h3>
+                  Possible Combination:{" "}
+                  {convertToLocaleString(`${possibleCount}`, 0, 0)}
+                </h3>
+              </div>
+            )}
+
             {transitions((style, res, _, idx) => (
               <animated.div style={style} key={`toto-res-${idx}`}>
                 <Container className={styles["result-wrapper"]}>
