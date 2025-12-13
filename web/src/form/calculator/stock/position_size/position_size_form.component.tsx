@@ -25,6 +25,10 @@ import {
 } from "./position_size.type";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 import { convertRatioToString } from "../../../../common/common";
+import {
+  loadStockPositionSize,
+  saveStockPositionSize,
+} from "../../../../store/indexed_db";
 
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
@@ -59,6 +63,45 @@ const PositionSizeForm = () => {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result]);
+
+  // Preload saved data
+  useEffect(() => {
+    loadStockPositionSize().then((data) => {
+      if (data !== undefined) {
+        setInput((prev) => ({
+          ...prev,
+          portfolioCapital: data.portfolioCapital,
+          maxPortfolioRisk: data.maxPortfolioRisk,
+          unitType: data.unitType,
+          stopLossTyp: data.stopLossTyp,
+          includeProfitGoal: data.includeProfitGoal,
+          profitGoalTyp: data.profitGoalTyp,
+          profitGoalUnit: data.profitGoalUnit,
+          includeTradingFee: data.includeTradingFee,
+          estTradingFee: data.estTradingFee,
+          minTradingFee: data.minTradingFee,
+          precision: data.precision,
+        }));
+      }
+    });
+  }, []);
+
+  // Handle save data
+  const handleSave = () => {
+    saveStockPositionSize({
+      portfolioCapital: input.portfolioCapital,
+      maxPortfolioRisk: input.maxPortfolioRisk,
+      unitType: input.unitType,
+      stopLossTyp: input.stopLossTyp,
+      includeProfitGoal: input.includeProfitGoal,
+      profitGoalTyp: input.profitGoalTyp,
+      profitGoalUnit: input.profitGoalUnit,
+      includeTradingFee: input.includeTradingFee,
+      estTradingFee: input.estTradingFee,
+      minTradingFee: input.minTradingFee,
+      precision: input.precision,
+    });
+  };
 
   // Form submission handler
   const handleSubmit = (e: FormEvent) => {
@@ -458,17 +501,26 @@ const PositionSizeForm = () => {
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
-      <div className={styles["form-btn"]}>
+      <div className={styles["form-btn-2"]}>
+        <div className={styles["form-btn"]}>
+          <Button
+            className={styles["reset-btn"]}
+            type="reset"
+            tabIndex={-1}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+          <Button className={styles["submit-btn"]} type="submit">
+            Calculate
+          </Button>
+        </div>
         <Button
-          className={styles["reset-btn"]}
-          type="reset"
-          tabIndex={-1}
-          onClick={handleReset}
+          className={styles["save-btn"]}
+          type="button"
+          onClick={handleSave}
         >
-          Reset
-        </Button>
-        <Button className={styles["submit-btn"]} type="submit">
-          Calculate
+          Save
         </Button>
       </div>
 

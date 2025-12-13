@@ -42,6 +42,10 @@ import Container from "../../../../component/common/container/container.componen
 import { convertToLocaleString } from "../../../../common/number/number";
 import { convertRatioToString } from "../../../../common/common";
 import { absBig, mathBigNum } from "../../../../common/number/math";
+import {
+  loadForexPositionSize,
+  saveForexPositionSize,
+} from "../../../../store/indexed_db";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -99,6 +103,49 @@ const ForexPositionSizeForm = () => {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result]);
+
+  // Preload saved data
+  useEffect(() => {
+    loadForexPositionSize().then((data) => {
+      if (data !== undefined) {
+        setInput((prev) => ({
+          ...prev,
+          portfolioCapital: data.portfolioCapital,
+          maxPortfolioRisk: data.maxPortfolioRisk,
+          accBaseCurrency: data.accBaseCurrency,
+          lotTyp: data.lotTyp,
+          includeProfitGoal: data.includeProfitGoal,
+          profitGoalTyp: data.profitGoalTyp,
+          includeTradingFee: data.includeTradingFee,
+          feeTyp: data.feeTyp,
+          estTradingFee: data.estTradingFee,
+          leverage: data.leverage,
+          precision: data.precision,
+          includePrice: data.includePrice,
+          slippage: data.slippage,
+        }));
+      }
+    });
+  }, []);
+
+  // Handle save data
+  const handleSave = () => {
+    saveForexPositionSize({
+      portfolioCapital: input.portfolioCapital,
+      maxPortfolioRisk: input.maxPortfolioRisk,
+      accBaseCurrency: input.accBaseCurrency,
+      lotTyp: input.lotTyp,
+      includeProfitGoal: input.includeProfitGoal,
+      profitGoalTyp: input.profitGoalTyp,
+      includeTradingFee: input.includeTradingFee,
+      feeTyp: input.feeTyp,
+      estTradingFee: input.estTradingFee,
+      leverage: input.leverage,
+      precision: input.precision,
+      includePrice: input.includePrice,
+      slippage: input.slippage,
+    });
+  };
 
   // Submit handler
   const handleSubmit = (e: FormEvent) => {
@@ -693,17 +740,27 @@ const ForexPositionSizeForm = () => {
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
-      <div className={styles["form-btn"]}>
+      <div className={styles["form-btn-2"]}>
+        <div className={styles["form-btn"]}>
+          <Button
+            className={styles["reset-btn"]}
+            type="reset"
+            tabIndex={-1}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+          <Button className={styles["submit-btn"]} type="submit">
+            Calculate
+          </Button>
+        </div>
+
         <Button
-          className={styles["reset-btn"]}
-          type="reset"
-          tabIndex={-1}
-          onClick={handleReset}
+          className={styles["save-btn"]}
+          type="button"
+          onClick={handleSave}
         >
-          Reset
-        </Button>
-        <Button className={styles["submit-btn"]} type="submit">
-          Calculate
+          Save
         </Button>
       </div>
 
