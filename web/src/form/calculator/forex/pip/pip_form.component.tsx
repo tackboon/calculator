@@ -32,6 +32,7 @@ const DEFAULT_INPUT: PipInputType = {
   quoteCrossRate: "1.00",
   positionSize: "100,000",
   pipDecimal: "0.0001",
+  pipSize: "1",
 };
 
 const ForexPipForm = () => {
@@ -87,7 +88,7 @@ const ForexPipForm = () => {
       quotePair: prev.quotePair,
       quoteCrossRate: prev.quoteCrossRate,
       pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
-      positionSize: `${supportedAssets[prev.currencyPair].lot}`
+      positionSize: `${supportedAssets[prev.currencyPair].lot}`,
     }));
     setErrorField(null);
     setResult(null);
@@ -202,6 +203,21 @@ const ForexPipForm = () => {
           />
         </div>
 
+        <div className={styles["form-group"]}>
+          <label htmlFor="pip-decimal">Pip Size</label>
+          <NumberInput
+            id="pip-size"
+            step={1}
+            isInvalid={errorField === ERROR_FIELD_PIP.PIP_SIZE}
+            minDecimalPlace={0}
+            maxDecimalPlace={1}
+            value={input.pipSize}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, pipSize: val }))
+            }
+          />
+        </div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
@@ -240,6 +256,19 @@ const ForexPipForm = () => {
                     $
                     {convertToLocaleString(
                       result.pipValue,
+                      decPrecision,
+                      decPrecision
+                    )}{" "}
+                    {result.accBaseCurrency}
+                  </div>
+                </div>
+
+                <div className={styles["row"]}>
+                  <div>Total Pip Value:</div>
+                  <div>
+                    $
+                    {convertToLocaleString(
+                      result.totalPipValue,
                       decPrecision,
                       decPrecision
                     )}{" "}

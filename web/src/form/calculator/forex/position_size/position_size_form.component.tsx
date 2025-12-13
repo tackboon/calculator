@@ -67,6 +67,9 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   leverage: 100,
   pipDecimal: "0.0001",
   precision: 2,
+  includePrice: false,
+  entryPrice: "0",
+  slippage: "0",
 };
 
 const ForexPositionSizeForm = () => {
@@ -153,6 +156,12 @@ const ForexPositionSizeForm = () => {
   const tradingFeeStyles = useSpring({
     height: input.includeTradingFee ? 395 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const priceStyles = useSpring({
+    height: input.includePrice ? 200 : 0,
+    opacity: input.includePrice ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -604,6 +613,83 @@ const ForexPositionSizeForm = () => {
           )}
         </animated.div>
 
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includePrice ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              id="price-check"
+              isCheck={input.includePrice}
+              onCheck={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includePrice: !prev.includePrice,
+                  entryPrice: DEFAULT_INPUT.entryPrice,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            />
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includePrice: !prev.includePrice,
+                  entryPrice: DEFAULT_INPUT.entryPrice,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            >
+              Include Price Calculation
+            </span>
+          </div>
+        </div>
+
+        <animated.div style={priceStyles}>
+          {input.includePrice && (
+            <>
+              <div className={styles["form-group"]}>
+                <span className={styles["label"]}>Entry Price</span>
+                <NumberInput
+                  id="entry-price"
+                  step={input.pipDecimal}
+                  preUnit="$"
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE
+                  }
+                  minDecimalPlace={2}
+                  maxDecimalPlace={5}
+                  value={input.entryPrice}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, entryPrice: val }))
+                  }
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="slippage">
+                  Slippage (based on stop-loss risk)
+                </label>
+                <NumberInput
+                  id="slippage"
+                  step={1}
+                  postUnit={"%"}
+                  isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SLIPPAGE}
+                  minDecimalPlace={0}
+                  maxDecimalPlace={2}
+                  value={input.slippage}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, slippage: val }))
+                  }
+                />
+              </div>
+            </>
+          )}
+        </animated.div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
@@ -669,6 +755,38 @@ const ForexPositionSizeForm = () => {
                   <div>Position Size:</div>
                   <div>{convertToLocaleString(result.positionSize, 0)}</div>
                 </div>
+
+                {result.entryPriceFrom !== undefined && (
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Entry Price:</div>
+                      <div>
+                        ${convertToLocaleString(result.entryPriceFrom, 2, 5)}
+                        {result.entryPriceTo !== undefined
+                          ? " - $" +
+                            convertToLocaleString(result.entryPriceTo, 2, 5)
+                          : ""}
+                      </div>
+                    </div>
+                    {result.stopLossPrice !== undefined && (
+                      <div className={styles["row"]}>
+                        <div>Stop Loss Price:</div>
+                        <div>
+                          ${convertToLocaleString(result.stopLossPrice, 2, 5)}
+                        </div>
+                      </div>
+                    )}
+                    {result.profitPrice !== undefined && (
+                      <div className={styles["row"]}>
+                        <div>Take Profit Price:</div>
+                        <div>
+                          ${convertToLocaleString(result.profitPrice, 2, 5)}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {result.entryFee !== undefined && (
                   <>
