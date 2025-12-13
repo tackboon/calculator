@@ -581,7 +581,6 @@ export const calculateResult = (
   let stopPrice: BigNumber | undefined;
   let profitPrice: BigNumber | undefined;
   if (input.includePrice) {
-    entryPriceFrom = entryPrice;
     let slippedStopDiff = multiplyBig(
       multiplyBig(stopPip, addBig(1, slippageRate)),
       pipDecimal
@@ -589,6 +588,7 @@ export const calculateResult = (
     slippedStopDiff = mathBigNum.round(slippedStopDiff, 5);
 
     if (input.isLong) {
+      entryPriceFrom = entryPrice;
       stopPrice = subtractBig(entryPriceFrom, multiplyBig(stopPip, pipDecimal));
       if (profitPip) {
         profitPrice = addBig(
@@ -596,24 +596,17 @@ export const calculateResult = (
           multiplyBig(profitPip, pipDecimal)
         );
       }
-
-      const newEntryPrice = addBig(stopPrice, slippedStopDiff);
-      if (!mathBigNum.equal(newEntryPrice, entryPriceFrom)) {
-        entryPriceTo = newEntryPrice;
-      }
+      entryPriceTo = addBig(stopPrice, slippedStopDiff);
     } else {
-      stopPrice = addBig(entryPriceFrom, multiplyBig(stopPip, pipDecimal));
+      entryPriceTo = entryPrice;
+      stopPrice = addBig(entryPriceTo, multiplyBig(stopPip, pipDecimal));
       if (profitPip) {
         profitPrice = subtractBig(
-          entryPriceFrom,
+          entryPriceTo,
           multiplyBig(profitPip, pipDecimal)
         );
       }
-
-      const newEntryPrice = subtractBig(stopPrice, slippedStopDiff);
-      if (!mathBigNum.equal(newEntryPrice, entryPriceFrom)) {
-        entryPriceTo = newEntryPrice;
-      }
+      entryPriceFrom = subtractBig(stopPrice, slippedStopDiff);
     }
   }
 

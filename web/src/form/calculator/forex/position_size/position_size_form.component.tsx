@@ -183,6 +183,7 @@ const ForexPositionSizeForm = () => {
       pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
       contractSize: supportedAssets[prev.currencyPair].lot,
       precision: prev.precision,
+      includePrice: prev.includePrice,
     }));
     setErrorField(null);
     setResult(null);

@@ -1,5 +1,6 @@
 import { BigNumber } from "mathjs";
 import {
+  absBig,
   addBig,
   divideBig,
   mathBigNum,
@@ -129,6 +130,15 @@ export const validatePositionSizeInput = (
     }
   }
 
+  if (input.includeSlippage) {
+    if (!checkMinMax(input.slippage, { min: 0, max: 100 })) {
+      return {
+        err: "Please enter a valid slippage.",
+        field: ERROR_FIELD_POSITION_SIZE.SLIPPAGE,
+      };
+    }
+  }
+
   return { err: "", field: null };
 };
 
@@ -148,6 +158,8 @@ export const calculateResult = (
   const minTradingFee = parseBigNumberFromString(input.minTradingFee);
   const estTradingFeePercent = parseBigNumberFromString(input.estTradingFee);
   const estFeeRate = divideBig(estTradingFeePercent, 100);
+  let slippageRate = parseBigNumberFromString(input.slippage);
+  slippageRate = divideBig(slippageRate, 100);
 
   // Calculate stop price
   let stopPrice = mathBigNum.bignumber(0);
@@ -544,11 +556,30 @@ export const calculateResult = (
     );
   }
 
+  // Calculate slippage
+  let entryPriceFrom = entryPrice;
+  let entryPriceTo: BigNumber | undefined;
+  if (input.includeSlippage) {
+    let slippedStopDiff = multiplyBig(
+      absBig(subtractBig(entryPrice, stopPrice)),
+      addBig(1, slippageRate)
+    );
+    slippedStopDiff = mathBigNum.round(slippedStopDiff, 5);
+
+    if (input.isLong) {
+      entryPriceTo = addBig(stopPrice, slippedStopDiff);
+    } else {
+      entryPriceTo = entryPrice;
+      entryPriceFrom = subtractBig(stopPrice, slippedStopDiff);
+    }
+  }
+
   return {
     isLong: input.isLong,
     includeTradingFee: input.includeTradingFee,
     includeProfitGoal: input.includeProfitGoal,
-    entryPrice: entryPrice,
+    entryPriceFrom: entryPriceFrom,
+    entryPriceTo: entryPriceTo,
     stopPrice: stopPrice,
     stopPercent: stopPercent,
     profitPrice: profitPrice,

@@ -46,6 +46,8 @@ const DEFAULT_INPUT: PositionSizeInputType = {
   estTradingFee: "0",
   minTradingFee: "0",
   precision: 2,
+  includeSlippage: false,
+  slippage: "0",
 };
 
 const PositionSizeForm = () => {
@@ -81,6 +83,8 @@ const PositionSizeForm = () => {
           estTradingFee: data.estTradingFee,
           minTradingFee: data.minTradingFee,
           precision: data.precision,
+          includeSlippage: data.includeSlippage,
+          slippage: data.slippage,
         }));
       }
     });
@@ -100,6 +104,8 @@ const PositionSizeForm = () => {
       estTradingFee: input.estTradingFee,
       minTradingFee: input.minTradingFee,
       precision: input.precision,
+      includeSlippage: input.includeSlippage,
+      slippage: input.slippage,
     });
   };
 
@@ -131,6 +137,7 @@ const PositionSizeForm = () => {
       unitType: prev.unitType,
       includeTradingFee: prev.includeTradingFee,
       precision: prev.precision,
+      includeSlippage: prev.includeSlippage,
     }));
     setErrorField(null);
     setResult(null);
@@ -149,6 +156,12 @@ const PositionSizeForm = () => {
   const tradingFeeStyles = useSpring({
     height: input.includeTradingFee ? 200 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const slippageStyles = useSpring({
+    height: input.includeSlippage ? 100 : 0,
+    opacity: input.includeSlippage ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -498,6 +511,60 @@ const PositionSizeForm = () => {
           )}
         </animated.div>
 
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includeSlippage ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              id="slippage-check"
+              isCheck={input.includeSlippage}
+              onCheck={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeSlippage: !prev.includeSlippage,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            />
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeSlippage: !prev.includeSlippage,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            >
+              Include Slippage
+            </span>
+          </div>
+        </div>
+
+        <animated.div style={slippageStyles}>
+          {input.includeSlippage && (
+            <div className={styles["form-group"]}>
+              <label htmlFor="slippage">
+                Slippage (based on stop-loss risk)
+              </label>
+              <NumberInput
+                id="slippage"
+                postUnit="%"
+                isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SLIPPAGE}
+                minDecimalPlace={0}
+                maxDecimalPlace={2}
+                value={input.slippage}
+                onChangeHandler={(val) =>
+                  setInput((prev) => ({ ...prev, slippage: val }))
+                }
+              />
+            </div>
+          )}
+        </animated.div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
@@ -553,7 +620,12 @@ const PositionSizeForm = () => {
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
                   <div>Open Price:</div>
-                  <div>${convertToLocaleString(result.entryPrice)}</div>
+                  <div>
+                    ${convertToLocaleString(result.entryPriceFrom)}
+                    {result.entryPriceTo !== undefined
+                      ? " - $" + convertToLocaleString(result.entryPriceTo)
+                      : ""}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>

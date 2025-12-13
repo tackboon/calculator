@@ -23,6 +23,8 @@ export type StockPositionSizePreload = {
   estTradingFee: string;
   minTradingFee: string;
   precision: number;
+  includeSlippage: boolean;
+  slippage: string;
 };
 
 export type ForexPositionSizePreload = {
