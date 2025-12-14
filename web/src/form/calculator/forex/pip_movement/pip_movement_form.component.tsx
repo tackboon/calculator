@@ -136,7 +136,7 @@ const ForexPipMovementForm = () => {
             step={1}
             isInvalid={errorField === ERROR_FIELD_PIP_MOVEMENT.PIP_SIZE}
             minDecimalPlace={0}
-            maxDecimalPlace={0}
+            maxDecimalPlace={1}
             value={input.pipSize}
             onChangeHandler={(val) =>
               setInput((prev) => ({ ...prev, pipSize: val }))
