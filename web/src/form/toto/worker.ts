@@ -32,60 +32,71 @@ self.onmessage = (e: MessageEvent) => {
   const selectedRangeGroupCounts = new Array<number>(rangeInfo.group).fill(0);
 
   const backtrack = (depth: number, start: number) => {
-    if (depth === system) {
-      // if (
-      //   mustIncludeSize === selectedIncludeCount &&
-      //   verifyCombination(
-      //     system,
-      //     system,
-      //     selectedCustomCount,
-      //     customCount,
-      //     selectedOddCount,
-      //     odd,
-      //     system - selectedOddCount,
-      //     even,
-      //     selectedLowCount,
-      //     low,
-      //     system - selectedLowCount,
-      //     high,
-      //     selectedRangeGroupCounts,
-      //     rangeValues
-      //   )
-      // ) {
-      possibleCombination++;
-      // }
+    if (depth === 7) {
+      if (
+        selectedIncludeCount >= mustIncludeSize &&
+        verifyCombination(
+          system,
+          system,
+          selectedCustomCount,
+          customCount,
+          selectedOddCount,
+          odd,
+          6 - selectedOddCount,
+          even,
+          selectedLowCount,
+          low,
+          6 - selectedLowCount,
+          high,
+          selectedRangeGroupCounts,
+          rangeValues
+        )
+      ) {
+        possibleCombination++;
+      }
 
       return;
     }
 
-    for (
-      let num = start;
-      num <= rangeInfo.count - (system - depth);
-      num++
-    ) {
-      // if (!availableBit[num] && !selectedBit[num]) {
-      //   continue;
-      // }
+    for (let num = start; num <= rangeInfo.count - (6 - depth); num++) {
+      if (!availableBit[num] && !selectedBit[num]) {
+        continue;
+      }
 
-      // if (selectedBit[num]) selectedIncludeCount++;
-      // if (customBit[num]) selectedCustomCount++;
-      // if (oddBit[num]) selectedOddCount++;
-      // if (lowBit[num]) selectedLowCount++;
-      // selectedRangeGroupCounts[rangeBit[num]]++;
+      if (selectedBit[num]) selectedIncludeCount++;
+      if (customBit[num]) selectedCustomCount++;
+      if (oddBit[num]) selectedOddCount++;
+      if (lowBit[num]) selectedLowCount++;
+      selectedRangeGroupCounts[rangeBit[num]]++;
 
       backtrack(depth + 1, num + 1);
 
-      // if (selectedBit[num]) selectedIncludeCount--;
-      // if (customBit[num]) selectedCustomCount--;
-      // if (oddBit[num]) selectedOddCount--;
-      // if (lowBit[num]) selectedLowCount--;
-      // selectedRangeGroupCounts[rangeBit[num]]--;
+      if (selectedBit[num]) selectedIncludeCount--;
+      if (customBit[num]) selectedCustomCount--;
+      if (oddBit[num]) selectedOddCount--;
+      if (lowBit[num]) selectedLowCount--;
+      selectedRangeGroupCounts[rangeBit[num]]--;
     }
   };
 
-	console.log(startNum, endNum)
-  for (let start = startNum; start <= endNum; start++) {
-    backtrack(2, startNum + 1);
+  for (let num = startNum; num <= endNum; num++) {
+    if (!availableBit[num] && !selectedBit[num]) {
+      continue;
+    }
+
+    if (selectedBit[num]) selectedIncludeCount++;
+    if (customBit[num]) selectedCustomCount++;
+    if (oddBit[num]) selectedOddCount++;
+    if (lowBit[num]) selectedLowCount++;
+    selectedRangeGroupCounts[rangeBit[num]]++;
+
+    backtrack(2, num + 1);
+
+    if (selectedBit[num]) selectedIncludeCount--;
+    if (customBit[num]) selectedCustomCount--;
+    if (oddBit[num]) selectedOddCount--;
+    if (lowBit[num]) selectedLowCount--;
+    selectedRangeGroupCounts[rangeBit[num]]--;
   }
 
   self.postMessage(possibleCombination);

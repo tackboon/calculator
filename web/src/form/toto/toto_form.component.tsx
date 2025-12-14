@@ -668,7 +668,11 @@ const TotoForm = () => {
         >
           Reset
         </Button>
-        <Button className={styles["submit-btn"]} type="submit">
+        <Button
+          className={styles["submit-btn"]}
+          type="submit"
+          disabled={isGenerating}
+        >
           Generate
         </Button>
       </div>

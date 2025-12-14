@@ -986,13 +986,8 @@ export const calcPossibleCombination = async (
   availablePool: TotoPools,
   selectedPool: TotoPools
 ) => {
-  if (system !== 6) return null;
-
-  console.time("testCombination");
-
   let possibleCombination = 0;
 
-  const mustIncludeSize = selectedPool.allPools.allPools.size;
   const selectedBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const availableBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const customBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
@@ -1008,9 +1003,64 @@ export const calcPossibleCombination = async (
     rangeBit[i] = Math.floor((i - 1) / 10);
   }
 
-  const setCount = Math.floor((rangeInfo.count - (system - 1)) / 4);
+  const maxFirstNum = rangeInfo.count - (6 - 1);
+  const startNums: number[] = [];
+  let chunkSize = 8;
+  switch (rangeInfo.count) {
+    case 49:
+      startNums.push(1, 2, 3, 4, 6, 8, 11, 15);
+      break;
+    case 50:
+      startNums.push(1, 2, 3, 4, 6, 8, 11, 15);
+      break;
+    case 55:
+      startNums.push(1, 2, 3, 4, 6, 8, 11, 15);
+      break;
+    case 58:
+      startNums.push(1, 2, 3, 4, 6, 8, 11, 16);
+      break;
+    case 69:
+      chunkSize = 12;
+      startNums.push(1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 18, 24);
+      break;
+  }
+
+  const mustIncludeSize = Math.max(
+    0,
+    selectedPool.allPools.allPools.size - (system - 6)
+  );
+  const newCustomCount = {
+    min: Math.max(0, customCount.min - (system - 6)),
+    max: customCount.max,
+  };
+  const newOdd = {
+    min: Math.max(0, odd.min - (system - 6)),
+    max: odd.max,
+  };
+  const newEven = {
+    min: Math.max(0, even.min - (system - 6)),
+    max: even.max,
+  };
+  const newLow = {
+    min: Math.max(0, low.min - (system - 6)),
+    max: low.max,
+  };
+  const newHigh = {
+    min: Math.max(0, high.min - (system - 6)),
+    max: high.max,
+  };
+  const newRangeValues: RangeValue[] = [];
+  for (const val of rangeValues) {
+    newRangeValues.push({
+      min: Math.max(0, val.min - (system - 6)),
+      max: val.max,
+    });
+  }
+
   const countPromises: Promise<number>[] = [];
-  for (let j = 0; j < 4; j++) {
+  for (let j = 0; j < chunkSize; j++) {
+    const startNum = startNums[j];
+    const endNum = j < chunkSize - 1 ? startNums[j + 1] - 1 : maxFirstNum;
     countPromises.push(
       new Promise((resolve) => {
         const worker = new Worker(new URL("./worker.ts", import.meta.url), {
@@ -1023,18 +1073,15 @@ export const calcPossibleCombination = async (
           worker.terminate();
         };
 
-        const startNum = j * setCount + 1;
-        const endNum = j < 3 ? (j + 1) * setCount : rangeInfo.count - (system - 1);
-        
         worker.postMessage({
           system,
           rangeInfo,
-          customCount,
-          odd,
-          even,
-          low,
-          high,
-          rangeValues,
+          customCount: newCustomCount,
+          odd: newOdd,
+          even: newEven,
+          low: newLow,
+          high: newHigh,
+          rangeValues: newRangeValues,
           mustIncludeSize,
           availableBit,
           selectedBit,
@@ -1053,8 +1100,6 @@ export const calcPossibleCombination = async (
   for (const combinationCount of res) {
     possibleCombination += combinationCount;
   }
-  console.log(res)
 
-  console.timeEnd("testCombination");
   return possibleCombination;
 };
