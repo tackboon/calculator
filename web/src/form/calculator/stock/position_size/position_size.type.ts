@@ -37,6 +37,8 @@ export type PositionSizeInputType = {
   estTradingFee: string;
   minTradingFee: string;
   precision: number;
+  includeSlippage: boolean;
+  slippage: string;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {
@@ -47,13 +49,15 @@ export enum ERROR_FIELD_POSITION_SIZE {
   ENTRY_PRICE,
   EST_TRADING_FEE,
   MIN_TRADING_FEE,
+  SLIPPAGE,
 }
 
 export type PositionSizeResultType = {
   isLong: boolean;
   includeTradingFee: boolean;
   includeProfitGoal: boolean;
-  entryPrice: BigNumber;
+  entryPriceFrom: BigNumber;
+  entryPriceTo?: BigNumber;
   stopPrice: BigNumber;
   stopPercent: BigNumber;
   profitPrice?: BigNumber;

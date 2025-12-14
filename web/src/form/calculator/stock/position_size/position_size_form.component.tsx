@@ -25,6 +25,10 @@ import {
 } from "./position_size.type";
 import DefaultSelect from "../../../../component/common/select_box/default_select_box.component";
 import { convertRatioToString } from "../../../../common/common";
+import {
+  loadStockPositionSize,
+  saveStockPositionSize,
+} from "../../../../store/indexed_db";
 
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
@@ -42,6 +46,8 @@ const DEFAULT_INPUT: PositionSizeInputType = {
   estTradingFee: "0",
   minTradingFee: "0",
   precision: 2,
+  includeSlippage: false,
+  slippage: "0",
 };
 
 const PositionSizeForm = () => {
@@ -59,6 +65,49 @@ const PositionSizeForm = () => {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result]);
+
+  // Preload saved data
+  useEffect(() => {
+    loadStockPositionSize().then((data) => {
+      if (data !== undefined) {
+        setInput((prev) => ({
+          ...prev,
+          portfolioCapital: data.portfolioCapital,
+          maxPortfolioRisk: data.maxPortfolioRisk,
+          unitType: data.unitType,
+          stopLossTyp: data.stopLossTyp,
+          includeProfitGoal: data.includeProfitGoal,
+          profitGoalTyp: data.profitGoalTyp,
+          profitGoalUnit: data.profitGoalUnit,
+          includeTradingFee: data.includeTradingFee,
+          estTradingFee: data.estTradingFee,
+          minTradingFee: data.minTradingFee,
+          precision: data.precision,
+          includeSlippage: data.includeSlippage,
+          slippage: data.slippage,
+        }));
+      }
+    });
+  }, []);
+
+  // Handle save data
+  const handleSave = () => {
+    saveStockPositionSize({
+      portfolioCapital: input.portfolioCapital,
+      maxPortfolioRisk: input.maxPortfolioRisk,
+      unitType: input.unitType,
+      stopLossTyp: input.stopLossTyp,
+      includeProfitGoal: input.includeProfitGoal,
+      profitGoalTyp: input.profitGoalTyp,
+      profitGoalUnit: input.profitGoalUnit,
+      includeTradingFee: input.includeTradingFee,
+      estTradingFee: input.estTradingFee,
+      minTradingFee: input.minTradingFee,
+      precision: input.precision,
+      includeSlippage: input.includeSlippage,
+      slippage: input.slippage,
+    });
+  };
 
   // Form submission handler
   const handleSubmit = (e: FormEvent) => {
@@ -88,6 +137,7 @@ const PositionSizeForm = () => {
       unitType: prev.unitType,
       includeTradingFee: prev.includeTradingFee,
       precision: prev.precision,
+      includeSlippage: prev.includeSlippage,
     }));
     setErrorField(null);
     setResult(null);
@@ -106,6 +156,12 @@ const PositionSizeForm = () => {
   const tradingFeeStyles = useSpring({
     height: input.includeTradingFee ? 200 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const slippageStyles = useSpring({
+    height: input.includeSlippage ? 100 : 0,
+    opacity: input.includeSlippage ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -455,20 +511,83 @@ const PositionSizeForm = () => {
           )}
         </animated.div>
 
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includeSlippage ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              id="slippage-check"
+              isCheck={input.includeSlippage}
+              onCheck={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeSlippage: !prev.includeSlippage,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            />
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeSlippage: !prev.includeSlippage,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            >
+              Include Slippage
+            </span>
+          </div>
+        </div>
+
+        <animated.div style={slippageStyles}>
+          {input.includeSlippage && (
+            <div className={styles["form-group"]}>
+              <label htmlFor="slippage">
+                Slippage (based on stop-loss risk)
+              </label>
+              <NumberInput
+                id="slippage"
+                postUnit="%"
+                isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SLIPPAGE}
+                minDecimalPlace={0}
+                maxDecimalPlace={2}
+                value={input.slippage}
+                onChangeHandler={(val) =>
+                  setInput((prev) => ({ ...prev, slippage: val }))
+                }
+              />
+            </div>
+          )}
+        </animated.div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
-      <div className={styles["form-btn"]}>
+      <div className={styles["form-btn-2"]}>
+        <div className={styles["form-btn"]}>
+          <Button
+            className={styles["reset-btn"]}
+            type="reset"
+            tabIndex={-1}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+          <Button className={styles["submit-btn"]} type="submit">
+            Calculate
+          </Button>
+        </div>
         <Button
-          className={styles["reset-btn"]}
-          type="reset"
-          tabIndex={-1}
-          onClick={handleReset}
+          className={styles["save-btn"]}
+          type="button"
+          onClick={handleSave}
         >
-          Reset
-        </Button>
-        <Button className={styles["submit-btn"]} type="submit">
-          Calculate
+          Save
         </Button>
       </div>
 
@@ -501,7 +620,12 @@ const PositionSizeForm = () => {
               <div className={styles["result-wrapper"]}>
                 <div className={styles["row"]}>
                   <div>Open Price:</div>
-                  <div>${convertToLocaleString(result.entryPrice)}</div>
+                  <div>
+                    ${convertToLocaleString(result.entryPriceFrom)}
+                    {result.entryPriceTo !== undefined
+                      ? " - $" + convertToLocaleString(result.entryPriceTo)
+                      : ""}
+                  </div>
                 </div>
 
                 <div className={styles["row"]}>

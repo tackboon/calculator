@@ -131,6 +131,22 @@ export const validatePositionSizeInput = (
     }
   }
 
+  if (input.includePrice) {
+    if (!checkMinMax(input.entryPrice, { min: 0, maxOrEqual: QUADRILLION })) {
+      return {
+        err: "Please enter a valid entry price.",
+        field: ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE,
+      };
+    }
+
+    if (!checkMinMax(input.slippage, { min: 0, max: 100 })) {
+      return {
+        err: "Please enter a valid slippage.",
+        field: ERROR_FIELD_POSITION_SIZE.SLIPPAGE,
+      };
+    }
+  }
+
   return { err: "", field: null };
 };
 
@@ -149,6 +165,9 @@ export const calculateResult = (
   let swapRate = parseBigNumberFromString(input.swapPerLot);
   const period = parseBigNumberFromString(input.period);
   swapRate = multiplyBig(swapRate, period);
+  const entryPrice = parseBigNumberFromString(input.entryPrice);
+  let slippageRate = parseBigNumberFromString(input.slippage);
+  slippageRate = divideBig(slippageRate, 100);
 
   // Get base rate (XXXUSD)
   let baseRate = mathBigNum.bignumber(1);
@@ -556,6 +575,41 @@ export const calculateResult = (
     );
   }
 
+  // Calculate price
+  let entryPriceFrom: BigNumber | undefined;
+  let entryPriceTo: BigNumber | undefined;
+  let stopPrice: BigNumber | undefined;
+  let profitPrice: BigNumber | undefined;
+  if (input.includePrice) {
+    let slippedStopDiff = multiplyBig(
+      multiplyBig(stopPip, addBig(1, slippageRate)),
+      pipDecimal
+    );
+    slippedStopDiff = mathBigNum.round(slippedStopDiff, 5);
+
+    if (input.isLong) {
+      entryPriceFrom = entryPrice;
+      stopPrice = subtractBig(entryPriceFrom, multiplyBig(stopPip, pipDecimal));
+      if (profitPip) {
+        profitPrice = addBig(
+          entryPriceFrom,
+          multiplyBig(profitPip, pipDecimal)
+        );
+      }
+      entryPriceTo = addBig(stopPrice, slippedStopDiff);
+    } else {
+      entryPriceTo = entryPrice;
+      stopPrice = addBig(entryPriceTo, multiplyBig(stopPip, pipDecimal));
+      if (profitPip) {
+        profitPrice = subtractBig(
+          entryPriceTo,
+          multiplyBig(profitPip, pipDecimal)
+        );
+      }
+      entryPriceFrom = subtractBig(stopPrice, slippedStopDiff);
+    }
+  }
+
   return {
     isLong: input.isLong,
     includeTradingFee: input.includeTradingFee,
@@ -576,6 +630,10 @@ export const calculateResult = (
     stopFee: stopFee,
     profitFee: profitFee,
     swapValue: swapValue,
+    entryPriceFrom: entryPriceFrom,
+    entryPriceTo: entryPriceTo,
+    stopLossPrice: stopPrice,
+    profitPrice: profitPrice,
   };
 };
 

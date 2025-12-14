@@ -42,6 +42,10 @@ import Container from "../../../../component/common/container/container.componen
 import { convertToLocaleString } from "../../../../common/number/number";
 import { convertRatioToString } from "../../../../common/common";
 import { absBig, mathBigNum } from "../../../../common/number/math";
+import {
+  loadForexPositionSize,
+  saveForexPositionSize,
+} from "../../../../store/indexed_db";
 
 const DEFAULT_INPUT: ForexPositionSizeInputType = {
   portfolioCapital: "0",
@@ -67,6 +71,9 @@ const DEFAULT_INPUT: ForexPositionSizeInputType = {
   leverage: 100,
   pipDecimal: "0.0001",
   precision: 2,
+  includePrice: false,
+  entryPrice: "0",
+  slippage: "0",
 };
 
 const ForexPositionSizeForm = () => {
@@ -96,6 +103,49 @@ const ForexPositionSizeForm = () => {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result]);
+
+  // Preload saved data
+  useEffect(() => {
+    loadForexPositionSize().then((data) => {
+      if (data !== undefined) {
+        setInput((prev) => ({
+          ...prev,
+          portfolioCapital: data.portfolioCapital,
+          maxPortfolioRisk: data.maxPortfolioRisk,
+          accBaseCurrency: data.accBaseCurrency,
+          lotTyp: data.lotTyp,
+          includeProfitGoal: data.includeProfitGoal,
+          profitGoalTyp: data.profitGoalTyp,
+          includeTradingFee: data.includeTradingFee,
+          feeTyp: data.feeTyp,
+          estTradingFee: data.estTradingFee,
+          leverage: data.leverage,
+          precision: data.precision,
+          includePrice: data.includePrice,
+          slippage: data.slippage,
+        }));
+      }
+    });
+  }, []);
+
+  // Handle save data
+  const handleSave = () => {
+    saveForexPositionSize({
+      portfolioCapital: input.portfolioCapital,
+      maxPortfolioRisk: input.maxPortfolioRisk,
+      accBaseCurrency: input.accBaseCurrency,
+      lotTyp: input.lotTyp,
+      includeProfitGoal: input.includeProfitGoal,
+      profitGoalTyp: input.profitGoalTyp,
+      includeTradingFee: input.includeTradingFee,
+      feeTyp: input.feeTyp,
+      estTradingFee: input.estTradingFee,
+      leverage: input.leverage,
+      precision: input.precision,
+      includePrice: input.includePrice,
+      slippage: input.slippage,
+    });
+  };
 
   // Submit handler
   const handleSubmit = (e: FormEvent) => {
@@ -133,6 +183,7 @@ const ForexPositionSizeForm = () => {
       pipDecimal: `${supportedAssets[prev.currencyPair].pip}`,
       contractSize: supportedAssets[prev.currencyPair].lot,
       precision: prev.precision,
+      includePrice: prev.includePrice,
     }));
     setErrorField(null);
     setResult(null);
@@ -153,6 +204,12 @@ const ForexPositionSizeForm = () => {
   const tradingFeeStyles = useSpring({
     height: input.includeTradingFee ? 395 : 0,
     opacity: input.includeTradingFee ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const priceStyles = useSpring({
+    height: input.includePrice ? 200 : 0,
+    opacity: input.includePrice ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -604,20 +661,107 @@ const ForexPositionSizeForm = () => {
           )}
         </animated.div>
 
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includePrice ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              id="price-check"
+              isCheck={input.includePrice}
+              onCheck={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includePrice: !prev.includePrice,
+                  entryPrice: DEFAULT_INPUT.entryPrice,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            />
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includePrice: !prev.includePrice,
+                  entryPrice: DEFAULT_INPUT.entryPrice,
+                  slippage: DEFAULT_INPUT.slippage,
+                }))
+              }
+            >
+              Include Price Calculation
+            </span>
+          </div>
+        </div>
+
+        <animated.div style={priceStyles}>
+          {input.includePrice && (
+            <>
+              <div className={styles["form-group"]}>
+                <span className={styles["label"]}>Entry Price</span>
+                <NumberInput
+                  id="entry-price"
+                  step={input.pipDecimal}
+                  preUnit="$"
+                  isInvalid={
+                    errorField === ERROR_FIELD_POSITION_SIZE.ENTRY_PRICE
+                  }
+                  minDecimalPlace={2}
+                  maxDecimalPlace={5}
+                  value={input.entryPrice}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, entryPrice: val }))
+                  }
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="slippage">
+                  Slippage (based on stop-loss risk)
+                </label>
+                <NumberInput
+                  id="slippage"
+                  step={1}
+                  postUnit={"%"}
+                  isInvalid={errorField === ERROR_FIELD_POSITION_SIZE.SLIPPAGE}
+                  minDecimalPlace={0}
+                  maxDecimalPlace={2}
+                  value={input.slippage}
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, slippage: val }))
+                  }
+                />
+              </div>
+            </>
+          )}
+        </animated.div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
-      <div className={styles["form-btn"]}>
+      <div className={styles["form-btn-2"]}>
+        <div className={styles["form-btn"]}>
+          <Button
+            className={styles["reset-btn"]}
+            type="reset"
+            tabIndex={-1}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+          <Button className={styles["submit-btn"]} type="submit">
+            Calculate
+          </Button>
+        </div>
+
         <Button
-          className={styles["reset-btn"]}
-          type="reset"
-          tabIndex={-1}
-          onClick={handleReset}
+          className={styles["save-btn"]}
+          type="button"
+          onClick={handleSave}
         >
-          Reset
-        </Button>
-        <Button className={styles["submit-btn"]} type="submit">
-          Calculate
+          Save
         </Button>
       </div>
 
@@ -669,6 +813,38 @@ const ForexPositionSizeForm = () => {
                   <div>Position Size:</div>
                   <div>{convertToLocaleString(result.positionSize, 0)}</div>
                 </div>
+
+                {result.entryPriceFrom !== undefined && (
+                  <>
+                    <br />
+                    <div className={styles["row"]}>
+                      <div>Entry Price:</div>
+                      <div>
+                        ${convertToLocaleString(result.entryPriceFrom, 2, 5)}
+                        {result.entryPriceTo !== undefined
+                          ? " - $" +
+                            convertToLocaleString(result.entryPriceTo, 2, 5)
+                          : ""}
+                      </div>
+                    </div>
+                    {result.stopLossPrice !== undefined && (
+                      <div className={styles["row"]}>
+                        <div>Stop Loss Price:</div>
+                        <div>
+                          ${convertToLocaleString(result.stopLossPrice, 2, 5)}
+                        </div>
+                      </div>
+                    )}
+                    {result.profitPrice !== undefined && (
+                      <div className={styles["row"]}>
+                        <div>Take Profit Price:</div>
+                        <div>
+                          ${convertToLocaleString(result.profitPrice, 2, 5)}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {result.entryFee !== undefined && (
                   <>

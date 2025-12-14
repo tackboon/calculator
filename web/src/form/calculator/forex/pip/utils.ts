@@ -47,12 +47,25 @@ export const validatePipInput = (
     };
   }
 
+  if (
+    !checkMinMax(input.pipSize, {
+      minOrEqual: 0,
+      maxOrEqual: QUADRILLION,
+    })
+  ) {
+    return {
+      err: "Please enter a valid pip size.",
+      field: ERROR_FIELD_PIP.PIP_SIZE,
+    };
+  }
+
   return { err: "", field: null };
 };
 
 export const calculateResult = (input: PipInputType): PipResultType => {
   const positionSize = parseBigNumberFromString(input.positionSize);
   const pipDecimal = parseBigNumberFromString(input.pipDecimal);
+  const pipSize = parseBigNumberFromString(input.pipSize);
 
   // Get quote rate (XXXUSD)
   let quoteRate = mathBigNum.bignumber(1);
@@ -73,5 +86,8 @@ export const calculateResult = (input: PipInputType): PipResultType => {
     multiplyBig(positionSize, quoteRate)
   );
 
-  return { accBaseCurrency: input.accBaseCurrency, pipValue };
+  // totalPipValue = pipValue * pipSize
+  const totalPipValue = multiplyBig(pipValue, pipSize);
+
+  return { accBaseCurrency: input.accBaseCurrency, pipValue, totalPipValue };
 };

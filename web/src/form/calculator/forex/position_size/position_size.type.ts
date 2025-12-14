@@ -26,6 +26,9 @@ export type ForexPositionSizeInputType = {
   leverage: number;
   pipDecimal: string;
   precision: number;
+  includePrice: boolean;
+  entryPrice: string;
+  slippage: string;
 };
 
 export enum ERROR_FIELD_POSITION_SIZE {
@@ -41,6 +44,8 @@ export enum ERROR_FIELD_POSITION_SIZE {
   SWAP_PER_LOT,
   PERIOD,
   PIP_DECIMAL,
+  ENTRY_PRICE,
+  SLIPPAGE,
 }
 
 export type PositionSizeResultType = {
@@ -63,4 +68,8 @@ export type PositionSizeResultType = {
   stopFee?: BigNumber;
   profitFee?: BigNumber;
   swapValue?: BigNumber;
+  entryPriceFrom?: BigNumber;
+  entryPriceTo?: BigNumber;
+  stopLossPrice?: BigNumber;
+  profitPrice?: BigNumber;
 };
