@@ -22,8 +22,8 @@ export type TotoInputType = {
   low: string;
   high: string;
   includeCustomGroup: boolean;
-  customGroups: string;
-  customCount: string;
+  customGroups: string[];
+  customCounts: string[];
   includeRangeGroup: boolean;
   rangeCount10: string;
   rangeCount20: string;

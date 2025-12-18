@@ -2,7 +2,7 @@ import { FC, useCallback, useEffect, useRef, useState } from "react";
 import { useTransition, animated } from "@react-spring/web";
 
 import Order, { DEFAULT_STOCK_ORDER_INPUT } from "./order.component";
-import { validateOrderInput } from "./order_utils.component";
+import { validateOrderInput } from "./order_utils";
 import { ERROR_FIELD_STOCK_ORDER, StockOrderInputType } from "./order.type";
 
 type StockOrderListType = {

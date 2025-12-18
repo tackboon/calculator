@@ -1,8 +1,10 @@
 import { checkMinMax } from "../../../common/validation/calculator.validation";
+import { ERROR_FIELD_CUSTOM_GROUP } from "../../../component/toto/custom_group/custom.type";
 import {
   ERROR_FIELD_TOTO,
   RangeValue,
   TotoInputType,
+  TotoPools,
   TotoRangeInfo,
 } from "../toto.type";
 import {
@@ -62,12 +64,22 @@ export const validateRangeCountInput = (
 
 export const validateTotoInput = (
   input: TotoInputType
-): { err: string; field: ERROR_FIELD_TOTO | null } => {
+): {
+  err: string;
+  field: ERROR_FIELD_TOTO | null;
+  customFields: (ERROR_FIELD_CUSTOM_GROUP | null)[];
+} => {
+  const customFields: (ERROR_FIELD_CUSTOM_GROUP | null)[] = [];
+  for (let i = 0; i < input.customGroups.length; i++) {
+    customFields.push(null);
+  }
+
   // validate count field
   if (!checkMinMax(input.count, { min: 1, max: 100 })) {
     return {
       err: "You can generate between 1 and 100 combinations only.",
       field: ERROR_FIELD_TOTO.COUNT,
+      customFields,
     };
   }
 
@@ -82,7 +94,7 @@ export const validateTotoInput = (
   const includeRes = validateIncludeList(input, rangeInfo, availablePools);
   const { mustIncludePools } = includeRes;
   let { requiredCount, err, field } = includeRes;
-  if (err !== "") return { err, field };
+  if (err !== "") return { err, field, customFields };
 
   // Validate must exclude numbers
   const excludeRes = validateExcludeList(
@@ -92,18 +104,32 @@ export const validateTotoInput = (
     mustIncludePools
   );
   ({ err, field } = excludeRes);
-  if (err !== "") return { err, field };
+  if (err !== "") return { err, field, customFields };
 
   // Validate custom group rule
-  const customRes = validateCustomGroup(
-    input,
-    rangeInfo,
-    availablePools,
-    requiredCount
-  );
-  ({ err, field } = customRes);
-  if (err !== "") return { err, field };
-  const { customPools, customCount } = customRes;
+  const customPools: TotoPools[] = [];
+  const customCounts: RangeValue[] = [];
+  for (let i = 0; i < input.customGroups.length; i++) {
+    const customRes = validateCustomGroup(
+      {
+        customGroups: input.customGroups[i],
+        customCount: input.customCounts[i],
+        system: input.system,
+      },
+      rangeInfo,
+      availablePools,
+      customPools,
+      requiredCount
+    );
+    if (customRes.err !== "") {
+      customFields[i] = customRes.customField;
+      return { err: customRes.err, field: null, customFields };
+    }
+
+    const { customPool, customCount } = customRes;
+    customPools.push(customPool);
+    customCounts.push(customCount);
+  }
 
   // Validate odd/even rule
   const oddEvenRes = validateOddEven(
@@ -111,10 +137,10 @@ export const validateTotoInput = (
     availablePools,
     mustIncludePools,
     customPools,
-    customCount
+    customCounts
   );
   ({ err, field } = oddEvenRes);
-  if (err !== "") return { err, field };
+  if (err !== "") return { err, field, customFields };
   const { requiredOddCount, requiredEvenCount } = oddEvenRes;
 
   // Validate low/high rule
@@ -129,7 +155,7 @@ export const validateTotoInput = (
     requiredEvenCount
   );
   ({ err, field } = lowHighRes);
-  if (err !== "") return { err, field };
+  if (err !== "") return { err, field, customFields };
   const {
     requiredLowCount,
     requiredHighCount,
@@ -157,7 +183,7 @@ export const validateTotoInput = (
     requiredEvenHighCount
   );
   ({ err, field } = rangeRes);
-  if (err !== "") return { err, field };
+  if (err !== "") return { err, field, customFields };
 
-  return { err: "", field: null };
+  return { err: "", field: null, customFields };
 };

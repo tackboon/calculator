@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTransition, animated, useSpring } from "@react-spring/web";
+import useMeasure from "react-use-measure";
 import toast from "react-hot-toast";
 
 import styles from "./toto.module.scss";
@@ -23,7 +24,12 @@ import RangeInput from "../../component/common/input/range_input.component";
 import TrashbinIcon from "../../component/common/icon/trashbin.component";
 import Checkbox from "../../component/common/checkbox/checkbox.component";
 import { validateTotoInput } from "./validation/validation";
-import { convertToLocaleString } from "../../common/number/number";
+import {
+  CustomGroupInputType,
+  ERROR_FIELD_CUSTOM_GROUP,
+} from "../../component/toto/custom_group/custom.type";
+import CustomGroupList from "../../component/toto/custom_group/custom_list.component";
+import Link from "../../component/common/link/link.component";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -39,8 +45,8 @@ const DEFAULT_INPUT: TotoInputType = {
   low: "",
   high: "",
   includeCustomGroup: false,
-  customGroups: "",
-  customCount: "",
+  customGroups: [],
+  customCounts: [],
   includeRangeGroup: false,
   rangeCount10: "",
   rangeCount20: "",
@@ -54,6 +60,9 @@ const DEFAULT_INPUT: TotoInputType = {
 const TotoForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [errorField, setErrorField] = useState<ERROR_FIELD_TOTO | null>(null);
+  const [customErrors, setCustomErrors] = useState<
+    (ERROR_FIELD_CUSTOM_GROUP | null)[]
+  >([]);
   const [input, setInput] = useState<TotoInputType>(DEFAULT_INPUT);
   const [rangeGroupCount, setRangeGroupCount] = useState(5);
 
@@ -61,6 +70,14 @@ const TotoForm = () => {
   const [possibleCount, setPossibleCount] = useState<number | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [addCustomGroupSignal, setAddCustomGroupSignal] = useState(0);
+  const [resetCustomGroupSignal, setResetCustomGroupSignal] = useState(0);
+  const getCustomGroupsRef =
+    useRef<() => { customGroups: CustomGroupInputType[] }>();
+  const signalAddCustomGroup = () => {
+    setAddCustomGroupSignal((prev) => ++prev);
+  };
+  const [ref, bounds] = useMeasure();
 
   // Scroll to result after it is updated
   useEffect(() => {
@@ -78,9 +95,10 @@ const TotoForm = () => {
     setResult(null);
 
     // Handle validation
-    const { err, field } = validateTotoInput(input);
+    const { err, field, customFields } = validateTotoInput(input);
     setErrorMessage(err);
     setErrorField(field);
+    setCustomErrors(customFields);
     if (err !== "") return;
 
     setIsGenerating(true);
@@ -109,6 +127,7 @@ const TotoForm = () => {
       includeCustomGroup: prev.includeCustomGroup,
       includeRangeGroup: prev.includeRangeGroup,
     }));
+    setResetCustomGroupSignal((state) => state + 1);
     setErrorField(null);
     setResult(null);
   };
@@ -122,9 +141,26 @@ const TotoForm = () => {
     });
   };
 
+  const customSubmitHandler = useCallback(
+    (
+      getCustomGroups: () => {
+        customGroups: CustomGroupInputType[];
+      }
+    ) => {
+      getCustomGroupsRef.current = getCustomGroups;
+    },
+    []
+  );
+
   const numberFilterStyles = useSpring({
     height: input.includeNumberFilter ? 200 : 0,
     opacity: input.includeNumberFilter ? 1 : 0,
+    overflow: "hidden",
+  });
+
+  const customFilterStyles = useSpring({
+    height: input.includeCustomGroup ? bounds.height : 0,
+    opacity: input.includeCustomGroup ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -137,12 +173,6 @@ const TotoForm = () => {
   const lowHighStyles = useSpring({
     height: input.includeLowHigh ? 200 : 0,
     opacity: input.includeLowHigh ? 1 : 0,
-    overflow: "hidden",
-  });
-
-  const customStyles = useSpring({
-    height: input.includeCustomGroup ? 200 : 0,
-    opacity: input.includeCustomGroup ? 1 : 0,
     overflow: "hidden",
   });
 
@@ -311,61 +341,56 @@ const TotoForm = () => {
             <Checkbox
               id="custom-check"
               isCheck={input.includeCustomGroup}
-              onCheck={() =>
-                setInput((prev) => ({
-                  ...prev,
-                  includeCustomGroup: !input.includeCustomGroup,
-                  customGroups: DEFAULT_INPUT.customGroups,
-                  customCount: DEFAULT_INPUT.customCount,
-                }))
-              }
+              onCheck={() => {
+                setInput((prev) => {
+                  if (prev.includeCustomGroup)
+                    setResetCustomGroupSignal((state) => state + 1);
+
+                  return {
+                    ...prev,
+                    includeCustomGroup: !input.includeCustomGroup,
+                    customGroups: DEFAULT_INPUT.customGroups,
+                    customCount: DEFAULT_INPUT.customCounts,
+                  };
+                });
+              }}
             />
             <span
               className={styles["checkbox-label"]}
-              onClick={() =>
-                setInput((prev) => ({
-                  ...prev,
-                  includeCustomGroup: !input.includeCustomGroup,
-                  customGroups: DEFAULT_INPUT.customGroups,
-                  customCount: DEFAULT_INPUT.customCount,
-                }))
-              }
+              onClick={() => {
+                setInput((prev) => {
+                  if (prev.includeCustomGroup)
+                    setResetCustomGroupSignal((state) => state + 1);
+
+                  return {
+                    ...prev,
+                    includeCustomGroup: !input.includeCustomGroup,
+                    customGroups: DEFAULT_INPUT.customGroups,
+                    customCount: DEFAULT_INPUT.customCounts,
+                  };
+                });
+              }}
             >
               Include Custom Group Rule
             </span>
           </div>
         </div>
 
-        <animated.div style={customStyles}>
-          {input.includeCustomGroup && (
-            <>
-              <div className={styles["form-group"]}>
-                <label htmlFor="custom-numbers">Custom Group Numbers</label>
-                <NumArrInput
-                  id="custom-numbers"
-                  value={input.customGroups}
-                  isInvalid={errorField === ERROR_FIELD_TOTO.CUSTOM_GROUPS}
-                  placeholder="e.g: 1,2,3"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, customGroups: val }))
-                  }
-                />
-              </div>
-
-              <div className={styles["form-group"]}>
-                <label htmlFor="custom-count">Custom Number Count</label>
-                <RangeInput
-                  id="custom-count"
-                  isInvalid={errorField === ERROR_FIELD_TOTO.CUSTOM_COUNT}
-                  value={input.customCount}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
-                  onChangeHandler={(val) =>
-                    setInput((prev) => ({ ...prev, customCount: val }))
-                  }
-                />
-              </div>
-            </>
-          )}
+        <animated.div style={customFilterStyles}>
+          <div ref={ref}>
+            <CustomGroupList
+              addSignal={addCustomGroupSignal}
+              minGroupCount={1}
+              submitHandler={customSubmitHandler}
+              resetSignal={resetCustomGroupSignal}
+              errors={customErrors}
+            />
+            <div className={styles["add-more-custom-container"]}>
+              <Link className={styles["link"]} onClick={signalAddCustomGroup}>
+                Add More Custom Group
+              </Link>
+            </div>
+          </div>
         </animated.div>
 
         <div

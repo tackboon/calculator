@@ -12,8 +12,8 @@ export const validateOddEven = (
   input: OddEvenInput,
   availablePools: TotoPools,
   mustIncludePools: TotoPools,
-  customPools: TotoPools,
-  customCount: RangeValue
+  customPools: TotoPools[],
+  customCounts: RangeValue[]
 ): {
   odd: RangeValue;
   even: RangeValue;

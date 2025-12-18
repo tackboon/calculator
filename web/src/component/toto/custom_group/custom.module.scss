@@ -1,0 +1,60 @@
+.custom-group {
+  background-color: #f9f9f9;
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 6px 12px rgba(0, 0, 0, 0.05);
+
+  @media (min-width: 768px) {
+    padding: 1rem 2rem;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    .delete-wrapper {
+      user-select: none;
+      transform: translate(0.3rem, 0.2rem);
+      padding: 0.3rem;
+
+      .delete-icon {
+        cursor: pointer;
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        &:hover {
+          opacity: 0.6;
+        }
+      }
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+
+    label,
+    .label {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+
+    input {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.3s ease;
+
+      &:focus {
+        border-color: #007bff;
+      }
+    }
+  }
+}

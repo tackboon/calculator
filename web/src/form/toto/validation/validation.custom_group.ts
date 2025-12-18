@@ -1,9 +1,5 @@
-import {
-  ERROR_FIELD_TOTO,
-  RangeValue,
-  TotoPools,
-  TotoRangeInfo,
-} from "../toto.type";
+import { ERROR_FIELD_CUSTOM_GROUP } from "../../../component/toto/custom_group/custom.type";
+import { RangeValue, TotoPools, TotoRangeInfo } from "../toto.type";
 import { addPoolNum, initTotoPool } from "../utils";
 import { validateListInput, validateRangeCountInput } from "./validation";
 
@@ -16,35 +12,51 @@ type CustomGroupInput = {
 export const validateCustomGroup = (
   input: CustomGroupInput,
   rangeInfo: TotoRangeInfo,
-  availablePools: TotoPools,
+  availablePool: TotoPools,
+  customPools: TotoPools[],
+  customCounts: RangeValue[],
   requiredCount: number
 ): {
-  customPools: TotoPools;
+  customPool: TotoPools;
   customCount: RangeValue;
   err: string;
-  field: ERROR_FIELD_TOTO;
+  customField: ERROR_FIELD_CUSTOM_GROUP;
 } => {
   // Custom Group Rule
   let customCount: RangeValue = { min: 0, max: 0 };
-  const customPools = initTotoPool();
+  const customPool = initTotoPool();
   if (input.customGroups !== "") {
+    let totalCustomMinCount = 0;
+    let totalCustomMaxCount = 0;
+    let totalCustomGroupSize = 0;
+
     // validate custom group numbers field
     let err = validateListInput(input.customGroups, rangeInfo, (n) => {
-      if (!availablePools.allPools.allPools.has(n)) {
+      if (!availablePool.allPools.allPools.has(n)) {
         return `Number ${n} in the custom group cannot be in either the include or exclude list.`;
       }
 
-      if (!customPools.allPools.allPools.has(n)) {
-        addPoolNum(customPools, n, rangeInfo.low);
+      for (let i = 0; i < customPools.length; i++) {
+        if (customPools[i].allPools.allPools.has(n)) {
+          return `Number ${n} cannot be in multi custom group.`;
+        }
+
+        totalCustomMinCount += customCounts[i].min;
+        totalCustomMaxCount += customCounts[i].max;
+        totalCustomGroupSize += customPools[i].allPools.allPools.size;
+      }
+
+      if (!customPool.allPools.allPools.has(n)) {
+        addPoolNum(customPool, n, rangeInfo.low);
       }
       return "";
     });
     if (err !== "") {
       return {
-        customPools,
+        customPool,
         customCount,
         err,
-        field: ERROR_FIELD_TOTO.CUSTOM_GROUPS,
+        customField: ERROR_FIELD_CUSTOM_GROUP.NUMBERS,
       };
     }
 
@@ -52,61 +64,66 @@ export const validateCustomGroup = (
     const countRes = validateRangeCountInput(input.customCount, input.system);
     if (countRes.err !== "") {
       return {
-        customPools,
+        customPool,
         customCount,
         err: countRes.err,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
+        customField: ERROR_FIELD_CUSTOM_GROUP.COUNT,
       };
     }
     customCount = countRes.count;
 
     // check is count number exceed custom pool size
-    if (customCount.min > customPools.allPools.allPools.size) {
+    if (
+      customCount.min + totalCustomMinCount >
+      customPool.allPools.allPools.size
+    ) {
       return {
-        customPools,
+        customPool,
         customCount,
         err: `The custom number count cannot exceed the custom group numbers size.`,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
+        customField: ERROR_FIELD_CUSTOM_GROUP.COUNT,
       };
     }
 
     // check is count number exceed the available limit
-    if (customCount.min > requiredCount) {
+    if (customCount.min + totalCustomMinCount > requiredCount) {
       return {
-        customPools,
+        customPool,
         customCount,
         err: `The custom number count cannot exceed the remaining available numbers.`,
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
+        customField: ERROR_FIELD_CUSTOM_GROUP.COUNT,
       };
     }
 
     // Ensure the remaining pool is sufficient for the system size
     if (
-      availablePools.allPools.allPools.size -
-        customPools.allPools.allPools.size +
-        customCount.max <
+      availablePool.allPools.allPools.size -
+        customPool.allPools.allPools.size -
+        totalCustomGroupSize +
+        customCount.max +
+        totalCustomMaxCount <
       requiredCount
     ) {
       return {
-        customPools,
+        customPool,
         customCount,
         err: "Not enough remaining numbers to complete a combination with the selected custom group count.",
-        field: ERROR_FIELD_TOTO.CUSTOM_COUNT,
+        customField: ERROR_FIELD_CUSTOM_GROUP.COUNT,
       };
     }
 
     // adjust custom count
     customCount.max = Math.min(
-      customPools.allPools.allPools.size,
+      customPool.allPools.allPools.size,
       Math.min(customCount.max, requiredCount)
     );
     customCount.min = Math.max(
       customCount.min,
       input.system -
-        (availablePools.allPools.allPools.size -
-          customPools.allPools.allPools.size)
+        (availablePool.allPools.allPools.size -
+          customPool.allPools.allPools.size)
     );
   }
 
-  return { customPools, customCount, err: "", field: 0 };
+  return { customPool, customCount, err: "", customField: 0 };
 };

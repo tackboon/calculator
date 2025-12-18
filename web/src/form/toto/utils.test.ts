@@ -34,8 +34,8 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
+        customCount: [],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -62,8 +62,8 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
+        customCount: [],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -90,8 +90,8 @@ describe("generateCombinations", () => {
         low: "",
         high: "0-3",
         includeCustomGroup: true,
-        customGroups: "46,48",
-        customCount: "1",
+        customGroups: ["46,48"],
+        customCount: ["1"],
         includeRangeGroup: true,
         rangeCount10: "",
         rangeCount20: "",
@@ -118,8 +118,8 @@ describe("generateCombinations", () => {
         low: "3",
         high: "3",
         includeCustomGroup: true,
-        customGroups: "23,24,25,31,32,33,34",
-        customCount: "2",
+        customGroups: ["23,24,25,31,32,33,34"],
+        customCount: ["2"],
         includeRangeGroup: true,
         rangeCount10: "",
         rangeCount20: "",
@@ -146,8 +146,8 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: true,
-        customGroups: "1,2,3,4,5,6,7,9,10,11,13,15,17,19,21,23",
-        customCount: "2",
+        customGroups: ["1,2,3,4,5,6,7,9,10,11,13,15,17,19,21,23"],
+        customCount: ["2"],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -174,8 +174,8 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
+        customCount: [],
         includeRangeGroup: true,
         rangeCount10: "1",
         rangeCount20: "1",
@@ -247,21 +247,23 @@ describe("generateCombinations", () => {
       expect(mustExcludes.every((n) => !selectedPool.has(n))).toBe(true);
 
       // verify custom group setting
-      let customCount = 0;
-      const customGroups = input.customGroups.split(",");
-      for (const val of customGroups) {
-        if (val === "") {
-          continue;
+      for (let i = 0; i < input.customGroups.length; i++) {
+        let customCount = 0;
+        const customGroups = input.customGroups[i].split(",");
+        for (const val of customGroups) {
+          if (val === "") {
+            continue;
+          }
+          const n = Number(val);
+          if (selectedPool.has(n)) customCount++;
         }
-        const n = Number(val);
-        if (selectedPool.has(n)) customCount++;
+        const customCountRange = extractRangeInput(
+          input.customCount[i],
+          input.system
+        );
+        expect(customCount).toBeGreaterThanOrEqual(customCountRange.min);
+        expect(customCount).toBeLessThanOrEqual(customCountRange.max);
       }
-      const customCountRange = extractRangeInput(
-        input.customCount,
-        input.system
-      );
-      expect(customCount).toBeGreaterThanOrEqual(customCountRange.min);
-      expect(customCount).toBeLessThanOrEqual(customCountRange.max);
 
       // verify range group count
       for (const group of result.outputGroups) {
