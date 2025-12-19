@@ -127,6 +127,7 @@ export type TotoRangeInfo = {
 export type RangeValue = {
   min: number;
   max: number;
+  excludes: number[];
 };
 
 export type WorkerInput = {

@@ -25,15 +25,33 @@ export const getRangeGroupHeight = (
 export const extractRangeInput = (
   input: string,
   defaultMax: number
-): RangeValue => {
-  if (input === "") return { min: 0, max: defaultMax };
+): { value: RangeValue; err: string } => {
+  const excludes = Array(defaultMax).fill(0);
 
-  const parts = input.split("-");
-  if (parts.length === 2) {
-    return { min: Number(parts[0]), max: Number(parts[1]) };
+  if (input === "")
+    return { value: { min: 0, max: defaultMax, excludes }, err: "" };
+
+  const commaParts = input.split(",");
+  for (const part of commaParts) {
+    const val = part.trim();
+    if (val === "") continue;
+
+    if (/^!\d+$/.test(val)) {
+      // check exclude format
+    } else if (/^\d+-\d+$/.test(val)) {
+      // check range format
+    } else if (/^\d+$/.test(val)) {
+      // check digit format
+    }
   }
 
-  return { min: Number(parts[0]), max: Number(parts[0]) };
+  // const parts = input.split("-");
+  // if (parts.length === 2) {
+  //   return { min: Number(parts[0]), max: Number(parts[1]) };
+  // }
+
+  // return { min: Number(parts[0]), max: Number(parts[0]) };
+  return { min: 0, max: defaultMax, exclude: [] };
 };
 
 export const printTotoSetPoolString = (pool: TotoSetPools) => {

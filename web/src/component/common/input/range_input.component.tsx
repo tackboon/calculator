@@ -41,28 +41,9 @@ const RangeInput: FC<RangeInputProps> = ({
     }
 
     // Sanitize input
-    const parts = value.split("-");
-    const nums = parts.map((val) => (val === "" ? NaN : Number(val)));
-
-    if (nums.length === 1 && !isNaN(nums[0])) {
-      value = `${nums[0]}`;
-    } else if (nums.length === 2) {
-      if (!isNaN(nums[0]) && !isNaN(nums[1])) {
-        if (nums[0] === nums[1]) {
-          value = `${nums[0]}`;
-        } else if (nums[0] > nums[1]) {
-          value = `${nums[0]}`;
-        } else {
-          value = `${nums[0]}-${nums[1]}`;
-        }
-      } else if (isNaN(nums[1])) {
-        value = `${nums[0]}`;
-      } else {
-        value = `${nums[1]}`;
-      }
-    } else {
-      value = "";
-    }
+    value = value.replace(/^[\s,]+|[\s,]+$/g, "");
+    value = value.replace(/\s+/g, " ");
+    if (value.endsWith("!")) value = value.slice(0, -1);
 
     e.target.value = value;
     if (onChangeHandler) onChangeHandler(e.target.value);
@@ -72,17 +53,14 @@ const RangeInput: FC<RangeInputProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const prevCursorPos = e.target.selectionStart ?? 0;
 
-    // Allow digits and '-' only
-    let val = e.target.value.replace(/[^0-9-]/g, "");
+    // Allow digits, '-', '!', ',', and spaces only
+    let val = e.target.value.replace(/[^0-9-,! ]/g, "");
 
-    // Keep only the first '-'
-    const firstDashIndex = val.indexOf("-");
-    if (firstDashIndex !== -1) {
-      // Remove all other '-' beyond the first one
-      val =
-        val.slice(0, firstDashIndex + 1) +
-        val.slice(firstDashIndex + 1).replace(/-/g, "");
-    }
+    // Remove the new comma if it comes after comma + spaces
+    val = val.replace(/,\s*,/g, ",");
+
+    // Remove any character that comes immediately after a '!' if it's not a digit
+    val = val.replace(/!([^0-9])/g, "!");
 
     // Remove overflow characters
     if (val.length > maxChars) val = val.slice(0, maxChars);

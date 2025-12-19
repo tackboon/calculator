@@ -62,7 +62,7 @@ const CustomGroup: FC<CustomGroupType> = ({
           id={`custom-count-${idx}`}
           isInvalid={errorField === ERROR_FIELD_CUSTOM_GROUP.COUNT}
           value={input.count}
-          placeholder="Enter a number or range (e.g. 1 or 1-6)"
+          placeholder="e.g: 1, 0-6, !2"
           onChangeHandler={(val) =>
             setInput((prev) => ({ ...prev, count: val }))
           }

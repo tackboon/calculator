@@ -30,6 +30,7 @@ import {
 } from "../../component/toto/custom_group/custom.type";
 import CustomGroupList from "../../component/toto/custom_group/custom_list.component";
 import Link from "../../component/common/link/link.component";
+import { convertToLocaleString } from "../../common/number/number";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -159,7 +160,7 @@ const TotoForm = () => {
   });
 
   const customFilterStyles = useSpring({
-    height: input.includeCustomGroup ? bounds.height : 0,
+    height: input.includeCustomGroup ? bounds.height + 10 : 0,
     opacity: input.includeCustomGroup ? 1 : 0,
     overflow: "hidden",
   });
@@ -437,7 +438,7 @@ const TotoForm = () => {
                   id="odd"
                   isInvalid={errorField === ERROR_FIELD_TOTO.ODD}
                   value={input.odd}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                  placeholder="e.g: 1, 0-6, !2"
                   onChangeHandler={(val) =>
                     setInput((prev) => ({ ...prev, odd: val }))
                   }
@@ -450,7 +451,7 @@ const TotoForm = () => {
                   id="even"
                   isInvalid={errorField === ERROR_FIELD_TOTO.EVEN}
                   value={input.even}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                  placeholder="e.g: 1, 0-6, !2"
                   onChangeHandler={(val) =>
                     setInput((prev) => ({ ...prev, even: val }))
                   }
@@ -502,7 +503,7 @@ const TotoForm = () => {
                   id="low"
                   isInvalid={errorField === ERROR_FIELD_TOTO.LOW}
                   value={input.low}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                  placeholder="e.g: 1, 0-6, !2"
                   onChangeHandler={(val) =>
                     setInput((prev) => ({ ...prev, low: val }))
                   }
@@ -515,7 +516,7 @@ const TotoForm = () => {
                   id="high"
                   isInvalid={errorField === ERROR_FIELD_TOTO.HIGH}
                   value={input.high}
-                  placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                  placeholder="e.g: 1, 0-6, !2"
                   onChangeHandler={(val) =>
                     setInput((prev) => ({ ...prev, high: val }))
                   }
@@ -580,7 +581,7 @@ const TotoForm = () => {
                     id="range-10"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_10}
                     value={input.rangeCount10}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount10: val }))
                     }
@@ -595,7 +596,7 @@ const TotoForm = () => {
                     id="range-20"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_20}
                     value={input.rangeCount20}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount20: val }))
                     }
@@ -610,7 +611,7 @@ const TotoForm = () => {
                     id="range-30"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_30}
                     value={input.rangeCount30}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount30: val }))
                     }
@@ -625,7 +626,7 @@ const TotoForm = () => {
                     id="range-40"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_40}
                     value={input.rangeCount40}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount40: val }))
                     }
@@ -640,7 +641,7 @@ const TotoForm = () => {
                     id="range-50"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_50}
                     value={input.rangeCount50}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount50: val }))
                     }
@@ -655,7 +656,7 @@ const TotoForm = () => {
                     id="range-60"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_60}
                     value={input.rangeCount60}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount60: val }))
                     }
@@ -670,7 +671,7 @@ const TotoForm = () => {
                     id="range-70"
                     isInvalid={errorField === ERROR_FIELD_TOTO.RANGE_70}
                     value={input.rangeCount70}
-                    placeholder="Enter a number or range (e.g. 1 or 1-6)"
+                    placeholder="e.g: 1, 0-6, !2"
                     onChangeHandler={(val) =>
                       setInput((prev) => ({ ...prev, rangeCount70: val }))
                     }
