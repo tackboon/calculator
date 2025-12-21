@@ -25,33 +25,52 @@ export const getRangeGroupHeight = (
 export const extractRangeInput = (
   input: string,
   defaultMax: number
-): { value: RangeValue; err: string } => {
-  const excludes = Array(defaultMax).fill(0);
+): { value: RangeValue; isValid: boolean } => {
+  const excludes = Array(defaultMax + 1).fill(0);
+  const value = { min: 0, max: defaultMax, excludes };
 
-  if (input === "")
-    return { value: { min: 0, max: defaultMax, excludes }, err: "" };
+  if (input === "") return { value, isValid: true };
 
+  let rangeCount = 0;
   const commaParts = input.split(",");
   for (const part of commaParts) {
     const val = part.trim();
-    if (val === "") continue;
 
     if (/^!\d+$/.test(val)) {
       // check exclude format
+      const num = Number(val.slice(1));
+      if (num < 0 || num > defaultMax) return { value, isValid: false };
+      excludes[num] = 1;
     } else if (/^\d+-\d+$/.test(val)) {
+      if (rangeCount === 1) return { value, isValid: false };
+      rangeCount++;
+
       // check range format
+      const parts = val.split("-");
+      if (parts.length !== 2) return { value, isValid: false };
+      value.min = Number(parts[0]);
+      value.max = Number(parts[1]);
+
+      if (
+        value.min < 0 ||
+        value.min > defaultMax ||
+        value.max > defaultMax ||
+        value.max < value.min
+      )
+        return { value, isValid: false };
     } else if (/^\d+$/.test(val)) {
       // check digit format
+      const num = Number(val);
+      if (commaParts.length > 1 || num < 0 || num > defaultMax)
+        return { value, isValid: false };
+
+      return { value: { min: num, max: num, excludes }, isValid: true };
+    } else {
+      return { value, isValid: false };
     }
   }
 
-  // const parts = input.split("-");
-  // if (parts.length === 2) {
-  //   return { min: Number(parts[0]), max: Number(parts[1]) };
-  // }
-
-  // return { min: Number(parts[0]), max: Number(parts[0]) };
-  return { min: 0, max: defaultMax, exclude: [] };
+  return { value, isValid: true };
 };
 
 export const printTotoSetPoolString = (pool: TotoSetPools) => {
@@ -426,6 +445,9 @@ export const generateCombinations = async (
     return { combinations, count: calcCombination(input.system, 6) };
   }
 
+  // Calculate remaining numbers to fill
+  const remainingSlot = input.system - selectedPool.allPools.allPools.size;
+
   // Read must excludes setting
   const mustExcludeParts = input.mustExcludes.split(",");
   for (const val of mustExcludeParts) {
@@ -437,48 +459,56 @@ export const generateCombinations = async (
   }
 
   // Read custom group setting
-  const customCount = extractRangeInput(input.customCount, input.system);
-  const customPool = initTotoPool();
-  const customGroupParts = input.customGroups.split(",");
-  for (const val of customGroupParts) {
-    if (val === "") {
-      continue;
-    }
-    const n = Number(val);
-    addPoolNum(customPool, n, rangeInfo.low);
-  }
+  const customCounts: RangeValue[] = [];
+  const customPools: TotoPools[] = [];
+  if (input.includeCustomGroup) {
+    for (const customGroup of input.customGroups) {
+      const customCount = extractRangeInput(customGroup.count, input.system);
+      const customPool = initTotoPool();
+      const parts = customGroup.numbers.split(",");
+      for (const val of parts) {
+        if (val === "") {
+          continue;
+        }
+        const n = Number(val);
+        addPoolNum(customPool, n, rangeInfo.low);
+      }
+      customPools.push(customPool);
 
-  // Adjust custom group setting
-  const remainingSlot = input.system - selectedPool.allPools.allPools.size;
-  customCount.max = Math.min(
-    customPool.allPools.allPools.size,
-    Math.min(customCount.max, remainingSlot)
-  );
-  customCount.min = Math.max(
-    customCount.min,
-    remainingSlot -
-      (availablePool.allPools.allPools.size - customPool.allPools.allPools.size)
-  );
+      // Adjust custom group setting
+      customCount.value.max = Math.min(
+        customPool.allPools.allPools.size,
+        Math.min(customCount.value.max, remainingSlot)
+      );
+      customCount.value.min = Math.max(
+        customCount.value.min,
+        remainingSlot -
+          (availablePool.allPools.allPools.size -
+            customPool.allPools.allPools.size)
+      );
+      customCounts.push(customCount.value);
+    }
+  }
 
   // Read odd/even setting
   const odd = extractRangeInput(input.odd, input.system);
   const even = extractRangeInput(input.even, input.system);
 
   // Adjust odd/even count
-  odd.min = Math.max(odd.min, input.system - even.max);
-  odd.max = Math.min(odd.max, input.system - even.min);
-  even.min = Math.max(even.min, input.system - odd.max);
-  even.max = Math.min(even.max, input.system - odd.min);
+  odd.value.min = Math.max(odd.value.min, input.system - even.value.max);
+  odd.value.max = Math.min(odd.value.max, input.system - even.value.min);
+  even.value.min = Math.max(even.value.min, input.system - odd.value.max);
+  even.value.max = Math.min(even.value.max, input.system - odd.value.min);
 
   // Read low/high setting
   const low = extractRangeInput(input.low, input.system);
   const high = extractRangeInput(input.high, input.system);
 
   // Adjust low/high count
-  low.min = Math.max(low.min, input.system - high.max);
-  low.max = Math.min(low.max, input.system - high.min);
-  high.min = Math.max(high.min, input.system - low.max);
-  high.max = Math.min(high.max, input.system - low.min);
+  low.value.min = Math.max(low.value.min, input.system - high.value.max);
+  low.value.max = Math.min(low.value.max, input.system - high.value.min);
+  high.value.min = Math.max(high.value.min, input.system - low.value.max);
+  high.value.max = Math.min(high.value.max, input.system - low.value.min);
 
   // Read range group settings
   let minRangeSum = 0;

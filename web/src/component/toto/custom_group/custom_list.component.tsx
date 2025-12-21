@@ -42,8 +42,8 @@ const CustomGroupList: FC<CustomGroupListType> = ({
       errorField: ERROR_FIELD_CUSTOM_GROUP | null;
     }[]
   >(
-    Array.from({ length: minGroupCount }, (_, i) => {
-      const key = generateKey();
+    Array.from({ length: customsRef.current.length }, (_, i) => {
+      const key = customsRef.current[i].key;
       return {
         key,
         errorField: null,
@@ -54,12 +54,10 @@ const CustomGroupList: FC<CustomGroupListType> = ({
   useEffect(() => {
     submitHandler(() => {
       const datas: CustomGroupInputType[] = [];
-
       for (let i = 0; i < customsRef.current.length; i++) {
         const inputData = customsRef.current[i].data;
         datas.push(inputData);
       }
-
       return { customGroups: datas };
     });
   }, [submitHandler]);
@@ -107,6 +105,7 @@ const CustomGroupList: FC<CustomGroupListType> = ({
   }, [resetSignal]);
 
   useEffect(() => {
+    console.log(errors);
     for (let i = 0; i < errors.length; i++) {
       const key = customsRef.current[i].key;
       setGroupsConfig((prev) => {
@@ -143,11 +142,11 @@ const CustomGroupList: FC<CustomGroupListType> = ({
             key={config.key}
             idx={idx}
             onInputChange={(inputData) => {
-              customsRef.current = customsRef.current.map((data) =>
-                data.key === config.key
+              customsRef.current = customsRef.current.map((data) => {
+                return data.key === config.key
                   ? { key: data.key, data: inputData }
-                  : data
-              );
+                  : data;
+              });
             }}
             deleteHandler={() => deleteGroup(config.key)}
             errorField={config.errorField}

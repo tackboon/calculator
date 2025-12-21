@@ -47,19 +47,11 @@ export const validateRangeCountInput = (
   countStr: string,
   max: number
 ): { count: RangeValue; err: string } => {
-  const count = extractRangeInput(countStr, max);
-  if (
-    isNaN(count.min) ||
-    isNaN(count.max) ||
-    count.min < 0 ||
-    count.min > max ||
-    count.max > max ||
-    count.max < count.min
-  ) {
-    return { count, err: "Please enter a valid number or range value." };
+  const { value, isValid } = extractRangeInput(countStr, max);
+  if (!isValid) {
+    return { count: value, err: "Please enter a valid number or range value." };
   }
-
-  return { count, err: "" };
+  return { count: value, err: "" };
 };
 
 export const validateTotoInput = (

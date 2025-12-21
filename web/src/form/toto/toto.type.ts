@@ -1,3 +1,5 @@
+import { CustomGroupInputType } from "../../component/toto/custom_group/custom.type";
+
 export enum TOTO_RANGE {
   FOURTY_NINE,
   FIFTY,
@@ -22,8 +24,7 @@ export type TotoInputType = {
   low: string;
   high: string;
   includeCustomGroup: boolean;
-  customGroups: string[];
-  customCounts: string[];
+  customGroups: CustomGroupInputType[];
   includeRangeGroup: boolean;
   rangeCount10: string;
   rangeCount20: string;

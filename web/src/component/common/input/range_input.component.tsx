@@ -42,8 +42,8 @@ const RangeInput: FC<RangeInputProps> = ({
 
     // Sanitize input
     value = value.replace(/^[\s,]+|[\s,]+$/g, "");
-    value = value.replace(/\s+/g, " ");
-    if (value.endsWith("!")) value = value.slice(0, -1);
+    const parts = value.split(",").filter((val) => val !== "");
+    value = parts.join(",");
 
     e.target.value = value;
     if (onChangeHandler) onChangeHandler(e.target.value);
@@ -54,20 +54,14 @@ const RangeInput: FC<RangeInputProps> = ({
     const prevCursorPos = e.target.selectionStart ?? 0;
 
     // Allow digits, '-', '!', ',', and spaces only
-    let val = e.target.value.replace(/[^0-9-,! ]/g, "");
-
-    // Remove the new comma if it comes after comma + spaces
-    val = val.replace(/,\s*,/g, ",");
-
-    // Remove any character that comes immediately after a '!' if it's not a digit
-    val = val.replace(/!([^0-9])/g, "!");
+    let val = e.target.value.replace(/[^0-9-,!]/g, "");
 
     // Remove overflow characters
     if (val.length > maxChars) val = val.slice(0, maxChars);
 
     // Count removed chars
     const diff = e.target.value.length - val.length;
-    caretPosRef.current = prevCursorPos - diff;
+    caretPosRef.current = Math.max(prevCursorPos - diff, 0);
 
     if (onChangeHandler) onChangeHandler(val);
     if (onChange) onChange(e);

@@ -23,7 +23,6 @@ import NumArrInput from "../../component/common/input/num_arr_input.component";
 import RangeInput from "../../component/common/input/range_input.component";
 import TrashbinIcon from "../../component/common/icon/trashbin.component";
 import Checkbox from "../../component/common/checkbox/checkbox.component";
-import { validateTotoInput } from "./validation/validation";
 import {
   CustomGroupInputType,
   ERROR_FIELD_CUSTOM_GROUP,
@@ -31,6 +30,7 @@ import {
 import CustomGroupList from "../../component/toto/custom_group/custom_list.component";
 import Link from "../../component/common/link/link.component";
 import { convertToLocaleString } from "../../common/number/number";
+import { validateTotoInput } from "./validation";
 
 const DEFAULT_INPUT: TotoInputType = {
   count: "1",
@@ -47,7 +47,6 @@ const DEFAULT_INPUT: TotoInputType = {
   high: "",
   includeCustomGroup: false,
   customGroups: [],
-  customCounts: [],
   includeRangeGroup: false,
   rangeCount10: "",
   rangeCount20: "",
@@ -95,23 +94,37 @@ const TotoForm = () => {
     // Remove old results
     setResult(null);
 
+    // Get custom groups data
+    let newInput = input;
+    if (input.includeCustomGroup) {
+      const customGroups = getCustomGroupsRef.current;
+      if (customGroups !== undefined) {
+        newInput = {
+          ...input,
+          customGroups: customGroups().customGroups,
+        };
+        setInput(newInput);
+      }
+    }
+
     // Handle validation
-    const { err, field, customFields } = validateTotoInput(input);
+    console.log(newInput);
+    const { err, field, customFields } = validateTotoInput(newInput);
     setErrorMessage(err);
     setErrorField(field);
     setCustomErrors(customFields);
     if (err !== "") return;
 
-    setIsGenerating(true);
+    // setIsGenerating(true);
 
-    (async () => {
-      // generate combinations
-      const { combinations, count } = await generateCombinations(input);
-      setResult(combinations.length > 0 ? combinations : null);
-      if (combinations.length === 0)
-        toast.error("Could not generate possible combinations.");
-      setPossibleCount(count);
-    })();
+    // (async () => {
+    //   // generate combinations
+    //   const { combinations, count } = await generateCombinations(input);
+    //   setResult(combinations.length > 0 ? combinations : null);
+    //   if (combinations.length === 0)
+    //     toast.error("Could not generate possible combinations.");
+    //   setPossibleCount(count);
+    // })();
   };
 
   const handleReset = (e: React.FormEvent) => {
@@ -351,7 +364,6 @@ const TotoForm = () => {
                     ...prev,
                     includeCustomGroup: !input.includeCustomGroup,
                     customGroups: DEFAULT_INPUT.customGroups,
-                    customCount: DEFAULT_INPUT.customCounts,
                   };
                 });
               }}
@@ -367,7 +379,6 @@ const TotoForm = () => {
                     ...prev,
                     includeCustomGroup: !input.includeCustomGroup,
                     customGroups: DEFAULT_INPUT.customGroups,
-                    customCount: DEFAULT_INPUT.customCounts,
                   };
                 });
               }}
