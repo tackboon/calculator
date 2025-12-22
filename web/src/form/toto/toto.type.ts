@@ -134,7 +134,7 @@ export type RangeValue = {
 export type WorkerInput = {
   system: number;
   rangeInfo: TotoRangeInfo;
-  customCount: RangeValue;
+  customCounts: RangeValue[];
   odd: RangeValue;
   even: RangeValue;
   low: RangeValue;
@@ -143,7 +143,7 @@ export type WorkerInput = {
   mustIncludeSize: number;
   availableBit: boolean[];
   selectedBit: boolean[];
-  customBit: boolean[];
+  customBits: boolean[][];
   oddBit: boolean[];
   lowBit: boolean[];
   rangeBit: number[];

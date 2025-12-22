@@ -8,7 +8,7 @@ self.onmessage = (e: MessageEvent) => {
   const {
     system,
     rangeInfo,
-    customCount,
+    customCounts,
     odd,
     even,
     low,
@@ -17,7 +17,7 @@ self.onmessage = (e: MessageEvent) => {
     mustIncludeSize,
     availableBit,
     selectedBit,
-    customBit,
+    customBits,
     oddBit,
     lowBit,
     rangeBit,
@@ -26,10 +26,10 @@ self.onmessage = (e: MessageEvent) => {
   }: WorkerInput = e.data;
   let possibleCombination = 0;
   let selectedIncludeCount = 0;
-  let selectedCustomCount = 0;
   let selectedOddCount = 0;
   let selectedLowCount = 0;
   const selectedRangeGroupCounts = new Array<number>(rangeInfo.group).fill(0);
+  const selectedCustomCounts = new Array<number>(customBits.length).fill(0);
 
   const backtrack = (depth: number, start: number) => {
     if (depth === 7) {
@@ -38,8 +38,8 @@ self.onmessage = (e: MessageEvent) => {
         verifyCombination(
           system,
           system,
-          selectedCustomCount,
-          customCount,
+          selectedCustomCounts,
+          customCounts,
           selectedOddCount,
           odd,
           6 - selectedOddCount,
@@ -64,18 +64,24 @@ self.onmessage = (e: MessageEvent) => {
       }
 
       if (selectedBit[num]) selectedIncludeCount++;
-      if (customBit[num]) selectedCustomCount++;
       if (oddBit[num]) selectedOddCount++;
       if (lowBit[num]) selectedLowCount++;
       selectedRangeGroupCounts[rangeBit[num]]++;
 
+      for (let j = 0; j < customBits.length; j++) {
+        if (customBits[j][num]) selectedCustomCounts[j]++;
+      }
+
       backtrack(depth + 1, num + 1);
 
       if (selectedBit[num]) selectedIncludeCount--;
-      if (customBit[num]) selectedCustomCount--;
       if (oddBit[num]) selectedOddCount--;
       if (lowBit[num]) selectedLowCount--;
       selectedRangeGroupCounts[rangeBit[num]]--;
+
+      for (let j = 0; j < customBits.length; j++) {
+        if (customBits[j][num]) selectedCustomCounts[j]--;
+      }
     }
   };
 
@@ -85,18 +91,24 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     if (selectedBit[num]) selectedIncludeCount++;
-    if (customBit[num]) selectedCustomCount++;
     if (oddBit[num]) selectedOddCount++;
     if (lowBit[num]) selectedLowCount++;
     selectedRangeGroupCounts[rangeBit[num]]++;
 
+    for (let j = 0; j < customBits.length; j++) {
+      if (customBits[j][num]) selectedCustomCounts[j]++;
+    }
+
     backtrack(2, num + 1);
 
     if (selectedBit[num]) selectedIncludeCount--;
-    if (customBit[num]) selectedCustomCount--;
     if (oddBit[num]) selectedOddCount--;
     if (lowBit[num]) selectedLowCount--;
     selectedRangeGroupCounts[rangeBit[num]]--;
+
+    for (let j = 0; j < customBits.length; j++) {
+      if (customBits[j][num]) selectedCustomCounts[j]--;
+    }
   }
 
   self.postMessage(possibleCombination);

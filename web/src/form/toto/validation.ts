@@ -4,7 +4,6 @@ import {
   ERROR_FIELD_TOTO,
   RangeValue,
   TotoInputType,
-  TotoPools,
   TotoRangeInfo,
 } from "./toto.type";
 import { extractRangeInput, getRangeInfo } from "./utils";
@@ -106,7 +105,7 @@ export const validateTotoInput = (
   // Validate custom groups
   for (let i = 0; i < input.customGroups.length; i++) {
     const tempPool = new Set<number>();
-    
+
     // Validate custom group numbers field
     let err = validateListInput(
       input.customGroups[i].numbers,

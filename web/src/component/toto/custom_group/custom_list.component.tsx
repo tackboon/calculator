@@ -105,7 +105,6 @@ const CustomGroupList: FC<CustomGroupListType> = ({
   }, [resetSignal]);
 
   useEffect(() => {
-    console.log(errors);
     for (let i = 0; i < errors.length; i++) {
       const key = customsRef.current[i].key;
       setGroupsConfig((prev) => {

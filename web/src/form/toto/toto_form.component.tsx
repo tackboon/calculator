@@ -108,23 +108,21 @@ const TotoForm = () => {
     }
 
     // Handle validation
-    console.log(newInput);
     const { err, field, customFields } = validateTotoInput(newInput);
     setErrorMessage(err);
     setErrorField(field);
     setCustomErrors(customFields);
     if (err !== "") return;
 
-    // setIsGenerating(true);
+    setIsGenerating(true);
 
-    // (async () => {
-    //   // generate combinations
-    //   const { combinations, count } = await generateCombinations(input);
-    //   setResult(combinations.length > 0 ? combinations : null);
-    //   if (combinations.length === 0)
-    //     toast.error("Could not generate possible combinations.");
-    //   setPossibleCount(count);
-    // })();
+    (async () => {
+      // generate combinations
+      const { combinations, count } = await generateCombinations(newInput);
+      setResult(combinations.length > 0 ? combinations : null);
+      if (count === 0) toast.error("Could not generate possible combinations.");
+      setPossibleCount(count);
+    })();
   };
 
   const handleReset = (e: React.FormEvent) => {

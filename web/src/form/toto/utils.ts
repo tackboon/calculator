@@ -26,7 +26,7 @@ export const extractRangeInput = (
   input: string,
   defaultMax: number
 ): { value: RangeValue; isValid: boolean } => {
-  const excludes = Array(defaultMax + 1).fill(0);
+  const excludes: number[] = [];
   const value = { min: 0, max: defaultMax, excludes };
 
   if (input === "") return { value, isValid: true };
@@ -40,7 +40,7 @@ export const extractRangeInput = (
       // check exclude format
       const num = Number(val.slice(1));
       if (num < 0 || num > defaultMax) return { value, isValid: false };
-      excludes[num] = 1;
+      excludes.push(num);
     } else if (/^\d+-\d+$/.test(val)) {
       if (rangeCount === 1) return { value, isValid: false };
       rangeCount++;
@@ -350,8 +350,8 @@ export const calcCombination = (n: number, k: number) => {
 export const verifyCombination = (
   system: number,
   combinationSize: number,
-  selectedCustomCount: number | undefined,
-  customCount: RangeValue,
+  selectedCustomCounts: number[],
+  customCounts: RangeValue[],
   selectedOddCount: number,
   odd: RangeValue,
   selectedEvenCount: number,
@@ -367,12 +367,16 @@ export const verifyCombination = (
   if (combinationSize !== system) return false;
 
   // ensure the custom group setting is correct
-  if (
-    selectedCustomCount !== undefined &&
-    (selectedCustomCount < customCount.min ||
-      selectedCustomCount > customCount.max)
-  ) {
-    return false;
+  for (let i = 0; i < customCounts.length; i++) {
+    if (
+      selectedCustomCounts[i] < customCounts[i].min ||
+      selectedCustomCounts[i] > customCounts[i].max
+    )
+      return false;
+
+    for (const exclude of customCounts[i].excludes) {
+      if (selectedCustomCounts[i] === exclude) return false;
+    }
   }
 
   // ensure the odd/even setting is correct
@@ -384,6 +388,13 @@ export const verifyCombination = (
   )
     return false;
 
+  for (const exclude of odd.excludes) {
+    if (selectedOddCount === exclude) return false;
+  }
+  for (const exclude of even.excludes) {
+    if (selectedEvenCount === exclude) return false;
+  }
+
   // ensure the low/high setting is correct
   if (
     selectedLowCount < low.min ||
@@ -393,6 +404,13 @@ export const verifyCombination = (
   )
     return false;
 
+  for (const exclude of low.excludes) {
+    if (selectedLowCount === exclude) return false;
+  }
+  for (const exclude of high.excludes) {
+    if (selectedHighCount === exclude) return false;
+  }
+
   // ensure the range group setting is correct
   for (let i = 0; i < rangeValues.length; i++) {
     if (
@@ -400,6 +418,10 @@ export const verifyCombination = (
       selectedRangeGroups[i] > rangeValues[i].max
     )
       return false;
+
+    for (const exclude of rangeValues[i].excludes) {
+      if (selectedRangeGroups[i] === exclude) return false;
+    }
   }
 
   return true;
@@ -520,11 +542,11 @@ export const generateCombinations = async (
       input[TotoRangeInputKeys[i]],
       input.system
     );
-    rangeValues.push(rangeInput);
+    rangeValues.push(rangeInput.value);
 
     // calculate sum of min/max
-    minRangeSum += rangeInput.min;
-    maxRangeSum += rangeInput.max;
+    minRangeSum += rangeInput.value.min;
+    maxRangeSum += rangeInput.value.max;
   }
 
   // Adjust range group count
@@ -553,16 +575,17 @@ export const generateCombinations = async (
   const possibleCombination = await calcPossibleCombination(
     input.system,
     rangeInfo,
-    customPool,
-    customCount,
-    odd,
-    even,
-    low,
-    high,
+    customPools,
+    customCounts,
+    odd.value,
+    even.value,
+    low.value,
+    high.value,
     rangeValues,
     availablePool,
     selectedPool
   );
+  console.log("combination:", possibleCombination);
 
   // Generate combinations
   let k = 0;
@@ -1024,8 +1047,8 @@ const analyseData = (
 export const calcPossibleCombination = async (
   system: number,
   rangeInfo: TotoRangeInfo,
-  customPool: TotoPools,
-  customCount: RangeValue,
+  customPools: TotoPools[],
+  customCounts: RangeValue[],
   odd: RangeValue,
   even: RangeValue,
   low: RangeValue,
@@ -1038,17 +1061,24 @@ export const calcPossibleCombination = async (
 
   const selectedBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const availableBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
-  const customBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const oddBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const lowBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const rangeBit = new Array<number>(rangeInfo.max + 1).fill(0);
+  const customBits: boolean[][] = Array.from(
+    { length: customPools.length },
+    () => Array(rangeInfo.max + 1).fill(false)
+  );
+
   for (let i = 1; i <= rangeInfo.max; i++) {
     if (selectedPool.allPools.allPools.has(i)) selectedBit[i] = true;
     if (availablePool.allPools.allPools.has(i)) availableBit[i] = true;
-    if (customPool.allPools.allPools.has(i)) customBit[i] = true;
     if (i % 2 !== 0) oddBit[i] = true;
     if (i <= rangeInfo.low) lowBit[i] = true;
     rangeBit[i] = Math.floor((i - 1) / 10);
+
+    for (let j = 0; j < customPools.length; j++) {
+      if (customPools[j].allPools.allPools.has(i)) customBits[j][i] = true;
+    }
   }
 
   const maxFirstNum = rangeInfo.count - (6 - 1);
@@ -1077,33 +1107,50 @@ export const calcPossibleCombination = async (
     0,
     selectedPool.allPools.allPools.size - (system - 6)
   );
-  const newCustomCount = {
-    min: Math.max(0, customCount.min - (system - 6)),
-    max: customCount.max,
-  };
   const newOdd = {
     min: Math.max(0, odd.min - (system - 6)),
     max: odd.max,
+    excludes: odd.excludes,
   };
   const newEven = {
     min: Math.max(0, even.min - (system - 6)),
     max: even.max,
+    excludes: even.excludes,
   };
   const newLow = {
     min: Math.max(0, low.min - (system - 6)),
     max: low.max,
+    excludes: low.excludes,
   };
   const newHigh = {
     min: Math.max(0, high.min - (system - 6)),
     max: high.max,
+    excludes: high.excludes,
   };
   const newRangeValues: RangeValue[] = [];
   for (const val of rangeValues) {
     newRangeValues.push({
       min: Math.max(0, val.min - (system - 6)),
       max: val.max,
+      excludes: val.excludes,
     });
   }
+  const newCustomCounts: RangeValue[] = [];
+  for (const val of customCounts) {
+    newCustomCounts.push({
+      min: Math.max(0, val.min - (system - 6)),
+      max: val.max,
+      excludes: val.excludes,
+    });
+  }
+
+  console.log("custom bits:", customBits);
+  console.log("custom counts:", newCustomCounts);
+  console.log("odd:", newOdd);
+  console.log("even:", newEven);
+  console.log("low:", newLow);
+  console.log("high:", newHigh);
+  console.log("range:", newRangeValues);
 
   const countPromises: Promise<number>[] = [];
   for (let j = 0; j < chunkSize; j++) {
@@ -1124,7 +1171,7 @@ export const calcPossibleCombination = async (
         worker.postMessage({
           system,
           rangeInfo,
-          customCount: newCustomCount,
+          customCounts: newCustomCounts,
           odd: newOdd,
           even: newEven,
           low: newLow,
@@ -1133,7 +1180,7 @@ export const calcPossibleCombination = async (
           mustIncludeSize,
           availableBit,
           selectedBit,
-          customBit,
+          customBits,
           oddBit,
           lowBit,
           rangeBit,
