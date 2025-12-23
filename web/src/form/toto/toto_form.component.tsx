@@ -118,7 +118,7 @@ const TotoForm = () => {
 
     (async () => {
       // generate combinations
-      const { combinations, count } = await generateCombinations(newInput);
+      const { combinations, count } = await generateCombinations(newInput, true);
       setResult(combinations.length > 0 ? combinations : null);
       if (count === 0) toast.error("Could not generate possible combinations.");
       setPossibleCount(count);

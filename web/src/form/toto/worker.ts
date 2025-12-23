@@ -17,7 +17,8 @@ self.onmessage = (e: MessageEvent) => {
     mustIncludeSize,
     availableBit,
     selectedBit,
-    customBits,
+    customIdx,
+    totalCustomGroup,
     oddBit,
     lowBit,
     rangeBit,
@@ -29,7 +30,7 @@ self.onmessage = (e: MessageEvent) => {
   let selectedOddCount = 0;
   let selectedLowCount = 0;
   const selectedRangeGroupCounts = new Array<number>(rangeInfo.group).fill(0);
-  const selectedCustomCounts = new Array<number>(customBits.length).fill(0);
+  const selectedCustomCounts = new Array<number>(totalCustomGroup).fill(0);
 
   const backtrack = (depth: number, start: number) => {
     if (depth === 7) {
@@ -64,24 +65,18 @@ self.onmessage = (e: MessageEvent) => {
       }
 
       if (selectedBit[num]) selectedIncludeCount++;
+      if (num in customIdx) selectedCustomCounts[customIdx[num]]++;
       if (oddBit[num]) selectedOddCount++;
       if (lowBit[num]) selectedLowCount++;
       selectedRangeGroupCounts[rangeBit[num]]++;
 
-      for (let j = 0; j < customBits.length; j++) {
-        if (customBits[j][num]) selectedCustomCounts[j]++;
-      }
-
       backtrack(depth + 1, num + 1);
 
       if (selectedBit[num]) selectedIncludeCount--;
+      if (num in customIdx) selectedCustomCounts[customIdx[num]]--;
       if (oddBit[num]) selectedOddCount--;
       if (lowBit[num]) selectedLowCount--;
       selectedRangeGroupCounts[rangeBit[num]]--;
-
-      for (let j = 0; j < customBits.length; j++) {
-        if (customBits[j][num]) selectedCustomCounts[j]--;
-      }
     }
   };
 
@@ -91,24 +86,18 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     if (selectedBit[num]) selectedIncludeCount++;
+    if (num in customIdx) selectedCustomCounts[customIdx[num]]++;
     if (oddBit[num]) selectedOddCount++;
     if (lowBit[num]) selectedLowCount++;
     selectedRangeGroupCounts[rangeBit[num]]++;
 
-    for (let j = 0; j < customBits.length; j++) {
-      if (customBits[j][num]) selectedCustomCounts[j]++;
-    }
-
     backtrack(2, num + 1);
 
     if (selectedBit[num]) selectedIncludeCount--;
+    if (num in customIdx) selectedCustomCounts[customIdx[num]]--;
     if (oddBit[num]) selectedOddCount--;
     if (lowBit[num]) selectedLowCount--;
     selectedRangeGroupCounts[rangeBit[num]]--;
-
-    for (let j = 0; j < customBits.length; j++) {
-      if (customBits[j][num]) selectedCustomCounts[j]--;
-    }
   }
 
   self.postMessage(possibleCombination);

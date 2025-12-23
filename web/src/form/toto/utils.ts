@@ -11,6 +11,7 @@ import {
   TotoRangeInputKeys,
   TotoSetPools,
 } from "./toto.type";
+import { createWorker } from "./worker_factory";
 
 export const getRangeGroupHeight = (
   includeRangeGroup: boolean,
@@ -428,7 +429,8 @@ export const verifyCombination = (
 };
 
 export const generateCombinations = async (
-  input: TotoInputType
+  input: TotoInputType,
+  isBrowser: boolean
 ): Promise<{ combinations: TotoCombination[]; count: number | null }> => {
   // Read params
   const count = Number(input.count);
@@ -483,8 +485,9 @@ export const generateCombinations = async (
   // Read custom group setting
   const customCounts: RangeValue[] = [];
   const customPools: TotoPools[] = [];
+  const customPoolIdx: Record<number, number> = {};
   if (input.includeCustomGroup) {
-    for (const customGroup of input.customGroups) {
+    for (const [idx, customGroup] of input.customGroups.entries()) {
       const customCount = extractRangeInput(customGroup.count, input.system);
       const customPool = initTotoPool();
       const parts = customGroup.numbers.split(",");
@@ -494,6 +497,7 @@ export const generateCombinations = async (
         }
         const n = Number(val);
         addPoolNum(customPool, n, rangeInfo.low);
+        customPoolIdx[n] = idx;
       }
       customPools.push(customPool);
 
@@ -572,41 +576,50 @@ export const generateCombinations = async (
     rangeValues[idx] = rangeValue;
   }
 
-  const possibleCombination = await calcPossibleCombination(
-    input.system,
-    rangeInfo,
-    customPools,
-    customCounts,
-    odd.value,
-    even.value,
-    low.value,
-    high.value,
-    rangeValues,
-    availablePool,
-    selectedPool
-  );
-  console.log("combination:", possibleCombination);
+  let possibleCombination = 0;
+  if (isBrowser) {
+    possibleCombination = await calcPossibleCombination(
+      input.system,
+      rangeInfo,
+      customCounts,
+      customPoolIdx,
+      odd.value,
+      even.value,
+      low.value,
+      high.value,
+      rangeValues,
+      availablePool,
+      selectedPool
+    );
+  }
+  if (possibleCombination === 0) {
+    return { combinations: [], count: possibleCombination };
+  }
 
   // Generate combinations
   let k = 0;
   while (combinations.length < count && k < 1000) {
     // duplication pools to prevent overwrite of the default pools
-    const availablePoolsCopy = getTotoPoolsCopy(availablePool);
-    const selectedPoolsCopy = getTotoPoolsCopy(selectedPool);
-    const customPoolsCopy = getTotoPoolsCopy(customPool);
+    const availablePoolCopy = getTotoPoolsCopy(availablePool);
+    const selectedPoolCopy = getTotoPoolsCopy(selectedPool);
+    const customPoolsCopy: TotoPools[] = [];
+    for (const customPool of customPools) {
+      customPoolsCopy.push(getTotoPoolsCopy(customPool));
+    }
 
     // generate combination
     const combination = generateCombination(
       remainingSlot,
       rangeInfo,
-      availablePoolsCopy,
-      selectedPoolsCopy,
+      availablePoolCopy,
+      selectedPoolCopy,
       customPoolsCopy,
-      customCount,
-      odd,
-      even,
-      low,
-      high,
+      customCounts,
+      customPoolIdx,
+      odd.value,
+      even.value,
+      low.value,
+      high.value,
       rangeValues
     );
 
@@ -614,12 +627,9 @@ export const generateCombinations = async (
     const combinationStr = setToString(combination, " ");
     if (!combinationSet.has(combinationStr)) {
       // calculate selected custom number
-      let selectedCustomCount: number | undefined;
-      if (customPool.allPools.allPools.size > 0) {
-        selectedCustomCount = 0;
-        for (const num of combination) {
-          if (customPool.allPools.allPools.has(num)) selectedCustomCount++;
-        }
+      const selectedCustomCounts = new Array<number>(customPools.length);
+      for (const num of combination) {
+        if (num in customPoolIdx) selectedCustomCounts[customPoolIdx[num]]++;
       }
 
       const out = analyseData(combination, combinationStr, rangeInfo);
@@ -628,16 +638,16 @@ export const generateCombinations = async (
         !verifyCombination(
           input.system,
           combination.size,
-          selectedCustomCount,
-          customCount,
+          selectedCustomCounts,
+          customCounts,
           out.oddCount,
-          odd,
+          odd.value,
           out.evenCount,
-          even,
+          even.value,
           out.lowCount,
-          low,
+          low.value,
           out.highCount,
-          high,
+          high.value,
           out.outputGroups.map((g) => g.count),
           rangeValues
         )
@@ -660,8 +670,9 @@ const generateCombination = (
   rangeInfo: TotoRangeInfo,
   availablePool: TotoPools,
   selectedPool: TotoPools,
-  customPool: TotoPools,
-  customCount: RangeValue,
+  customPools: TotoPools[],
+  customCounts: RangeValue[],
+  customIdx: Record<number, number>,
   odd: RangeValue,
   even: RangeValue,
   low: RangeValue,
@@ -674,20 +685,31 @@ const generateCombination = (
     const remainingCount = remainingSlot - i;
 
     // Calculate remaining and required custom numbers
-    const requiredCustomCount = Math.max(
-      0,
-      customCount.min - selectedCustomCount
-    );
-    const remainingCustomCount = Math.min(
-      customCount.max - selectedCustomCount,
-      customPool.allPools.allPools.size
-    );
+    let minRequiredCustomCount = 999;
+    let selectedCustomIdx = 0;
+    for (const [idx, customCount] of customCounts.entries()) {
+      const requiredCustomCount = Math.max(
+        0,
+        customCount.min - selectedCustomCount
+      );
+      if (
+        requiredCustomCount > 0 &&
+        requiredCustomCount < minRequiredCustomCount
+      ) {
+        minRequiredCustomCount = requiredCustomCount;
+        selectedCustomIdx = idx;
+      }
 
-    // Remove unnessary custom numbers
-    if (remainingCustomCount === 0) {
-      for (const num of customPool.allPools.allPools) {
-        deletePoolNum(availablePool, num);
-        deletePoolNum(customPool, num);
+      // Remove unnessary custom numbers
+      const remainingCustomCount = Math.min(
+        customCount.max - selectedCustomCount,
+        customPools[idx].allPools.allPools.size
+      );
+      if (remainingCustomCount === 0) {
+        for (const num of customPools[idx].allPools.allPools) {
+          deletePoolNum(availablePool, num);
+          deletePoolNum(customPools[idx], num);
+        }
       }
     }
 
@@ -746,7 +768,9 @@ const generateCombination = (
       if (remainingRangeCount === 0) {
         for (const num of availablePool[TotoPoolKeys[idx]].allPools) {
           deletePoolNum(availablePool, num);
-          deletePoolNum(customPool, num);
+          if (num in customIdx) {
+            deletePoolNum(customPools[customIdx[num]], num);
+          }
         }
       }
 
@@ -791,23 +815,23 @@ const generateCombination = (
     let poolSet: TotoSetPools;
     let selectedRangeGroupIdx: number | undefined;
     let requiredRangeCount = remainingCount + 1;
-    if (requiredCustomCount > 0) {
+    if (minRequiredCustomCount !== 999) {
       // Choose the range group to draw with
-      poolGroup = customPool;
-      poolSet = customPool.allPools;
+      poolGroup = customPools[selectedCustomIdx];
+      poolSet = poolGroup.allPools;
       for (let j = 0; j < rangeInfo.group; j++) {
         const requiredCustomRangeCount = Math.max(
           0,
           requiredRangeCounts[j] -
             (availablePool[TotoPoolKeys[j]].allPools.size -
-              customPool[TotoPoolKeys[j]].allPools.size)
+              poolGroup[TotoPoolKeys[j]].allPools.size)
         );
         if (
           requiredCustomRangeCount > 0 &&
           requiredCustomRangeCount < requiredRangeCount
         ) {
           requiredRangeCount = requiredCustomRangeCount;
-          poolSet = customPool[TotoPoolKeys[j]];
+          poolSet = poolGroup[TotoPoolKeys[j]];
           selectedRangeGroupIdx = j;
         }
       }
@@ -920,11 +944,15 @@ const generateCombination = (
     }
 
     // Random number with selected settings
+    const selectedCustomCounts = new Array<number>(customPools.length);
     const n = randomNumber(poolSet, oddEvenRule, lowHighRule);
     if (n !== undefined) {
       // Calculate selected custom numbers
-      if (customPool.allPools.allPools.has(n)) {
-        selectedCustomCount++;
+      if (n in customIdx) {
+        selectedCustomCounts[customIdx[n]]++;
+
+        // Remove selected number from custom pools
+        deletePoolNum(customPools[customIdx[n]], n);
       }
 
       // add generated number
@@ -932,7 +960,6 @@ const generateCombination = (
 
       // Remove selected number from pools
       deletePoolNum(availablePool, n);
-      deletePoolNum(customPool, n);
     } else {
       console.error("Failed to random on empty set.", i);
     }
@@ -1047,8 +1074,8 @@ const analyseData = (
 export const calcPossibleCombination = async (
   system: number,
   rangeInfo: TotoRangeInfo,
-  customPools: TotoPools[],
   customCounts: RangeValue[],
+  customIdx: Record<number, number>,
   odd: RangeValue,
   even: RangeValue,
   low: RangeValue,
@@ -1064,10 +1091,6 @@ export const calcPossibleCombination = async (
   const oddBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const lowBit = new Array<boolean>(rangeInfo.max + 1).fill(false);
   const rangeBit = new Array<number>(rangeInfo.max + 1).fill(0);
-  const customBits: boolean[][] = Array.from(
-    { length: customPools.length },
-    () => Array(rangeInfo.max + 1).fill(false)
-  );
 
   for (let i = 1; i <= rangeInfo.max; i++) {
     if (selectedPool.allPools.allPools.has(i)) selectedBit[i] = true;
@@ -1075,10 +1098,6 @@ export const calcPossibleCombination = async (
     if (i % 2 !== 0) oddBit[i] = true;
     if (i <= rangeInfo.low) lowBit[i] = true;
     rangeBit[i] = Math.floor((i - 1) / 10);
-
-    for (let j = 0; j < customPools.length; j++) {
-      if (customPools[j].allPools.allPools.has(i)) customBits[j][i] = true;
-    }
   }
 
   const maxFirstNum = rangeInfo.count - (6 - 1);
@@ -1144,23 +1163,13 @@ export const calcPossibleCombination = async (
     });
   }
 
-  console.log("custom bits:", customBits);
-  console.log("custom counts:", newCustomCounts);
-  console.log("odd:", newOdd);
-  console.log("even:", newEven);
-  console.log("low:", newLow);
-  console.log("high:", newHigh);
-  console.log("range:", newRangeValues);
-
   const countPromises: Promise<number>[] = [];
   for (let j = 0; j < chunkSize; j++) {
     const startNum = startNums[j];
     const endNum = j < chunkSize - 1 ? startNums[j + 1] - 1 : maxFirstNum;
     countPromises.push(
       new Promise((resolve) => {
-        const worker = new Worker(new URL("./worker.ts", import.meta.url), {
-          type: "module",
-        });
+        const worker = createWorker();
 
         worker.onmessage = (e) => {
           const combinationCount: number = e.data;
@@ -1180,7 +1189,7 @@ export const calcPossibleCombination = async (
           mustIncludeSize,
           availableBit,
           selectedBit,
-          customBits,
+          customIdx,
           oddBit,
           lowBit,
           rangeBit,

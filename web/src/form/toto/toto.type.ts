@@ -143,7 +143,8 @@ export type WorkerInput = {
   mustIncludeSize: number;
   availableBit: boolean[];
   selectedBit: boolean[];
-  customBits: boolean[][];
+  customIdx: Record<number, number>;
+  totalCustomGroup: number;
   oddBit: boolean[];
   lowBit: boolean[];
   rangeBit: number[];
