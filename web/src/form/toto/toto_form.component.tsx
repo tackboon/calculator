@@ -81,8 +81,7 @@ const TotoForm = () => {
 
   // Scroll to result after it is updated
   useEffect(() => {
-    if (isGenerating && result && resultRef.current) {
-      setIsGenerating(false);
+    if (result && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result, isGenerating]);
@@ -90,6 +89,7 @@ const TotoForm = () => {
   // Form submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsGenerating(true);
 
     // Remove old results
     setResult(null);
@@ -112,16 +112,21 @@ const TotoForm = () => {
     setErrorMessage(err);
     setErrorField(field);
     setCustomErrors(customFields);
-    if (err !== "") return;
-
-    setIsGenerating(true);
+    if (err !== "") {
+      setIsGenerating(false);
+      return;
+    }
 
     (async () => {
       // generate combinations
-      const { combinations, count } = await generateCombinations(newInput, true);
+      const { combinations, count } = await generateCombinations(
+        newInput,
+        true
+      );
       setResult(combinations.length > 0 ? combinations : null);
       if (count === 0) toast.error("Could not generate possible combinations.");
       setPossibleCount(count);
+      setIsGenerating(false);
     })();
   };
 

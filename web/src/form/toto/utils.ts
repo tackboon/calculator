@@ -592,13 +592,14 @@ export const generateCombinations = async (
       selectedPool
     );
   }
-  if (possibleCombination === 0) {
+
+  if (possibleCombination === 0 && isBrowser) {
     return { combinations: [], count: possibleCombination };
   }
 
   // Generate combinations
   let k = 0;
-  while (combinations.length < count && k < 1000) {
+  while (combinations.length < count && k < 10000) {
     // duplication pools to prevent overwrite of the default pools
     const availablePoolCopy = getTotoPoolsCopy(availablePool);
     const selectedPoolCopy = getTotoPoolsCopy(selectedPool);
@@ -679,7 +680,7 @@ const generateCombination = (
   high: RangeValue,
   rangeValues: RangeValue[]
 ): Set<number> => {
-  let selectedCustomCount = 0;
+  const selectedCustomCounts = new Array<number>(customCounts.length).fill(0);
   for (let i = 0; i < remainingSlot; i++) {
     // Calculate remaining numbers to fill
     const remainingCount = remainingSlot - i;
@@ -690,7 +691,7 @@ const generateCombination = (
     for (const [idx, customCount] of customCounts.entries()) {
       const requiredCustomCount = Math.max(
         0,
-        customCount.min - selectedCustomCount
+        customCount.min - selectedCustomCounts[idx]
       );
       if (
         requiredCustomCount > 0 &&
@@ -702,7 +703,7 @@ const generateCombination = (
 
       // Remove unnessary custom numbers
       const remainingCustomCount = Math.min(
-        customCount.max - selectedCustomCount,
+        customCount.max - selectedCustomCounts[idx],
         customPools[idx].allPools.allPools.size
       );
       if (remainingCustomCount === 0) {
@@ -944,7 +945,6 @@ const generateCombination = (
     }
 
     // Random number with selected settings
-    const selectedCustomCounts = new Array<number>(customPools.length);
     const n = randomNumber(poolSet, oddEvenRule, lowHighRule);
     if (n !== undefined) {
       // Calculate selected custom numbers

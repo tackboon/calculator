@@ -6,6 +6,29 @@ import {
 } from "./utils";
 import { validateTotoInput } from "./validation";
 
+// Mock the global Worker constructor
+beforeAll(() => {
+  global.Worker = class MockWorker {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      console.log("Mock Worker created with URL:", url.toString());
+      this.url = url;
+      this.options = options;
+    }
+
+    url: string | URL;
+    options?: WorkerOptions;
+
+    postMessage = jest.fn();
+    addEventListener = jest.fn();
+    removeEventListener = jest.fn();
+    terminate = jest.fn();
+  } as any;
+});
+
+afterAll(() => {
+  delete (global as any).Worker;
+});
+
 describe("calcCombination", () => {
   it.each([
     { input: { n: 6, k: 6 }, output: 1 },
@@ -178,6 +201,43 @@ describe("generateCombinations", () => {
         rangeCount30: "",
         rangeCount40: "",
         rangeCount50: "",
+        rangeCount60: "",
+        rangeCount70: "",
+      },
+      expectedCount: 100,
+    },
+    {
+      input: {
+        count: "100",
+        system: 6,
+        numberRange: TOTO_RANGE.FOURTY_NINE,
+        includeNumberFilter: true,
+        mustIncludes: "",
+        mustExcludes: "",
+        includeOddEven: false,
+        odd: "",
+        even: "",
+        includeLowHigh: false,
+        low: "",
+        high: "",
+        includeCustomGroup: true,
+        customGroups: [
+          {
+            numbers:
+              "1,3,4,7,16,17,18,20,21,23,25,26,27,28,29,30,32,33,39,40,41,42,44,48,49",
+            count: "0-3",
+          },
+          {
+            numbers: "2,6,8,10,13,15,19,22,24,31,34,35,43",
+            count: "1-4",
+          },
+        ],
+        includeRangeGroup: true,
+        rangeCount10: "0-3,!2",
+        rangeCount20: "0-3",
+        rangeCount30: "0-3",
+        rangeCount40: "0-3",
+        rangeCount50: "0-2",
         rangeCount60: "",
         rangeCount70: "",
       },

@@ -144,7 +144,6 @@ export type WorkerInput = {
   availableBit: boolean[];
   selectedBit: boolean[];
   customIdx: Record<number, number>;
-  totalCustomGroup: number;
   oddBit: boolean[];
   lowBit: boolean[];
   rangeBit: number[];

@@ -18,7 +18,6 @@ self.onmessage = (e: MessageEvent) => {
     availableBit,
     selectedBit,
     customIdx,
-    totalCustomGroup,
     oddBit,
     lowBit,
     rangeBit,
@@ -30,9 +29,9 @@ self.onmessage = (e: MessageEvent) => {
   let selectedOddCount = 0;
   let selectedLowCount = 0;
   const selectedRangeGroupCounts = new Array<number>(rangeInfo.group).fill(0);
-  const selectedCustomCounts = new Array<number>(totalCustomGroup).fill(0);
+  const selectedCustomCounts = new Array<number>(customCounts.length).fill(0);
 
-  const backtrack = (depth: number, start: number) => {
+  const backtrack = (depth: number, prev: number) => {
     if (depth === 7) {
       if (
         selectedIncludeCount >= mustIncludeSize &&
@@ -59,7 +58,7 @@ self.onmessage = (e: MessageEvent) => {
       return;
     }
 
-    for (let num = start; num <= rangeInfo.count - (6 - depth); num++) {
+    for (let num = prev + 1; num <= rangeInfo.count - (6 - depth); num++) {
       if (!availableBit[num] && !selectedBit[num]) {
         continue;
       }
@@ -70,7 +69,7 @@ self.onmessage = (e: MessageEvent) => {
       if (lowBit[num]) selectedLowCount++;
       selectedRangeGroupCounts[rangeBit[num]]++;
 
-      backtrack(depth + 1, num + 1);
+      backtrack(depth + 1, num);
 
       if (selectedBit[num]) selectedIncludeCount--;
       if (num in customIdx) selectedCustomCounts[customIdx[num]]--;
@@ -91,7 +90,7 @@ self.onmessage = (e: MessageEvent) => {
     if (lowBit[num]) selectedLowCount++;
     selectedRangeGroupCounts[rangeBit[num]]++;
 
-    backtrack(2, num + 1);
+    backtrack(2, num);
 
     if (selectedBit[num]) selectedIncludeCount--;
     if (num in customIdx) selectedCustomCounts[customIdx[num]]--;
