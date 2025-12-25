@@ -33,6 +33,9 @@ export type TotoInputType = {
   rangeCount50: string;
   rangeCount60: string;
   rangeCount70: string;
+  includeConsecutive: boolean;
+  maxConsecutiveLength: string;
+  maxConsecutiveGroup: string;
 };
 
 export enum ERROR_FIELD_TOTO {
@@ -52,6 +55,8 @@ export enum ERROR_FIELD_TOTO {
   RANGE_50,
   RANGE_60,
   RANGE_70,
+  MAX_CONSECUTIVE_LENGTH,
+  MAX_CONSECUTIVE_GROUP,
 }
 
 export type TotoOutputGroup = {
@@ -149,4 +154,6 @@ export type WorkerInput = {
   rangeBit: number[];
   startNum: number;
   endNum: number;
+  maxConsecutiveLength: number;
+  maxConsecutiveGroup: number;
 };

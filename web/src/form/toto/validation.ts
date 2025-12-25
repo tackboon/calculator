@@ -1,3 +1,4 @@
+import { QUADRILLION } from "../../common/number/math";
 import { checkMinMax } from "../../common/validation/calculator.validation";
 import { ERROR_FIELD_CUSTOM_GROUP } from "../../component/toto/custom_group/custom.type";
 import {
@@ -206,6 +207,33 @@ export const validateTotoInput = (
       const { err } = validateRangeCountInput(rangeCounts[i], input.system);
       if (err !== "")
         return { err, field: ERROR_FIELD_TOTO.RANGE_10 + i, customFields };
+    }
+  }
+
+  if (input.includeConsecutive) {
+    // Validate max consecutive length field
+    if (
+      !checkMinMax(input.maxConsecutiveLength, { min: 1, max: QUADRILLION })
+    ) {
+      return {
+        err: "Please enter a valid consecutive length.",
+        field: ERROR_FIELD_TOTO.MAX_CONSECUTIVE_LENGTH,
+        customFields,
+      };
+    }
+
+    // Validate max consecutive group field
+    if (
+      !checkMinMax(input.maxConsecutiveGroup, {
+        min: 0,
+        max: QUADRILLION,
+      })
+    ) {
+      return {
+        err: "Please enter a valid consecutive group.",
+        field: ERROR_FIELD_TOTO.MAX_CONSECUTIVE_GROUP,
+        customFields,
+      };
     }
   }
 

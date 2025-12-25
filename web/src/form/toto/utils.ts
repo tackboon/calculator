@@ -18,9 +18,9 @@ export const getRangeGroupHeight = (
   rangeTyp: number
 ) => {
   if (!includeRangeGroup) return 0;
-  if (rangeTyp === 5) return 476;
-  if (rangeTyp === 6) return 576;
-  return 676;
+  if (rangeTyp === 5) return 490;
+  if (rangeTyp === 6) return 590;
+  return 690;
 };
 
 export const extractRangeInput = (
@@ -362,7 +362,11 @@ export const verifyCombination = (
   selectedHighCount: number,
   high: RangeValue,
   selectedRangeGroups: number[],
-  rangeValues: RangeValue[]
+  rangeValues: RangeValue[],
+  selectedMaxConsecutiveLength: number,
+  maxConsecutiveLength: number,
+  selectedConsecutiveGroup: number,
+  maxConsecutiveGroup: number
 ): boolean => {
   // ensure the combination size is correct
   if (combinationSize !== system) return false;
@@ -425,6 +429,13 @@ export const verifyCombination = (
     }
   }
 
+  // ensure consecutive rules are matched
+  if (
+    selectedMaxConsecutiveLength > maxConsecutiveLength ||
+    selectedConsecutiveGroup > maxConsecutiveGroup
+  )
+    return false;
+
   return true;
 };
 
@@ -458,10 +469,10 @@ export const generateCombinations = async (
 
   // Check is selected pools full
   if (selectedPool.allPools.allPools.size === input.system) {
-    const combinationStr = setToString(selectedPool.allPools.allPools, " ");
+    const sortedCombination = sortSet(selectedPool.allPools.allPools);
     const out = analyseData(
       selectedPool.allPools.allPools,
-      combinationStr,
+      sortedCombination.join(" "),
       rangeInfo
     );
     combinations.push(out);
@@ -576,6 +587,14 @@ export const generateCombinations = async (
     rangeValues[idx] = rangeValue;
   }
 
+  // Read consecutive setting
+  let maxConsecutiveLength = input.system;
+  let maxConsecutiveGroup = Math.floor(input.system / 2);
+  if (input.includeConsecutive) {
+    maxConsecutiveLength = Number(input.maxConsecutiveLength);
+    maxConsecutiveGroup = Number(input.maxConsecutiveGroup);
+  }
+
   let possibleCombination = 0;
   if (isBrowser) {
     possibleCombination = await calcPossibleCombination(
@@ -589,7 +608,9 @@ export const generateCombinations = async (
       high.value,
       rangeValues,
       availablePool,
-      selectedPool
+      selectedPool,
+      maxConsecutiveLength,
+      maxConsecutiveGroup
     );
   }
 
@@ -625,12 +646,43 @@ export const generateCombinations = async (
     );
 
     // analyse result and write to the output list
-    const combinationStr = setToString(combination, " ");
+    const sortedCombination = sortSet(combination);
+    const combinationStr = sortedCombination.join(" ");
     if (!combinationSet.has(combinationStr)) {
       // calculate selected custom number
       const selectedCustomCounts = new Array<number>(customPools.length);
       for (const num of combination) {
         if (num in customPoolIdx) selectedCustomCounts[customPoolIdx[num]]++;
+      }
+
+      // calculate consecutive
+      let selectedConsecutiveLength = 1;
+      let selectedMaxConsecutiveLength = 1;
+      let selectedConsecutiveGroup = 0;
+      for (let k = 1; k < sortedCombination.length - 1; k++) {
+        if (sortedCombination[k] === sortedCombination[k - 1] + 1) {
+          selectedConsecutiveLength++;
+        } else {
+          if (selectedConsecutiveLength > 1) {
+            selectedConsecutiveGroup++;
+          }
+          if (selectedConsecutiveLength > selectedMaxConsecutiveLength) {
+            selectedMaxConsecutiveLength = selectedConsecutiveLength;
+          }
+          selectedConsecutiveLength = 1;
+        }
+      }
+      if (
+        sortedCombination[sortedCombination.length - 1] ===
+        sortedCombination[sortedCombination.length - 2] + 1
+      ) {
+        selectedConsecutiveLength++;
+      }
+      if (selectedConsecutiveLength > 1) {
+        selectedConsecutiveGroup++;
+      }
+      if (selectedConsecutiveLength > selectedMaxConsecutiveLength) {
+        selectedMaxConsecutiveLength = selectedConsecutiveLength;
       }
 
       const out = analyseData(combination, combinationStr, rangeInfo);
@@ -650,7 +702,11 @@ export const generateCombinations = async (
           out.highCount,
           high.value,
           out.outputGroups.map((g) => g.count),
-          rangeValues
+          rangeValues,
+          selectedMaxConsecutiveLength,
+          maxConsecutiveLength,
+          selectedConsecutiveGroup,
+          maxConsecutiveGroup
         )
       )
         continue;
@@ -1006,10 +1062,8 @@ const randomNumber = (
   return n;
 };
 
-const setToString = (set: Set<number>, separator: string) => {
-  return Array.from(set)
-    .sort((a, b) => a - b)
-    .join(separator);
+const sortSet = (set: Set<number>) => {
+  return Array.from(set).sort((a, b) => a - b);
 };
 
 const analyseData = (
@@ -1082,7 +1136,9 @@ export const calcPossibleCombination = async (
   high: RangeValue,
   rangeValues: RangeValue[],
   availablePool: TotoPools,
-  selectedPool: TotoPools
+  selectedPool: TotoPools,
+  maxConsecutiveLength: number,
+  maxConsecutiveGroup: number
 ) => {
   let possibleCombination = 0;
 
@@ -1195,6 +1251,8 @@ export const calcPossibleCombination = async (
           rangeBit,
           startNum,
           endNum,
+          maxConsecutiveLength,
+          maxConsecutiveGroup,
         });
       })
     );

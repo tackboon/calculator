@@ -55,6 +55,9 @@ const DEFAULT_INPUT: TotoInputType = {
   rangeCount50: "",
   rangeCount60: "",
   rangeCount70: "",
+  includeConsecutive: false,
+  maxConsecutiveLength: "6",
+  maxConsecutiveGroup: "3",
 };
 
 const TotoForm = () => {
@@ -143,6 +146,9 @@ const TotoForm = () => {
       includeLowHigh: prev.includeLowHigh,
       includeCustomGroup: prev.includeCustomGroup,
       includeRangeGroup: prev.includeRangeGroup,
+      includeConsecutive: prev.includeConsecutive,
+      maxConsecutiveLength: `${prev.system}`,
+      maxConsecutiveGroup: `${Math.floor(prev.system / 2)}`,
     }));
     setResetCustomGroupSignal((state) => state + 1);
     setErrorField(null);
@@ -199,6 +205,12 @@ const TotoForm = () => {
     overflow: "hidden",
   });
 
+  const consecutiveStyles = useSpring({
+    height: input.includeConsecutive ? 200 : 0,
+    opacity: input.includeConsecutive ? 1 : 0,
+    overflow: "hidden",
+  });
+
   const transitions = useTransition(result || [], {
     from: { opacity: 1, height: 360 },
     enter: { opacity: 1, height: 360 },
@@ -234,7 +246,7 @@ const TotoForm = () => {
               setInput((prev) => ({ ...prev, count: e.target.value }))
             }
             onBlur={(e) => {
-              let count = Number(e.target.value);
+              let count = Math.floor(Number(e.target.value));
               if (isNaN(count) || count < 1) {
                 count = 1;
               }
@@ -696,25 +708,134 @@ const TotoForm = () => {
           )}
         </animated.div>
 
+        <div
+          className={styles["form-group"]}
+          style={{
+            marginBottom: input.includeConsecutive ? "1.5rem" : "0.6rem",
+          }}
+        >
+          <div className={styles["checkbox-wrapper"]}>
+            <Checkbox
+              id="number-filter-check"
+              isCheck={input.includeConsecutive}
+              onCheck={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeConsecutive: !input.includeConsecutive,
+                  maxConsecutiveLength: `${input.system}`,
+                  maxConsecutiveGroup: `${Math.floor(input.system / 2)}`,
+                }))
+              }
+            />
+            <span
+              className={styles["checkbox-label"]}
+              onClick={() =>
+                setInput((prev) => ({
+                  ...prev,
+                  includeConsecutive: !input.includeConsecutive,
+                  maxConsecutiveLength: `${input.system}`,
+                  maxConsecutiveGroup: `${Math.floor(input.system / 2)}`,
+                }))
+              }
+            >
+              Include Consecutive Rule
+            </span>
+          </div>
+        </div>
+
+        <animated.div style={consecutiveStyles}>
+          {input.includeConsecutive && (
+            <>
+              <div className={styles["form-group"]}>
+                <label htmlFor="max-consecutive-length">
+                  Max Consecutive Length
+                </label>
+                <Input
+                  id="max-consecutive-length"
+                  type="number"
+                  min={1}
+                  value={input.maxConsecutiveLength}
+                  isInvalid={
+                    errorField === ERROR_FIELD_TOTO.MAX_CONSECUTIVE_LENGTH
+                  }
+                  onChange={(e) =>
+                    setInput((prev) => ({
+                      ...prev,
+                      maxConsecutiveLength: e.target.value,
+                    }))
+                  }
+                  onBlur={(e) => {
+                    let count = Math.floor(Number(e.target.value));
+                    if (isNaN(count) || count < 1) {
+                      count = 1;
+                    }
+                    e.target.value = count.toString();
+
+                    setInput((prev) => ({
+                      ...prev,
+                      maxConsecutiveLength: e.target.value,
+                    }));
+                  }}
+                />
+              </div>
+
+              <div className={styles["form-group"]}>
+                <label htmlFor="max-consecutive-group">
+                  Max Consecutive Group
+                </label>
+                <Input
+                  id="max-consecutive-group"
+                  type="number"
+                  min={0}
+                  value={input.maxConsecutiveGroup}
+                  isInvalid={
+                    errorField === ERROR_FIELD_TOTO.MAX_CONSECUTIVE_GROUP
+                  }
+                  onChange={(e) =>
+                    setInput((prev) => ({
+                      ...prev,
+                      maxConsecutiveGroup: e.target.value,
+                    }))
+                  }
+                  onBlur={(e) => {
+                    let count = Math.floor(Number(e.target.value));
+                    if (e.target.value === "" || isNaN(count) || count < 0) {
+                      count = 0;
+                    }
+                    e.target.value = count.toString();
+
+                    setInput((prev) => ({
+                      ...prev,
+                      maxConsecutiveGroup: e.target.value,
+                    }));
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </animated.div>
+
         <p className={styles["error"]}>{errorMessage}</p>
       </div>
 
-      <div className={styles["form-btn"]}>
-        <Button
-          className={styles["reset-btn"]}
-          type="reset"
-          tabIndex={-1}
-          onClick={handleReset}
-        >
-          Reset
-        </Button>
-        <Button
-          className={styles["submit-btn"]}
-          type="submit"
-          disabled={isGenerating}
-        >
-          Generate
-        </Button>
+      <div className={styles["form-btn-2"]}>
+        <div className={styles["form-btn"]}>
+          <Button
+            className={styles["reset-btn"]}
+            type="reset"
+            tabIndex={-1}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
+          <Button
+            className={styles["submit-btn"]}
+            type="submit"
+            disabled={isGenerating}
+          >
+            Generate
+          </Button>
+        </div>
       </div>
 
       <div ref={resultRef}>
