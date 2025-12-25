@@ -214,7 +214,6 @@ export const calculateResult = (
   if (quantity.isNaN() || !quantity.isFinite()) {
     quantity = mathBigNum.bignumber(0);
   }
-  console.log(quantity.toString());
 
   switch (input.unitType) {
     case UnitType.FRACTIONAL:

@@ -4,7 +4,30 @@ import {
   extractRangeInput,
   generateCombinations,
 } from "./utils";
-import { validateTotoInput } from "./validation/validation";
+import { validateTotoInput } from "./validation";
+
+// Mock the global Worker constructor
+beforeAll(() => {
+  global.Worker = class MockWorker {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      console.log("Mock Worker created with URL:", url.toString());
+      this.url = url;
+      this.options = options;
+    }
+
+    url: string | URL;
+    options?: WorkerOptions;
+
+    postMessage = jest.fn();
+    addEventListener = jest.fn();
+    removeEventListener = jest.fn();
+    terminate = jest.fn();
+  } as any;
+});
+
+afterAll(() => {
+  delete (global as any).Worker;
+});
 
 describe("calcCombination", () => {
   it.each([
@@ -34,8 +57,7 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -44,6 +66,9 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
       },
       expectedCount: 100,
     },
@@ -62,8 +87,7 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -72,6 +96,9 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
       },
       expectedCount: 1,
     },
@@ -90,8 +117,7 @@ describe("generateCombinations", () => {
         low: "",
         high: "0-3",
         includeCustomGroup: true,
-        customGroups: "46,48",
-        customCount: "1",
+        customGroups: [{ numbers: "46,48", count: "1" }],
         includeRangeGroup: true,
         rangeCount10: "",
         rangeCount20: "",
@@ -100,6 +126,9 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
       },
       expectedCount: 1,
     },
@@ -118,8 +147,7 @@ describe("generateCombinations", () => {
         low: "3",
         high: "3",
         includeCustomGroup: true,
-        customGroups: "23,24,25,31,32,33,34",
-        customCount: "2",
+        customGroups: [{ numbers: "23,24,25,31,32,33,34", count: "2" }],
         includeRangeGroup: true,
         rangeCount10: "",
         rangeCount20: "",
@@ -128,6 +156,9 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
       },
       expectedCount: 100,
     },
@@ -146,8 +177,9 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: true,
-        customGroups: "1,2,3,4,5,6,7,9,10,11,13,15,17,19,21,23",
-        customCount: "2",
+        customGroups: [
+          { numbers: "1,2,3,4,5,6,7,9,10,11,13,15,17,19,21,23", count: "2" },
+        ],
         includeRangeGroup: false,
         rangeCount10: "",
         rangeCount20: "",
@@ -156,6 +188,9 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
       },
       expectedCount: 100,
     },
@@ -174,8 +209,7 @@ describe("generateCombinations", () => {
         low: "",
         high: "",
         includeCustomGroup: false,
-        customGroups: "",
-        customCount: "",
+        customGroups: [],
         includeRangeGroup: true,
         rangeCount10: "1",
         rangeCount20: "1",
@@ -184,6 +218,49 @@ describe("generateCombinations", () => {
         rangeCount50: "",
         rangeCount60: "",
         rangeCount70: "",
+        includeConsecutive: false,
+        maxConsecutiveLength: "",
+        maxConsecutiveGroup: "",
+      },
+      expectedCount: 100,
+    },
+    {
+      input: {
+        count: "100",
+        system: 6,
+        numberRange: TOTO_RANGE.FOURTY_NINE,
+        includeNumberFilter: true,
+        mustIncludes: "",
+        mustExcludes: "",
+        includeOddEven: false,
+        odd: "",
+        even: "",
+        includeLowHigh: false,
+        low: "",
+        high: "",
+        includeCustomGroup: true,
+        customGroups: [
+          {
+            numbers:
+              "1,3,4,7,16,17,18,20,21,23,25,26,27,28,29,30,32,33,39,40,41,42,44,48,49",
+            count: "0-3",
+          },
+          {
+            numbers: "2,6,8,10,13,15,19,22,24,31,34,35,43",
+            count: "1-4",
+          },
+        ],
+        includeRangeGroup: true,
+        rangeCount10: "0-3,!2",
+        rangeCount20: "0-3",
+        rangeCount30: "0-3",
+        rangeCount40: "0-3",
+        rangeCount50: "0-2",
+        rangeCount60: "",
+        rangeCount70: "",
+        includeConsecutive: true,
+        maxConsecutiveLength: "2",
+        maxConsecutiveGroup: "1",
       },
       expectedCount: 100,
     },
@@ -191,7 +268,7 @@ describe("generateCombinations", () => {
     const { err } = validateTotoInput(input);
     expect(err).toBe("");
 
-    const results = await generateCombinations(input);
+    const results = await generateCombinations(input, false);
     expect(results.combinations.length).toBe(expectedCount);
 
     for (const result of results.combinations) {
@@ -203,10 +280,10 @@ describe("generateCombinations", () => {
       expect(odd + even).toBe(input.system);
       const oddRange = extractRangeInput(input.odd, input.system);
       const evenRange = extractRangeInput(input.even, input.system);
-      expect(odd).toBeGreaterThanOrEqual(oddRange.min);
-      expect(odd).toBeLessThanOrEqual(oddRange.max);
-      expect(even).toBeGreaterThanOrEqual(evenRange.min);
-      expect(even).toBeLessThanOrEqual(evenRange.max);
+      expect(odd).toBeGreaterThanOrEqual(oddRange.value.min);
+      expect(odd).toBeLessThanOrEqual(oddRange.value.max);
+      expect(even).toBeGreaterThanOrEqual(evenRange.value.min);
+      expect(even).toBeLessThanOrEqual(evenRange.value.max);
 
       // verify low/high setting
       const lowHighParts = result.lowHigh.split("/");
@@ -216,10 +293,10 @@ describe("generateCombinations", () => {
       expect(low + high).toBe(input.system);
       const lowRange = extractRangeInput(input.low, input.system);
       const highRange = extractRangeInput(input.high, input.system);
-      expect(low).toBeGreaterThanOrEqual(lowRange.min);
-      expect(low).toBeLessThanOrEqual(lowRange.max);
-      expect(high).toBeGreaterThanOrEqual(highRange.min);
-      expect(high).toBeLessThanOrEqual(highRange.max);
+      expect(low).toBeGreaterThanOrEqual(lowRange.value.min);
+      expect(low).toBeLessThanOrEqual(lowRange.value.max);
+      expect(high).toBeGreaterThanOrEqual(highRange.value.min);
+      expect(high).toBeLessThanOrEqual(highRange.value.max);
 
       // convert combination into a set
       const selectedPool = new Set<number>();
@@ -247,46 +324,73 @@ describe("generateCombinations", () => {
       expect(mustExcludes.every((n) => !selectedPool.has(n))).toBe(true);
 
       // verify custom group setting
-      let customCount = 0;
-      const customGroups = input.customGroups.split(",");
-      for (const val of customGroups) {
-        if (val === "") {
-          continue;
+      for (let i = 0; i < input.customGroups.length; i++) {
+        let customCount = 0;
+        const customGroups = input.customGroups[i].numbers.split(",");
+        for (const val of customGroups) {
+          if (val === "") {
+            continue;
+          }
+          const n = Number(val);
+          if (selectedPool.has(n)) customCount++;
         }
-        const n = Number(val);
-        if (selectedPool.has(n)) customCount++;
+        const customCountRange = extractRangeInput(
+          input.customGroups[i].count,
+          input.system
+        );
+        expect(customCount).toBeGreaterThanOrEqual(customCountRange.value.min);
+        expect(customCount).toBeLessThanOrEqual(customCountRange.value.max);
       }
-      const customCountRange = extractRangeInput(
-        input.customCount,
-        input.system
-      );
-      expect(customCount).toBeGreaterThanOrEqual(customCountRange.min);
-      expect(customCount).toBeLessThanOrEqual(customCountRange.max);
 
       // verify range group count
       for (const group of result.outputGroups) {
-        let rangeValue: RangeValue = { min: 0, max: input.system };
+        let rangeValue: RangeValue = {
+          min: 0,
+          max: input.system,
+          excludes: [],
+        };
         switch (group.name) {
           case "1-10":
-            rangeValue = extractRangeInput(input.rangeCount10, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount10,
+              input.system
+            ).value;
             break;
           case "11-20":
-            rangeValue = extractRangeInput(input.rangeCount20, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount20,
+              input.system
+            ).value;
             break;
           case "21-30":
-            rangeValue = extractRangeInput(input.rangeCount30, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount30,
+              input.system
+            ).value;
             break;
           case "31-40":
-            rangeValue = extractRangeInput(input.rangeCount40, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount40,
+              input.system
+            ).value;
             break;
           case "41-50":
-            rangeValue = extractRangeInput(input.rangeCount50, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount50,
+              input.system
+            ).value;
             break;
           case "51-60":
-            rangeValue = extractRangeInput(input.rangeCount60, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount60,
+              input.system
+            ).value;
             break;
           case "61-70":
-            rangeValue = extractRangeInput(input.rangeCount70, input.system);
+            rangeValue = extractRangeInput(
+              input.rangeCount70,
+              input.system
+            ).value;
             break;
         }
 
