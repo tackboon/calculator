@@ -148,10 +148,7 @@ export const calculateResult = (
   // Parse inputs
   const portfolioCapital = parseBigNumberFromString(input.portfolioCapital);
   const maxPortfolioRisk = parseBigNumberFromString(input.maxPortfolioRisk);
-  const maxLoss = multiplyBig(
-    portfolioCapital,
-    divideBig(maxPortfolioRisk, 100)
-  );
+  let maxLoss = multiplyBig(portfolioCapital, divideBig(maxPortfolioRisk, 100));
   const entryPrice = parseBigNumberFromString(input.entryPrice);
   const stopLoss = parseBigNumberFromString(input.stopLoss);
   const profitGoal = parseBigNumberFromString(input.profitGoal);
@@ -162,13 +159,14 @@ export const calculateResult = (
   slippageRate = divideBig(slippageRate, 100);
 
   // Calculate stop price
+  let stopRate = mathBigNum.bignumber(0);
   let stopPrice = mathBigNum.bignumber(0);
   let stopPercent = mathBigNum.bignumber(0);
   if (input.stopLossTyp === StopLossTyp.PRICED_BASED) {
     stopPrice = stopLoss;
     if (!mathBigNum.equal(entryPrice, 0)) {
       // stopPercent = (Math.abs(entryPrice - stopLoss) / entryPrice) * 100
-      const stopRate = divideBig(
+      stopRate = divideBig(
         mathBigNum.abs(subtractBig(entryPrice, stopLoss)),
         entryPrice
       );
@@ -181,9 +179,11 @@ export const calculateResult = (
         entryPrice * (1 - stopPercent / 100):
         entryPrice * (1 + stopPercent / 100)
     */
-    let stopRate = divideBig(stopLoss, 100);
-    stopRate = input.isLong ? subtractBig(1, stopRate) : addBig(1, stopRate);
-    stopPrice = multiplyBig(entryPrice, stopRate);
+    stopRate = divideBig(stopLoss, 100);
+    const newStopRate = input.isLong
+      ? subtractBig(1, stopRate)
+      : addBig(1, stopRate);
+    stopPrice = multiplyBig(entryPrice, newStopRate);
     stopPrice = input.isLong
       ? mathBigNum.ceil(stopPrice, 5)
       : mathBigNum.floor(stopPrice, 5);
@@ -199,6 +199,9 @@ export const calculateResult = (
       stopPercent = mathBigNum.round(stopPercent, input.precision);
     }
   }
+
+  // Adjust max loss to prevent entry amount exceed portfolio capital
+  maxLoss = mathBigNum.min(maxLoss, multiplyBig(portfolioCapital, stopRate));
 
   // Calculate quantity
   let quantityStr = "";
