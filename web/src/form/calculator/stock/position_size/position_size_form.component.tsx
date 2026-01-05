@@ -33,6 +33,7 @@ import {
 const DEFAULT_INPUT: PositionSizeInputType = {
   portfolioCapital: "0",
   maxPortfolioRisk: "0",
+  maxEntryAmount: "0",
   entryPrice: "0",
   unitType: UnitType.UNIT,
   stopLoss: "0",
@@ -74,6 +75,7 @@ const PositionSizeForm = () => {
           ...prev,
           portfolioCapital: data.portfolioCapital,
           maxPortfolioRisk: data.maxPortfolioRisk,
+          maxEntryAmount: data.maxEntryAmount,
           unitType: data.unitType,
           stopLossTyp: data.stopLossTyp,
           includeProfitGoal: data.includeProfitGoal,
@@ -95,6 +97,7 @@ const PositionSizeForm = () => {
     saveStockPositionSize({
       portfolioCapital: input.portfolioCapital,
       maxPortfolioRisk: input.maxPortfolioRisk,
+      maxEntryAmount: input.maxEntryAmount,
       unitType: input.unitType,
       stopLossTyp: input.stopLossTyp,
       includeProfitGoal: input.includeProfitGoal,
@@ -221,6 +224,23 @@ const PositionSizeForm = () => {
             value={input.maxPortfolioRisk}
             onChangeHandler={(val) =>
               setInput((prev) => ({ ...prev, maxPortfolioRisk: val }))
+            }
+          />
+        </div>
+
+        <div className={styles["form-group"]}>
+          <label htmlFor="max-entry-amt">Max Entry Amount</label>
+          <NumberInput
+            id="max-entry-amt"
+            minDecimalPlace={2}
+            maxDecimalPlace={5}
+            preUnit="$"
+            isInvalid={
+              errorField === ERROR_FIELD_POSITION_SIZE.MAX_ENTRY_AMOUNT
+            }
+            value={input.maxEntryAmount}
+            onChangeHandler={(val) =>
+              setInput((prev) => ({ ...prev, maxEntryAmount: val }))
             }
           />
         </div>

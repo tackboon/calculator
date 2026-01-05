@@ -14,6 +14,7 @@ import {
 export type StockPositionSizePreload = {
   portfolioCapital: string;
   maxPortfolioRisk: string;
+  maxEntryAmount: string;
   unitType: UnitType;
   stopLossTyp: StopLossTyp;
   includeProfitGoal: boolean;

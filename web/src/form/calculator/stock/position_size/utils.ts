@@ -43,6 +43,13 @@ export const validatePositionSizeInput = (
     };
   }
 
+  if (!checkMinMax(input.maxEntryAmount, { min: 0, maxOrEqual: QUINTILLION })) {
+    return {
+      err: "Please enter a valid maximum entry amount.",
+      field: ERROR_FIELD_POSITION_SIZE.MAX_ENTRY_AMOUNT,
+    };
+  }
+
   if (!checkMinMax(input.entryPrice, { min: 0, maxOrEqual: QUADRILLION })) {
     return {
       err: "Please enter a valid open price.",
@@ -147,6 +154,7 @@ export const calculateResult = (
 ): PositionSizeResultType => {
   // Parse inputs
   const portfolioCapital = parseBigNumberFromString(input.portfolioCapital);
+  const maxEntryAmount = parseBigNumberFromString(input.maxEntryAmount);
   const maxPortfolioRisk = parseBigNumberFromString(input.maxPortfolioRisk);
   let maxLoss = multiplyBig(portfolioCapital, divideBig(maxPortfolioRisk, 100));
   const entryPrice = parseBigNumberFromString(input.entryPrice);
@@ -201,7 +209,7 @@ export const calculateResult = (
   }
 
   // Adjust max loss to prevent entry amount exceed portfolio capital
-  maxLoss = mathBigNum.min(maxLoss, multiplyBig(portfolioCapital, stopRate));
+  maxLoss = mathBigNum.min(maxLoss, multiplyBig(maxEntryAmount, stopRate));
 
   // Calculate quantity
   let quantityStr = "";

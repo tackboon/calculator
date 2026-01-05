@@ -24,6 +24,7 @@ export enum ProfitGoalUnit {
 export type PositionSizeInputType = {
   portfolioCapital: string;
   maxPortfolioRisk: string;
+  maxEntryAmount: string;
   entryPrice: string;
   unitType: UnitType;
   stopLoss: string;
@@ -44,6 +45,7 @@ export type PositionSizeInputType = {
 export enum ERROR_FIELD_POSITION_SIZE {
   PORTFOLIO_CAPITAL,
   MAX_PORTFOLIO_RISK,
+  MAX_ENTRY_AMOUNT,
   STOP_LOSS,
   PROFIT_TARGET,
   ENTRY_PRICE,
