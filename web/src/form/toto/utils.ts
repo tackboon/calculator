@@ -15,7 +15,7 @@ import { createWorker } from "./worker_factory";
 
 export const getRangeGroupHeight = (
   includeRangeGroup: boolean,
-  rangeTyp: number
+  rangeTyp: number,
 ) => {
   if (!includeRangeGroup) return 0;
   if (rangeTyp === 5) return 490;
@@ -25,7 +25,7 @@ export const getRangeGroupHeight = (
 
 export const extractRangeInput = (
   input: string,
-  defaultMax: number
+  defaultMax: number,
 ): { value: RangeValue; isValid: boolean } => {
   const excludes: number[] = [];
   const value = { min: 0, max: defaultMax, excludes };
@@ -126,7 +126,7 @@ export const initTotoPool = (): TotoPools => {
 const addNumberToRangeGroup = (
   pools: TotoPools,
   key: keyof TotoSetPools,
-  num: number
+  num: number,
 ) => {
   if (num <= 10) {
     pools.range10Pools[key].add(num);
@@ -366,7 +366,7 @@ export const verifyCombination = (
   selectedMaxConsecutiveLength: number,
   maxConsecutiveLength: number,
   selectedConsecutiveGroup: number,
-  maxConsecutiveGroup: number
+  maxConsecutiveGroup: number,
 ): boolean => {
   // ensure the combination size is correct
   if (combinationSize !== system) return false;
@@ -441,7 +441,7 @@ export const verifyCombination = (
 
 export const generateCombinations = async (
   input: TotoInputType,
-  isBrowser: boolean
+  isBrowser: boolean,
 ): Promise<{ combinations: TotoCombination[]; count: number | null }> => {
   // Read params
   const count = Number(input.count);
@@ -473,7 +473,7 @@ export const generateCombinations = async (
     const out = analyseData(
       selectedPool.allPools.allPools,
       sortedCombination.join(" "),
-      rangeInfo
+      rangeInfo,
     );
     combinations.push(out);
 
@@ -515,15 +515,19 @@ export const generateCombinations = async (
       // Adjust custom group setting
       customCount.value.max = Math.min(
         customPool.allPools.allPools.size,
-        Math.min(customCount.value.max, remainingSlot)
+        Math.min(customCount.value.max, remainingSlot),
       );
       customCount.value.min = Math.max(
         customCount.value.min,
         remainingSlot -
           (availablePool.allPools.allPools.size -
-            customPool.allPools.allPools.size)
+            customPool.allPools.allPools.size),
       );
       customCounts.push(customCount.value);
+
+      if (customCount.value.min > customCount.value.max) {
+        return { combinations: [], count: 0 };
+      }
     }
   }
 
@@ -537,6 +541,10 @@ export const generateCombinations = async (
   even.value.min = Math.max(even.value.min, input.system - odd.value.max);
   even.value.max = Math.min(even.value.max, input.system - odd.value.min);
 
+  if (odd.value.min > odd.value.max || even.value.min > even.value.max) {
+    return { combinations: [], count: 0 };
+  }
+
   // Read low/high setting
   const low = extractRangeInput(input.low, input.system);
   const high = extractRangeInput(input.high, input.system);
@@ -547,6 +555,10 @@ export const generateCombinations = async (
   high.value.min = Math.max(high.value.min, input.system - low.value.max);
   high.value.max = Math.min(high.value.max, input.system - low.value.min);
 
+  if (low.value.min > low.value.max || high.value.min > high.value.max) {
+    return { combinations: [], count: 0 };
+  }
+
   // Read range group settings
   let minRangeSum = 0;
   let maxRangeSum = 0;
@@ -555,7 +567,7 @@ export const generateCombinations = async (
     // validate range group fields
     const rangeInput = extractRangeInput(
       input[TotoRangeInputKeys[i]],
-      input.system
+      input.system,
     );
     rangeValues.push(rangeInput.value);
 
@@ -564,27 +576,35 @@ export const generateCombinations = async (
     maxRangeSum += rangeInput.value.max;
   }
 
+  if (minRangeSum > input.system || minRangeSum > maxRangeSum) {
+    return { combinations: [], count: 0 };
+  }
+
   // Adjust range group count
   for (const [idx, rangeValue] of rangeValues.entries()) {
     const minSumExcludingGroup = Math.max(
       input.system - rangeValue.max,
-      minRangeSum - rangeValue.min
+      minRangeSum - rangeValue.min,
     );
     const maxSumExcludingGroup = Math.min(
       input.system - rangeValue.min,
-      maxRangeSum - rangeValue.max
+      maxRangeSum - rangeValue.max,
     );
 
     // adjust range value
     rangeValue.min = Math.max(
       rangeValue.min,
-      input.system - maxSumExcludingGroup
+      input.system - maxSumExcludingGroup,
     );
     rangeValue.max = Math.min(
       rangeValue.max,
-      input.system - minSumExcludingGroup
+      input.system - minSumExcludingGroup,
     );
     rangeValues[idx] = rangeValue;
+
+    if (rangeValue.min > rangeValue.max) {
+      return { combinations: [], count: 0 };
+    }
   }
 
   // Read consecutive setting
@@ -610,12 +630,12 @@ export const generateCombinations = async (
       availablePool,
       selectedPool,
       maxConsecutiveLength,
-      maxConsecutiveGroup
+      maxConsecutiveGroup,
     );
   }
 
   if (possibleCombination === 0 && isBrowser) {
-    return { combinations: [], count: possibleCombination };
+    return { combinations: [], count: 0 };
   }
 
   // Generate combinations
@@ -642,7 +662,7 @@ export const generateCombinations = async (
       even.value,
       low.value,
       high.value,
-      rangeValues
+      rangeValues,
     );
 
     // analyse result and write to the output list
@@ -706,7 +726,7 @@ export const generateCombinations = async (
           selectedMaxConsecutiveLength,
           maxConsecutiveLength,
           selectedConsecutiveGroup,
-          maxConsecutiveGroup
+          maxConsecutiveGroup,
         )
       )
         continue;
@@ -734,7 +754,7 @@ const generateCombination = (
   even: RangeValue,
   low: RangeValue,
   high: RangeValue,
-  rangeValues: RangeValue[]
+  rangeValues: RangeValue[],
 ): Set<number> => {
   const selectedCustomCounts = new Array<number>(customCounts.length).fill(0);
   for (let i = 0; i < remainingSlot; i++) {
@@ -747,7 +767,7 @@ const generateCombination = (
     for (const [idx, customCount] of customCounts.entries()) {
       const requiredCustomCount = Math.max(
         0,
-        customCount.min - selectedCustomCounts[idx]
+        customCount.min - selectedCustomCounts[idx],
       );
       if (
         requiredCustomCount > 0 &&
@@ -760,7 +780,7 @@ const generateCombination = (
       // Remove unnessary custom numbers
       const remainingCustomCount = Math.min(
         customCount.max - selectedCustomCounts[idx],
-        customPools[idx].allPools.allPools.size
+        customPools[idx].allPools.allPools.size,
       );
       if (remainingCustomCount === 0) {
         for (const num of customPools[idx].allPools.allPools) {
@@ -773,37 +793,37 @@ const generateCombination = (
     // Calculate the remaining and required odd/even numbers
     const remainingOddCount = Math.max(
       0,
-      odd.max - selectedPool.allPools.oddPools.size
+      odd.max - selectedPool.allPools.oddPools.size,
     );
     const requiredOddCount = Math.max(
       0,
-      odd.min - selectedPool.allPools.oddPools.size
+      odd.min - selectedPool.allPools.oddPools.size,
     );
     const remainingEvenCount = Math.max(
       0,
-      even.max - selectedPool.allPools.evenPools.size
+      even.max - selectedPool.allPools.evenPools.size,
     );
     const requiredEvenCount = Math.max(
       0,
-      even.min - selectedPool.allPools.evenPools.size
+      even.min - selectedPool.allPools.evenPools.size,
     );
 
     // Caculate the remaining and required low/high numbers
     const remainingLowCount = Math.max(
       0,
-      low.max - selectedPool.allPools.lowPools.size
+      low.max - selectedPool.allPools.lowPools.size,
     );
     const requiredLowCount = Math.max(
       0,
-      low.min - selectedPool.allPools.lowPools.size
+      low.min - selectedPool.allPools.lowPools.size,
     );
     const remainingHighCount = Math.max(
       0,
-      high.max - selectedPool.allPools.highPools.size
+      high.max - selectedPool.allPools.highPools.size,
     );
     const requiredHighCount = Math.max(
       0,
-      high.min - selectedPool.allPools.highPools.size
+      high.min - selectedPool.allPools.highPools.size,
     );
 
     // Calculate remaining and required numbers in each range group
@@ -817,7 +837,7 @@ const generateCombination = (
       // Calculate remaining numbers in each range group
       const remainingRangeCount = Math.max(
         0,
-        rangeValue.max - selectedPool[TotoPoolKeys[idx]].allPools.size
+        rangeValue.max - selectedPool[TotoPoolKeys[idx]].allPools.size,
       );
       remainingRangeCounts.push(remainingRangeCount);
 
@@ -834,35 +854,35 @@ const generateCombination = (
       // Calculate required numbers in each range group
       const requiredRangeCount = Math.max(
         0,
-        rangeValue.min - selectedPool[TotoPoolKeys[idx]].allPools.size
+        rangeValue.min - selectedPool[TotoPoolKeys[idx]].allPools.size,
       );
       requiredRangeCounts.push(requiredRangeCount);
 
       // Calculate available odd count in range group
       const availRangeOddCount = Math.min(
         rangeValue.max,
-        availablePool[TotoPoolKeys[idx]].oddPools.size
+        availablePool[TotoPoolKeys[idx]].oddPools.size,
       );
       totalAvailRangeOddCount += availRangeOddCount;
 
       // Calculate available even count in range group
       const availRangeEvenCount = Math.min(
         rangeValue.max,
-        availablePool[TotoPoolKeys[idx]].evenPools.size
+        availablePool[TotoPoolKeys[idx]].evenPools.size,
       );
       totalAvailRangeEvenCount += availRangeEvenCount;
 
       // Calculate available low count in range group
       const availRangeLowCount = Math.min(
         rangeValue.max,
-        availablePool[TotoPoolKeys[idx]].lowPools.size
+        availablePool[TotoPoolKeys[idx]].lowPools.size,
       );
       totalAvailRangeLowCount += availRangeLowCount;
 
       // Calculate available high count in range group
       const availRangeHighCount = Math.min(
         rangeValue.max,
-        availablePool[TotoPoolKeys[idx]].highPools.size
+        availablePool[TotoPoolKeys[idx]].highPools.size,
       );
       totalAvailRangeHighCount += availRangeHighCount;
     }
@@ -881,7 +901,7 @@ const generateCombination = (
           0,
           requiredRangeCounts[j] -
             (availablePool[TotoPoolKeys[j]].allPools.size -
-              poolGroup[TotoPoolKeys[j]].allPools.size)
+              poolGroup[TotoPoolKeys[j]].allPools.size),
         );
         if (
           requiredCustomRangeCount > 0 &&
@@ -914,28 +934,28 @@ const generateCombination = (
         ? Math.min(totalAvailRangeOddCount, poolGroup.allPools.oddPools.size)
         : Math.min(
             rangeValues[selectedRangeGroupIdx].max,
-            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].oddPools.size
+            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].oddPools.size,
           );
     const poolAvailEvenCount =
       selectedRangeGroupIdx === undefined
         ? Math.min(totalAvailRangeEvenCount, poolGroup.allPools.evenPools.size)
         : Math.min(
             rangeValues[selectedRangeGroupIdx].max,
-            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].evenPools.size
+            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].evenPools.size,
           );
 
     let requiredPoolOddCount = 0;
     if (poolAvailOddCount > 0) {
       requiredPoolOddCount = Math.max(
         0,
-        requiredOddCount - (totalAvailRangeOddCount - poolAvailOddCount)
+        requiredOddCount - (totalAvailRangeOddCount - poolAvailOddCount),
       );
     }
     let requiredPoolEvenCount = 0;
     if (poolAvailEvenCount > 0) {
       requiredPoolEvenCount = Math.max(
         0,
-        requiredEvenCount - (totalAvailRangeEvenCount - poolAvailEvenCount)
+        requiredEvenCount - (totalAvailRangeEvenCount - poolAvailEvenCount),
       );
     }
 
@@ -960,28 +980,28 @@ const generateCombination = (
         ? Math.min(totalAvailRangeLowCount, poolGroup.allPools.lowPools.size)
         : Math.min(
             rangeValues[selectedRangeGroupIdx].max,
-            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].lowPools.size
+            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].lowPools.size,
           );
     const poolAvailHighCount =
       selectedRangeGroupIdx === undefined
         ? Math.min(totalAvailRangeHighCount, poolGroup.allPools.highPools.size)
         : Math.min(
             rangeValues[selectedRangeGroupIdx].max,
-            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].highPools.size
+            poolGroup[TotoPoolKeys[selectedRangeGroupIdx]].highPools.size,
           );
 
     let requiredPoolLowCount = 0;
     if (poolAvailLowCount > 0) {
       requiredPoolLowCount = Math.max(
         0,
-        requiredLowCount - (totalAvailRangeLowCount - poolAvailLowCount)
+        requiredLowCount - (totalAvailRangeLowCount - poolAvailLowCount),
       );
     }
     let requiredPoolHighCount = 0;
     if (poolAvailHighCount > 0) {
       requiredPoolHighCount = Math.max(
         0,
-        requiredHighCount - (totalAvailRangeHighCount - poolAvailHighCount)
+        requiredHighCount - (totalAvailRangeHighCount - poolAvailHighCount),
       );
     }
 
@@ -1027,7 +1047,7 @@ const generateCombination = (
 const randomNumber = (
   availablePool: TotoSetPools,
   oddEvenRule: string,
-  lowHighRule: string
+  lowHighRule: string,
 ) => {
   // Generate number based on bias
   let n: number | undefined;
@@ -1069,7 +1089,7 @@ const sortSet = (set: Set<number>) => {
 const analyseData = (
   combination: Set<number>,
   combinationStr: string,
-  rangeInfo: TotoRangeInfo
+  rangeInfo: TotoRangeInfo,
 ): TotoCombination => {
   const outputGroups: TotoOutputGroup[] = [];
   for (let i = 1; i <= rangeInfo.group * 10; i += 10) {
@@ -1138,7 +1158,7 @@ export const calcPossibleCombination = async (
   availablePool: TotoPools,
   selectedPool: TotoPools,
   maxConsecutiveLength: number,
-  maxConsecutiveGroup: number
+  maxConsecutiveGroup: number,
 ) => {
   let possibleCombination = 0;
 
@@ -1180,7 +1200,7 @@ export const calcPossibleCombination = async (
 
   const mustIncludeSize = Math.max(
     0,
-    selectedPool.allPools.allPools.size - (system - 6)
+    selectedPool.allPools.allPools.size - (system - 6),
   );
   const newOdd = {
     min: Math.max(0, odd.min - (system - 6)),
@@ -1254,7 +1274,7 @@ export const calcPossibleCombination = async (
           maxConsecutiveLength,
           maxConsecutiveGroup,
         });
-      })
+      }),
     );
   }
 
