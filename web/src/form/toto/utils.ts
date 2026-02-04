@@ -670,11 +670,15 @@ export const generateCombinations = async (
     const combinationStr = sortedCombination.join(" ");
     if (!combinationSet.has(combinationStr)) {
       // calculate selected custom number
-      const selectedCustomCounts = new Array<number>(customPools.length);
+      const selectedCustomCounts = new Array<number>(customPools.length).fill(
+        0,
+      );
       for (const num of combination) {
-        if (num in customPoolIdx) selectedCustomCounts[customPoolIdx[num]]++;
+        if (num in customPoolIdx) {
+          selectedCustomCounts[customPoolIdx[num]]++;
+        }
       }
-
+      
       // calculate consecutive
       let selectedConsecutiveLength = 1;
       let selectedMaxConsecutiveLength = 1;
