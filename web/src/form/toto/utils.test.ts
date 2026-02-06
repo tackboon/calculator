@@ -278,8 +278,8 @@ describe("generateCombinations", () => {
       const odd = Number(oddEvenParts[0]);
       const even = Number(oddEvenParts[1]);
       expect(odd + even).toBe(input.system);
-      const oddRange = extractRangeInput(input.odd, input.system);
-      const evenRange = extractRangeInput(input.even, input.system);
+      const oddRange = extractRangeInput(input.odd, 0, input.system);
+      const evenRange = extractRangeInput(input.even, 0, input.system);
       expect(odd).toBeGreaterThanOrEqual(oddRange.value.min);
       expect(odd).toBeLessThanOrEqual(oddRange.value.max);
       expect(even).toBeGreaterThanOrEqual(evenRange.value.min);
@@ -291,8 +291,8 @@ describe("generateCombinations", () => {
       const low = Number(lowHighParts[0]);
       const high = Number(lowHighParts[1]);
       expect(low + high).toBe(input.system);
-      const lowRange = extractRangeInput(input.low, input.system);
-      const highRange = extractRangeInput(input.high, input.system);
+      const lowRange = extractRangeInput(input.low, 0, input.system);
+      const highRange = extractRangeInput(input.high, 0, input.system);
       expect(low).toBeGreaterThanOrEqual(lowRange.value.min);
       expect(low).toBeLessThanOrEqual(lowRange.value.max);
       expect(high).toBeGreaterThanOrEqual(highRange.value.min);
@@ -336,7 +336,8 @@ describe("generateCombinations", () => {
         }
         const customCountRange = extractRangeInput(
           input.customGroups[i].count,
-          input.system
+          0,
+          input.system,
         );
         expect(customCount).toBeGreaterThanOrEqual(customCountRange.value.min);
         expect(customCount).toBeLessThanOrEqual(customCountRange.value.max);
@@ -353,43 +354,50 @@ describe("generateCombinations", () => {
           case "1-10":
             rangeValue = extractRangeInput(
               input.rangeCount10,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "11-20":
             rangeValue = extractRangeInput(
               input.rangeCount20,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "21-30":
             rangeValue = extractRangeInput(
               input.rangeCount30,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "31-40":
             rangeValue = extractRangeInput(
               input.rangeCount40,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "41-50":
             rangeValue = extractRangeInput(
               input.rangeCount50,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "51-60":
             rangeValue = extractRangeInput(
               input.rangeCount60,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
           case "61-70":
             rangeValue = extractRangeInput(
               input.rangeCount70,
-              input.system
+              0,
+              input.system,
             ).value;
             break;
         }

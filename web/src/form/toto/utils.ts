@@ -25,10 +25,11 @@ export const getRangeGroupHeight = (
 
 export const extractRangeInput = (
   input: string,
+  defaultMin: number,
   defaultMax: number,
 ): { value: RangeValue; isValid: boolean } => {
   const excludes: number[] = [];
-  const value = { min: 0, max: defaultMax, excludes };
+  const value = { min: defaultMin, max: defaultMax, excludes };
 
   if (input === "") return { value, isValid: true };
 
@@ -53,7 +54,7 @@ export const extractRangeInput = (
       value.max = Number(parts[1]);
 
       if (
-        value.min < 0 ||
+        value.min < defaultMin ||
         value.min > defaultMax ||
         value.max > defaultMax ||
         value.max < value.min
@@ -62,7 +63,7 @@ export const extractRangeInput = (
     } else if (/^\d+$/.test(val)) {
       // check digit format
       const num = Number(val);
-      if (commaParts.length > 1 || num < 0 || num > defaultMax)
+      if (commaParts.length > 1 || num < defaultMin || num > defaultMax)
         return { value, isValid: false };
 
       return { value: { min: num, max: num, excludes }, isValid: true };
@@ -364,9 +365,9 @@ export const verifyCombination = (
   selectedRangeGroups: number[],
   rangeValues: RangeValue[],
   selectedMaxConsecutiveLength: number,
-  maxConsecutiveLength: number,
+  maxConsecutiveLength: RangeValue,
   selectedConsecutiveGroup: number,
-  maxConsecutiveGroup: number,
+  maxConsecutiveGroup: RangeValue,
 ): boolean => {
   // ensure the combination size is correct
   if (combinationSize !== system) return false;
@@ -431,10 +432,19 @@ export const verifyCombination = (
 
   // ensure consecutive rules are matched
   if (
-    selectedMaxConsecutiveLength > maxConsecutiveLength ||
-    selectedConsecutiveGroup > maxConsecutiveGroup
+    selectedMaxConsecutiveLength < maxConsecutiveLength.min ||
+    selectedMaxConsecutiveLength > maxConsecutiveLength.max ||
+    selectedConsecutiveGroup < maxConsecutiveGroup.min ||
+    selectedConsecutiveGroup > maxConsecutiveGroup.max
   )
     return false;
+
+  for (const exclude of maxConsecutiveLength.excludes) {
+    if (selectedMaxConsecutiveLength === exclude) return false;
+  }
+  for (const exclude of maxConsecutiveGroup.excludes) {
+    if (selectedConsecutiveGroup === exclude) return false;
+  }
 
   return true;
 };
@@ -471,7 +481,7 @@ export const generateCombinations = async (
   if (selectedPool.allPools.allPools.size === input.system) {
     const sortedCombination = sortSet(selectedPool.allPools.allPools);
     const out = analyseData(
-      selectedPool.allPools.allPools,
+      sortedCombination,
       sortedCombination.join(" "),
       rangeInfo,
     );
@@ -499,7 +509,7 @@ export const generateCombinations = async (
   const customPoolIdx: Record<number, number> = {};
   if (input.includeCustomGroup) {
     for (const [idx, customGroup] of input.customGroups.entries()) {
-      const customCount = extractRangeInput(customGroup.count, input.system);
+      const customCount = extractRangeInput(customGroup.count, 0, input.system);
       const customPool = initTotoPool();
       const parts = customGroup.numbers.split(",");
       for (const val of parts) {
@@ -532,8 +542,8 @@ export const generateCombinations = async (
   }
 
   // Read odd/even setting
-  const odd = extractRangeInput(input.odd, input.system);
-  const even = extractRangeInput(input.even, input.system);
+  const odd = extractRangeInput(input.odd, 0, input.system);
+  const even = extractRangeInput(input.even, 0, input.system);
 
   // Adjust odd/even count
   odd.value.min = Math.max(odd.value.min, input.system - even.value.max);
@@ -546,8 +556,8 @@ export const generateCombinations = async (
   }
 
   // Read low/high setting
-  const low = extractRangeInput(input.low, input.system);
-  const high = extractRangeInput(input.high, input.system);
+  const low = extractRangeInput(input.low, 0, input.system);
+  const high = extractRangeInput(input.high, 0, input.system);
 
   // Adjust low/high count
   low.value.min = Math.max(low.value.min, input.system - high.value.max);
@@ -567,6 +577,7 @@ export const generateCombinations = async (
     // validate range group fields
     const rangeInput = extractRangeInput(
       input[TotoRangeInputKeys[i]],
+      0,
       input.system,
     );
     rangeValues.push(rangeInput.value);
@@ -608,12 +619,16 @@ export const generateCombinations = async (
   }
 
   // Read consecutive setting
-  let maxConsecutiveLength = input.system;
-  let maxConsecutiveGroup = Math.floor(input.system / 2);
-  if (input.includeConsecutive) {
-    maxConsecutiveLength = Number(input.maxConsecutiveLength);
-    maxConsecutiveGroup = Number(input.maxConsecutiveGroup);
-  }
+  const maxConsecutiveLength = extractRangeInput(
+    input.maxConsecutiveLength,
+    1,
+    input.system,
+  );
+  const maxConsecutiveGroup = extractRangeInput(
+    input.maxConsecutiveGroup,
+    0,
+    Math.floor(input.system / 2),
+  );
 
   let possibleCombination = 0;
   if (isBrowser) {
@@ -629,8 +644,8 @@ export const generateCombinations = async (
       rangeValues,
       availablePool,
       selectedPool,
-      maxConsecutiveLength,
-      maxConsecutiveGroup,
+      maxConsecutiveLength.value,
+      maxConsecutiveGroup.value,
     );
   }
 
@@ -678,38 +693,8 @@ export const generateCombinations = async (
           selectedCustomCounts[customPoolIdx[num]]++;
         }
       }
-      
-      // calculate consecutive
-      let selectedConsecutiveLength = 1;
-      let selectedMaxConsecutiveLength = 1;
-      let selectedConsecutiveGroup = 0;
-      for (let k = 1; k < sortedCombination.length - 1; k++) {
-        if (sortedCombination[k] === sortedCombination[k - 1] + 1) {
-          selectedConsecutiveLength++;
-        } else {
-          if (selectedConsecutiveLength > 1) {
-            selectedConsecutiveGroup++;
-          }
-          if (selectedConsecutiveLength > selectedMaxConsecutiveLength) {
-            selectedMaxConsecutiveLength = selectedConsecutiveLength;
-          }
-          selectedConsecutiveLength = 1;
-        }
-      }
-      if (
-        sortedCombination[sortedCombination.length - 1] ===
-        sortedCombination[sortedCombination.length - 2] + 1
-      ) {
-        selectedConsecutiveLength++;
-      }
-      if (selectedConsecutiveLength > 1) {
-        selectedConsecutiveGroup++;
-      }
-      if (selectedConsecutiveLength > selectedMaxConsecutiveLength) {
-        selectedMaxConsecutiveLength = selectedConsecutiveLength;
-      }
 
-      const out = analyseData(combination, combinationStr, rangeInfo);
+      const out = analyseData(sortedCombination, combinationStr, rangeInfo);
 
       if (
         !verifyCombination(
@@ -727,10 +712,10 @@ export const generateCombinations = async (
           high.value,
           out.outputGroups.map((g) => g.count),
           rangeValues,
-          selectedMaxConsecutiveLength,
-          maxConsecutiveLength,
-          selectedConsecutiveGroup,
-          maxConsecutiveGroup,
+          out.consecutiveLength,
+          maxConsecutiveLength.value,
+          out.consecutiveGroup,
+          maxConsecutiveGroup.value,
         )
       )
         continue;
@@ -1091,7 +1076,7 @@ const sortSet = (set: Set<number>) => {
 };
 
 const analyseData = (
-  combination: Set<number>,
+  combination: number[],
   combinationStr: string,
   rangeInfo: TotoRangeInfo,
 ): TotoCombination => {
@@ -1111,7 +1096,12 @@ const analyseData = (
   let evenCount = 0;
   let lowCount = 0;
   let highCount = 0;
-  for (const n of combination) {
+  let consecutiveLength = 1;
+  let maxConsecutiveLength = 1;
+  let consecutiveGroup = 0;
+  for (let k = 0; k < combination.length; k++) {
+    const n = combination[k];
+
     sum += n;
 
     if (n % 2 === 0) evenCount++;
@@ -1129,10 +1119,38 @@ const analyseData = (
     }
 
     outputGroups[group].count++;
+
+    // calculate consecutive
+    if (k > 0 && k < combination.length - 1) {
+      if (combination[k] === combination[k - 1] + 1) {
+        consecutiveLength++;
+      } else {
+        if (consecutiveLength > 1) {
+          consecutiveGroup++;
+        }
+        if (consecutiveLength > maxConsecutiveLength) {
+          maxConsecutiveLength = consecutiveLength;
+        }
+        consecutiveLength = 1;
+      }
+    }
   }
 
-  if (combination.size > 0) {
-    average = Math.round(sum / combination.size);
+  if (
+    combination[combination.length - 1] ===
+    combination[combination.length - 2] + 1
+  ) {
+    consecutiveLength++;
+  }
+  if (consecutiveLength > 1) {
+    consecutiveGroup++;
+  }
+  if (consecutiveLength > maxConsecutiveLength) {
+    maxConsecutiveLength = consecutiveLength;
+  }
+
+  if (combination.length > 0) {
+    average = Math.round(sum / combination.length);
   }
 
   return {
@@ -1146,6 +1164,8 @@ const analyseData = (
     evenCount,
     lowCount,
     highCount,
+    consecutiveLength: maxConsecutiveLength,
+    consecutiveGroup,
   };
 };
 
@@ -1161,8 +1181,8 @@ export const calcPossibleCombination = async (
   rangeValues: RangeValue[],
   availablePool: TotoPools,
   selectedPool: TotoPools,
-  maxConsecutiveLength: number,
-  maxConsecutiveGroup: number,
+  maxConsecutiveLength: RangeValue,
+  maxConsecutiveGroup: RangeValue,
 ) => {
   let possibleCombination = 0;
 
@@ -1242,6 +1262,16 @@ export const calcPossibleCombination = async (
       excludes: val.excludes,
     });
   }
+  const newConsecutiveLength = {
+    min: Math.max(1, maxConsecutiveLength.min - (system - 6)),
+    max: maxConsecutiveLength.max,
+    excludes: maxConsecutiveLength.excludes,
+  };
+  const newConsecutiveGroup = {
+    min: Math.max(0, maxConsecutiveGroup.min - Math.floor((system - 6) / 2)),
+    max: maxConsecutiveGroup.max,
+    excludes: maxConsecutiveGroup.excludes,
+  };
 
   const countPromises: Promise<number>[] = [];
   for (let j = 0; j < chunkSize; j++) {
@@ -1275,8 +1305,8 @@ export const calcPossibleCombination = async (
           rangeBit,
           startNum,
           endNum,
-          maxConsecutiveLength,
-          maxConsecutiveGroup,
+          maxConsecutiveLength: newConsecutiveLength,
+          maxConsecutiveGroup: newConsecutiveGroup,
         });
       }),
     );

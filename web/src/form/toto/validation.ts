@@ -1,4 +1,3 @@
-import { QUADRILLION } from "../../common/number/math";
 import { checkMinMax } from "../../common/validation/calculator.validation";
 import { ERROR_FIELD_CUSTOM_GROUP } from "../../component/toto/custom_group/custom.type";
 import {
@@ -12,7 +11,7 @@ import { extractRangeInput, getRangeInfo } from "./utils";
 const validateListInput = (
   listStr: string,
   rangeInfo: TotoRangeInfo,
-  fn: (n: number) => string
+  fn: (n: number) => string,
 ): string => {
   const parts = listStr.split(",");
   for (const val of parts) {
@@ -32,9 +31,10 @@ const validateListInput = (
 
 const validateRangeCountInput = (
   countStr: string,
-  max: number
+  min: number,
+  max: number,
 ): { count: RangeValue; err: string } => {
-  const { value, isValid } = extractRangeInput(countStr, max);
+  const { value, isValid } = extractRangeInput(countStr, min, max);
   if (!isValid) {
     return { count: value, err: "Please enter a valid number or range value." };
   }
@@ -42,7 +42,7 @@ const validateRangeCountInput = (
 };
 
 export const validateTotoInput = (
-  input: TotoInputType
+  input: TotoInputType,
 ): {
   err: string;
   field: ERROR_FIELD_TOTO | null;
@@ -122,7 +122,7 @@ export const validateTotoInput = (
         }
 
         return "";
-      }
+      },
     );
     if (err !== "") {
       customFields[i] = ERROR_FIELD_CUSTOM_GROUP.NUMBERS;
@@ -136,7 +136,8 @@ export const validateTotoInput = (
     // Validate custom group count field
     const countRes = validateRangeCountInput(
       input.customGroups[i].count,
-      input.system
+      0,
+      input.system,
     );
     if (countRes.err !== "") {
       customFields[i] = ERROR_FIELD_CUSTOM_GROUP.COUNT;
@@ -150,7 +151,7 @@ export const validateTotoInput = (
 
   if (input.includeOddEven) {
     // Validate odd number count field
-    const oddRes = validateRangeCountInput(input.odd, input.system);
+    const oddRes = validateRangeCountInput(input.odd, 0, input.system);
     if (oddRes.err !== "") {
       return {
         err: oddRes.err,
@@ -160,7 +161,7 @@ export const validateTotoInput = (
     }
 
     // Validate even number count field
-    const evenRes = validateRangeCountInput(input.even, input.system);
+    const evenRes = validateRangeCountInput(input.even, 0, input.system);
     if (evenRes.err !== "") {
       return {
         err: evenRes.err,
@@ -172,7 +173,7 @@ export const validateTotoInput = (
 
   if (input.includeLowHigh) {
     // Validate low number count field
-    const lowRes = validateRangeCountInput(input.low, input.system);
+    const lowRes = validateRangeCountInput(input.low, 0, input.system);
     if (lowRes.err !== "") {
       return {
         err: lowRes.err,
@@ -182,7 +183,7 @@ export const validateTotoInput = (
     }
 
     // Validate high number count field
-    const highRes = validateRangeCountInput(input.high, input.system);
+    const highRes = validateRangeCountInput(input.high, 0, input.system);
     if (highRes.err !== "") {
       return {
         err: highRes.err,
@@ -204,7 +205,7 @@ export const validateTotoInput = (
         input.rangeCount60,
         input.rangeCount70,
       ];
-      const { err } = validateRangeCountInput(rangeCounts[i], input.system);
+      const { err } = validateRangeCountInput(rangeCounts[i], 0, input.system);
       if (err !== "")
         return { err, field: ERROR_FIELD_TOTO.RANGE_10 + i, customFields };
     }
@@ -212,25 +213,28 @@ export const validateTotoInput = (
 
   if (input.includeConsecutive) {
     // Validate max consecutive length field
-    if (
-      !checkMinMax(input.maxConsecutiveLength, { min: 1, max: QUADRILLION })
-    ) {
+    const consecutiveLengthRes = validateRangeCountInput(
+      input.maxConsecutiveLength,
+      1,
+      input.system,
+    );
+    if (consecutiveLengthRes.err !== "") {
       return {
-        err: "Please enter a valid consecutive length.",
+        err: consecutiveLengthRes.err,
         field: ERROR_FIELD_TOTO.MAX_CONSECUTIVE_LENGTH,
         customFields,
       };
     }
 
     // Validate max consecutive group field
-    if (
-      !checkMinMax(input.maxConsecutiveGroup, {
-        min: 0,
-        max: QUADRILLION,
-      })
-    ) {
+    const consecutiveGroupRes = validateRangeCountInput(
+      input.maxConsecutiveGroup,
+      0,
+      Math.floor(input.system / 2),
+    );
+    if (consecutiveGroupRes.err !== "") {
       return {
-        err: "Please enter a valid consecutive group.",
+        err: consecutiveGroupRes.err,
         field: ERROR_FIELD_TOTO.MAX_CONSECUTIVE_GROUP,
         customFields,
       };

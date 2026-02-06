@@ -75,6 +75,8 @@ export type TotoCombination = {
   evenCount: number;
   lowCount: number;
   highCount: number;
+  consecutiveLength: number;
+  consecutiveGroup: number;
 };
 
 export type TotoSetPools = {
@@ -154,6 +156,6 @@ export type WorkerInput = {
   rangeBit: number[];
   startNum: number;
   endNum: number;
-  maxConsecutiveLength: number;
-  maxConsecutiveGroup: number;
+  maxConsecutiveLength: RangeValue;
+  maxConsecutiveGroup: RangeValue;
 };

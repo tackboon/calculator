@@ -56,8 +56,8 @@ const DEFAULT_INPUT: TotoInputType = {
   rangeCount60: "",
   rangeCount70: "",
   includeConsecutive: false,
-  maxConsecutiveLength: "6",
-  maxConsecutiveGroup: "3",
+  maxConsecutiveLength: "",
+  maxConsecutiveGroup: "",
 };
 
 const TotoForm = () => {
@@ -113,7 +113,7 @@ const TotoForm = () => {
     // Handle validation
     const { err, field, customFields } = validateTotoInput(newInput);
     setErrorMessage(err);
-    setErrorField(field);
+    setErrorField(customFields === null ? field : null);
     setCustomErrors(customFields);
     if (err !== "") {
       setIsGenerating(false);
@@ -124,7 +124,7 @@ const TotoForm = () => {
       // generate combinations
       const { combinations, count } = await generateCombinations(
         newInput,
-        true
+        true,
       );
       setResult(combinations.length > 0 ? combinations : null);
       if (count === 0) toast.error("Could not generate possible combinations.");
@@ -147,8 +147,6 @@ const TotoForm = () => {
       includeCustomGroup: prev.includeCustomGroup,
       includeRangeGroup: prev.includeRangeGroup,
       includeConsecutive: prev.includeConsecutive,
-      maxConsecutiveLength: `${prev.system}`,
-      maxConsecutiveGroup: `${Math.floor(prev.system / 2)}`,
     }));
     setResetCustomGroupSignal((state) => state + 1);
     setErrorField(null);
@@ -168,11 +166,11 @@ const TotoForm = () => {
     (
       getCustomGroups: () => {
         customGroups: CustomGroupInputType[];
-      }
+      },
     ) => {
       getCustomGroupsRef.current = getCustomGroups;
     },
-    []
+    [],
   );
 
   const numberFilterStyles = useSpring({
@@ -722,8 +720,8 @@ const TotoForm = () => {
                 setInput((prev) => ({
                   ...prev,
                   includeConsecutive: !input.includeConsecutive,
-                  maxConsecutiveLength: `${input.system}`,
-                  maxConsecutiveGroup: `${Math.floor(input.system / 2)}`,
+                  maxConsecutiveLength: DEFAULT_INPUT.maxConsecutiveLength,
+                  maxConsecutiveGroup: DEFAULT_INPUT.maxConsecutiveGroup,
                 }))
               }
             />
@@ -733,8 +731,8 @@ const TotoForm = () => {
                 setInput((prev) => ({
                   ...prev,
                   includeConsecutive: !input.includeConsecutive,
-                  maxConsecutiveLength: `${input.system}`,
-                  maxConsecutiveGroup: `${Math.floor(input.system / 2)}`,
+                  maxConsecutiveLength: DEFAULT_INPUT.maxConsecutiveLength,
+                  maxConsecutiveGroup: DEFAULT_INPUT.maxConsecutiveGroup,
                 }))
               }
             >
@@ -748,67 +746,33 @@ const TotoForm = () => {
             <>
               <div className={styles["form-group"]}>
                 <label htmlFor="max-consecutive-length">
-                  Max Consecutive Length
+                  Consecutive Length
                 </label>
-                <Input
+                <RangeInput
                   id="max-consecutive-length"
-                  type="number"
-                  min={1}
-                  value={input.maxConsecutiveLength}
                   isInvalid={
                     errorField === ERROR_FIELD_TOTO.MAX_CONSECUTIVE_LENGTH
                   }
-                  onChange={(e) =>
-                    setInput((prev) => ({
-                      ...prev,
-                      maxConsecutiveLength: e.target.value,
-                    }))
+                  value={input.maxConsecutiveLength}
+                  placeholder="e.g: 1, 0-6, !2"
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, maxConsecutiveLength: val }))
                   }
-                  onBlur={(e) => {
-                    let count = Math.floor(Number(e.target.value));
-                    if (isNaN(count) || count < 1) {
-                      count = 1;
-                    }
-                    e.target.value = count.toString();
-
-                    setInput((prev) => ({
-                      ...prev,
-                      maxConsecutiveLength: e.target.value,
-                    }));
-                  }}
                 />
               </div>
 
               <div className={styles["form-group"]}>
-                <label htmlFor="max-consecutive-group">
-                  Max Consecutive Group
-                </label>
-                <Input
+                <label htmlFor="max-consecutive-group">Consecutive Group</label>
+                <RangeInput
                   id="max-consecutive-group"
-                  type="number"
-                  min={0}
-                  value={input.maxConsecutiveGroup}
                   isInvalid={
                     errorField === ERROR_FIELD_TOTO.MAX_CONSECUTIVE_GROUP
                   }
-                  onChange={(e) =>
-                    setInput((prev) => ({
-                      ...prev,
-                      maxConsecutiveGroup: e.target.value,
-                    }))
+                  value={input.maxConsecutiveGroup}
+                  placeholder="e.g: 1, 0-3, !2"
+                  onChangeHandler={(val) =>
+                    setInput((prev) => ({ ...prev, maxConsecutiveGroup: val }))
                   }
-                  onBlur={(e) => {
-                    let count = Math.floor(Number(e.target.value));
-                    if (e.target.value === "" || isNaN(count) || count < 0) {
-                      count = 0;
-                    }
-                    e.target.value = count.toString();
-
-                    setInput((prev) => ({
-                      ...prev,
-                      maxConsecutiveGroup: e.target.value,
-                    }));
-                  }}
                 />
               </div>
             </>
@@ -883,6 +847,14 @@ const TotoForm = () => {
                   <div className={styles["row"]}>
                     <div>Average:</div>
                     <div>{res.average}</div>
+                  </div>
+                  <div className={styles["row"]}>
+                    <div>Consecutive Length:</div>
+                    <div>{res.consecutiveLength}</div>
+                  </div>
+                  <div className={styles["row"]}>
+                    <div>Consecutive Group:</div>
+                    <div>{res.consecutiveGroup}</div>
                   </div>
                   <br />
                   {res.outputGroups.map((r, i) => (
