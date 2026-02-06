@@ -714,7 +714,7 @@ const TotoForm = () => {
         >
           <div className={styles["checkbox-wrapper"]}>
             <Checkbox
-              id="number-filter-check"
+              id="consecutive-filter-check"
               isCheck={input.includeConsecutive}
               onCheck={() =>
                 setInput((prev) => ({
