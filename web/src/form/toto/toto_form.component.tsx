@@ -208,8 +208,8 @@ const TotoForm = () => {
   });
 
   const transitions = useTransition(result || [], {
-    from: { opacity: 1, height: 390 },
-    enter: { opacity: 1, height: 390 },
+    from: { opacity: 1, height: 300 },
+    enter: { opacity: 1, height: 300 },
     leave: !isGenerating ? [{ opacity: 0 }, { height: 0 }] : [],
     config: { duration: 400 },
   });
