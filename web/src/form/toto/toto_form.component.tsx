@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTransition, animated, useSpring } from "@react-spring/web";
 import useMeasure from "react-use-measure";
 import toast from "react-hot-toast";
@@ -82,13 +82,6 @@ const TotoForm = () => {
   };
   const [ref, bounds] = useMeasure();
 
-  // Scroll to result after it is updated
-  useEffect(() => {
-    if (result && resultRef.current) {
-      resultRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [result, isGenerating]);
-
   // Form submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +123,11 @@ const TotoForm = () => {
       if (count === 0) toast.error("Could not generate possible combinations.");
       setPossibleCount(count);
       setIsGenerating(false);
+
+      // Scroll to result after it is updated
+      if (result && resultRef.current) {
+        resultRef.current.scrollIntoView({ behavior: "smooth" });
+      }
     })();
   };
 
@@ -210,8 +208,8 @@ const TotoForm = () => {
   });
 
   const transitions = useTransition(result || [], {
-    from: { opacity: 1, height: 360 },
-    enter: { opacity: 1, height: 360 },
+    from: { opacity: 1, height: 390 },
+    enter: { opacity: 1, height: 390 },
     leave: !isGenerating ? [{ opacity: 0 }, { height: 0 }] : [],
     config: { duration: 400 },
   });
